@@ -20,7 +20,8 @@
 			    XYSeriesCollection)
 	'(org.jfree.ui ApplicationFrame RectangleInsets 
 		       RefineryUtilities)
-	'(net.miginfocom.swing MigLayout))
+	'(net.miginfocom.swing MigLayout)
+	'(java.awt Dimension))
 
 (defn create-depth-slider [min max]
   (let [slider (new JSlider min max min)]
@@ -59,15 +60,22 @@
 	  plot (.getPlot chart)
 	  x-axis (.getDomainAxis plot)
 	  depth-slider (create-depth-slider min-depth max-depth)]
+
+      (doto plot 
+	(.setBackgroundPaint Color/white))
+
       (.addChangeListener depth-slider (create-slider-listener depth-slider x-axis))
       (doto x-axis
       (.setAutoRange false)
       (.setRange (new Range min-depth (+ min-depth 100))))
+
       (doto main-panel
-      (.add depth-slider "pushy, growy")
-      (.add chart-panel))    
+	(.setPreferredSize (new Dimension 400 700))
+	(.add depth-slider "pushy, growy")
+	(.add chart-panel "pushy, growy"))    
+
       (doto frame
-      (.add main-panel)
-      (.pack)
-      (.setVisible true))
+	(.add main-panel)
+	(.pack)
+	(.setVisible true))
       frame)))

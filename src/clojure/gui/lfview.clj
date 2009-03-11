@@ -6,6 +6,7 @@
 	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
 		      JScrollPane JButton JWindow JPanel)
 	'(javax.imageio ImageIO)
+	'(net.miginfocom.swing MigLayout)
 	'(java.awt Dimension Image))
 
 (defn- directory-to-icons [path]
@@ -23,13 +24,14 @@
 	index (first curves)
 	cmodel (new DefaultListModel)
 	clist (new JList cmodel)
-	panel (new JPanel)
+	panel (new JPanel (new MigLayout))
 	pane (new JScrollPane panel)
 	editb (new JButton "Edit")]
     (doseq [curve curves]
       (.addElement cmodel (:mnemonic curve)))
-    (.add panel clist)
-    (.add panel editb)
+    (doto panel
+      (.add clist "pushx, pushy, growx, growy, wrap")
+      (.add editb))
     (on-action editb 
 	       (let [scurves (map #(get-curve lasfile %) (.getSelectedValues clist))]
 		 (doseq [sc scurves]
