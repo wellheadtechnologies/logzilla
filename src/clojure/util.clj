@@ -40,3 +40,7 @@
 (defn find-first [pred coll]
   (first (filter pred coll)))
 
+(defn tuplize [& colls]
+  (let [n (count colls)]
+    (partition n (apply interleave colls))))
+

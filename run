@@ -1,0 +1,2 @@
+#!/bin/sh
+ant && java -cp CurveEditor.jar:$(find lib -name "*.jar" | xargs echo | sed "s/ /:/g") clojure.main

@@ -8,19 +8,26 @@
 (def next-char)
 (def drop-line)
 (def advance)
+(def input-empty)
 
 (defstruct _version-header :version :wrap)
 (defstruct _descriptor :mnemonic :unit :data :description)
-(defstruct _las-file :version_header 
-	   :well_header :curve_header 
-	   :parameter_header :las-curves)
+(defstruct _las-file :version-header 
+	   :well-header :curve-header 
+	   :parameter-header :las-curves)
 (defstruct _las_curve :descriptor :data)
 
 (defn to-num [text]
   (read-string text))
 
 (defn to-bool [text]
-  (= text "YES"))
+  (cond 
+   (= text "YES") true
+   (= text "NO") false
+   :else 
+   (throw 
+    (new RuntimeException 
+	 (str "to bool value (" text ") not recognized")))))
 
 (defn skip-leading-whitespace []
   (set! input (drop-while #(is-in white-space %) input))
@@ -28,22 +35,27 @@
     (drop-line) 
     (recur)))
 
+(defmacro save-excursion [& forms]
+  `(let [old-input# input
+	 result# (do ~@forms)]
+     (set! input old-input#)
+     result#))
+
 (defn starting-substring? [target source]
     (= (seq target) (take (count target) source)))
 
 (defn skip [target]
   (skip-leading-whitespace)
-  (if (starting-substring? target input)
-    (do
-      (set! input (drop (count target) input))
-      nil)))
+  (when (starting-substring? target input)
+    (do (set! input (drop (count target) input)) nil)))
 
 (defn skip-to [target]
   (if (starting-substring? target input)
     (do (set! input (drop (count target) input)) nil)
     (do
       (advance)
-      (recur target))))
+      (when (not (input-empty))
+	(recur target)))))
 
 (defn input-empty []
   (empty? input))
@@ -58,23 +70,21 @@
   (loop [acc ""]
     (if (or (input-empty) (starting-substring? target input))
       acc
-      (do
-	(let [nacc (str acc (next-char))]
-	  (advance)
-	  (recur nacc))))))
+      (let [nacc (str acc (next-char))]
+	(advance)
+	(recur nacc)))))
 
 (defn partition-last [target]
   (loop [acc "" prev "" last false]
     (if (input-empty)
       [(drop-last prev) (drop (count prev) acc)]
-      (do
-	(if (starting-substring? target input)
-	  (let [prev (str acc (next-char))]
-	    (advance)
-	    (recur prev prev true))
-	  (let [acc (str acc (next-char))]
-	    (advance)
-	    (recur acc prev false)))))))
+      (if (starting-substring? target input)
+	(let [prev (str acc (next-char))]
+	  (advance)
+	  (recur prev prev true))
+	(let [acc (str acc (next-char))]
+	  (advance)
+	  (recur acc prev false))))))
 
 (defn upto-last [target]
   (first (partition-last target)))
@@ -109,7 +119,8 @@
   (let [tlen (count target)]
     (loop []
       (skip-leading-whitespace)
-      (when (not (or (input-empty) (seq-eq (take tlen input) target)))
+      (when (and (not (input-empty)) 
+		 (not (seq-eq (take tlen input) target)))
 	(drop-line)
 	(recur)))))
 
@@ -182,13 +193,12 @@
 	data (las-data)
 	rows (partition n data)]
     (for [i (range n)]
-      (do
-	(assoc (nth ds i) :data (map #(nth % i) rows))))))
+      (assoc (nth ds i) :data (map #(nth % i) rows)))))
     
 (defn las-file []
-  (let [vh (version-header)
-	wh (well-header)
-	ch (curve-header)
-	ph (parameter-header)
-	lc (las-curves ch)]
+  (let [vh (save-excursion (version-header))
+	wh (save-excursion (well-header))
+	ch (save-excursion (curve-header))
+	ph (save-excursion (parameter-header))
+	lc (save-excursion (las-curves ch))]
     (struct _las-file vh wh ch ph lc)))

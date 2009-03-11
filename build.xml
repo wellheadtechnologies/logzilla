@@ -1,0 +1,64 @@
+<project name="curve-editor" default="run">
+  <property name="src" location="src" />
+  <property name="java-src" location="src/java" />
+  <property name="clj-src" location="src/clojure" />
+  <property name="build" location="build" />
+  <property name="lib" location="lib" />
+
+  <taskdef resource="scala/tools/ant/antlib.xml">
+    <classpath>
+      <pathelement location="${lib}/scala-compiler.jar" />
+      <pathelement location="${lib}/scala-library.jar" />
+    </classpath>
+  </taskdef>
+
+  <target name="init">
+    <mkdir dir="${build}" />
+  </target>
+  
+  <target name="clean">
+    <delete dir="${build}"/>
+  </target>
+  
+  <target name="build" depends="clean,init">
+    <scalac srcdir="${src}" destdir="${build}" force="changed">
+      <classpath>
+	<fileset dir="${lib}">
+	  <include name="**/*.jar" />
+	</fileset>
+      </classpath>
+      <include name="**/*.scala" />
+      <include name="**/*.java" />
+    </scalac>
+    <copy todir="${build}">
+      <fileset dir="${clj-src}">
+	<include name="**/*.clj"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="jar" depends="build">
+    <jar destfile="CurveEditor.jar">
+      <fileset dir="${build}">
+	<include name="**/*.class" />
+	<include name="**/*.clj" />
+      </fileset>
+    </jar>
+  </target>
+
+  <target name="run" depends="jar">
+    <java classname="clojure.main" fork="true">
+      <classpath>
+	<path location="CurveEditor.jar" />
+	<fileset dir="${lib}">
+	  <include name="**/*.jar" />
+	</fileset>
+      </classpath>
+      <arg value="-e" />
+      <arg value="(use 'gui.curveview)" />
+    </java>
+  </target>
+	
+</project>
+
+  

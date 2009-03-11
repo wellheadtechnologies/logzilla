@@ -68,14 +68,36 @@
 (defn test-las-file []
   (with-input (slurp "las_files/test.las")
     (let [lf (las-file)
-	  dept (curve lf "DEPT")
-	  gamma (curve lf "Gamma")
-	  porosity (curve lf "Porosity")
-	  data (nth (:data (curve lf "DEPT")) 0)]
+	  dept (get-curve lf "DEPT")
+	  gamma (get-curve lf "Gamma")
+	  porosity (get-curve lf "Porosity")]
       (assert (= 1501.629 (nth (:data dept) 0)))
       (assert (= ".gAPI" (:unit gamma)))
       (assert (= ".m3/m3" (:unit porosity)))
       (assert (= "DEPTH" (:description dept))))))
+
+(defn test-dollie []
+  (with-input (slurp "las_files/dollie.las")
+    (let [lf (las-file)
+	  dept (get-curve lf "DEPT")
+	  wtoc (get-curve lf "WTOC")]
+      (assert (not (nil? dept)))
+      (assert (not (nil? wtoc)))
+      (assert (= 7800 (nth (:data dept) 0)))
+      (assert (= 6680 (last (:data dept))))
+      (assert (= ".LBF/LBF" (:unit wtoc))))))
+
+(defn test-x4 []
+  (with-input (slurp "las_files/x4.las")
+    (let [lf (las-file)
+	  wh (:well-header lf)
+	  strt (:data (get-descriptor wh "STRT"))
+	  stop (:data (get-descriptor wh "STOP"))]
+      (assert (not (nil? wh)))
+      (assert (not (nil? strt)))
+      (assert (not (nil? stop)))
+      (assert (= strt "57.000000000"))
+      (assert (= stop "5817.0000000")))))
 
 (defn run-tests []
   (test-zapping)
@@ -91,4 +113,8 @@
   (test-las-curves)
   (println "finished las curves")
   (test-las-file)
-  (println "finished las file"))
+  (println "finished las file")
+  (test-dollie)
+  (println "finished dollie")
+  (test-x4)
+  (println "finished x4"))
