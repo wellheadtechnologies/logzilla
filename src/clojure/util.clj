@@ -44,4 +44,3 @@
 (defn tuplize [& colls]
   (let [n (count colls)]
     (partition n (apply interleave colls))))
-
