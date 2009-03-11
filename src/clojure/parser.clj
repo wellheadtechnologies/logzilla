@@ -166,11 +166,12 @@
   (goto-line "~V")
   (drop-line)
   (skip "VERS.")
-  (struct-map _version-header
-    :version (do (skip "VERS.")
-		 (to-num (seq-to-str (upto ":"))))
-    :wrap (do (skip "WRAP.")
-	      (to-bool (seq-to-str (upto ":"))))))
+  (let [version (to-num (trim (zapto ":")))]
+    (drop-line)
+    (skip "WRAP.")
+    (let [wrap (to-bool (trim (zapto ":")))]
+      (drop-line)
+      (struct _version-header version wrap))))
 
 (defn curve-header []
   (goto-line "~C")
@@ -202,3 +203,7 @@
 	ph (save-excursion (parameter-header))
 	lc (save-excursion (las-curves ch))]
     (struct _las-file vh wh ch ph lc)))
+
+(defn parse-las-file [text]
+  (with-input text (las-file)))
+

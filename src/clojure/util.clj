@@ -27,8 +27,9 @@
       (recur (str acc (first ss)) (rest ss)))))
 
 (defn trim [string]
-  (let [drop-ws (fn [s] (drop-while #(is-in white-space %) s))]
-    (reverse (drop-ws (reverse (drop-ws string))))))
+  (seq-to-str
+   (let [drop-ws (fn [s] (drop-while #(is-in white-space %) s))]
+     (reverse (drop-ws (reverse (drop-ws string)))))))
 
 (defn seq-eq [a b]
   (= (trim (seq a)) (trim (seq b))))

@@ -1,4 +1,4 @@
-(ns test  
+(ns tparser  
   (:use util parser data las))
 
 (defn test-zapping []

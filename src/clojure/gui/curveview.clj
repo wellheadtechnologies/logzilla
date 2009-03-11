@@ -1,16 +1,41 @@
+(ns gui.curveview
+  (:use util))
+
 (import '(gui IconListCellRenderer)
-	'(javax.swing JList JFrame DefaultListModel ImageIcon)
-	'(java.awt Dimension))
+	'(java.io File)
+	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
+		      JScrollPane)
+	'(javax.imageio ImageIO)
+	'(java.awt Dimension Image))
+
+(defn directory-to-icons [path]
+  (let [directory (new File path)
+	files (.listFiles directory)]
+    (for [file files]
+      (let [image (ImageIO/read file)
+	    scaled (.getScaledInstance image 64 64 Image/SCALE_SMOOTH)
+	    icon (new ImageIcon scaled)
+	    name (.getName file)]
+	(new JLabel name icon JLabel/LEFT)))))
+	
 
 (let [frame (new JFrame "Curve View")
-      list-model (new DefaultListModel)
-      curves (new JList list-model)]
-  (doto list-model
-    (.add 0 (new JLabel "one" (new ImageIcon "images/facies.png"))))
-  (doto curves 
-    (.setCellRenderer (new IconListCellRenderer)))
-  (.. frame (getContentPane) (add curves))
+      pane (new JScrollPane)
+      model (new DefaultListModel)
+      list (new JList model)
+      icons (directory-to-icons "images")]
+
+  (doseq [icon icons]
+    (.addElement model icon))
+
+  (doto list
+    (.setCellRenderer (new IconListCellRenderer))
+    (.setLayoutOrientation JList/HORIZONTAL_WRAP))
+
+  (.. pane (getViewport) (setView list))
+
+  (.. frame (getContentPane) (add pane))
   (doto frame
+    (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
     (.pack)
     (.setVisible true)))
-  

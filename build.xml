@@ -18,6 +18,7 @@
   
   <target name="clean">
     <delete dir="${build}"/>
+    <delete file="CurveEditor.jar" />
   </target>
   
   <target name="build" depends="clean,init">
@@ -54,8 +55,8 @@
 	  <include name="**/*.jar" />
 	</fileset>
       </classpath>
-      <arg value="-e" />
-      <arg value="(use 'gui.curveview)" />
+<!--      <arg value="-e" />
+      <arg value="(use 'tparser) (run-tests)" /> -->
     </java>
   </target>
 	
