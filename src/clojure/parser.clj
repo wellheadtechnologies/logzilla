@@ -10,12 +10,12 @@
 (def advance)
 (def input-empty)
 
-(defstruct _version-header :version :wrap)
-(defstruct _descriptor :mnemonic :unit :data :description)
-(defstruct _las-file :version-header 
+(defstruct version-header :version :wrap)
+(defstruct descriptor :mnemonic :unit :data :description)
+(defstruct las-file :version-header 
 	   :well-header :curve-header 
-	   :parameter-header :las-curves)
-(defstruct _las_curve :descriptor :data)
+	   :parameter-header :curves :index)
+(defstruct curve :descriptor :data)
 
 (defn to-num [text]
   (read-string text))
@@ -128,27 +128,28 @@
   (goto-line target)
   (drop-line))
 
-(defn descriptor []
+(defn parse-descriptor []
   (skip-leading-whitespace)
   (when (and (not (input-empty)) (not (is-in start-symbols (seq-to-str (take 2 input)))))
     (let [mnemonic (zapto ".")
 	  unit (upto " ")
 	  line (upto "\n")
 	  [data description] (with-input line (partition-last ":"))]
-      (struct-map _descriptor
+      (struct-map descriptor
 	:mnemonic (read-seq (trim mnemonic))
 	:unit (read-seq (trim unit))
 	:data (read-seq (trim data))
 	:description (read-seq (trim description))))))
 
-(defn descriptors []
+(defn parse-descriptors []
   (loop [ds []]
-    (let [d (descriptor)]
+    (let [d (parse-descriptor)]
       (if (not d)
 	ds
 	(recur (conj ds d))))))
        
-(defn data []
+(defn parse-data []
+  (goto-drop "~A")
   (map #(to-num (seq-to-str %))
        (loop [nums []]
 	 (skip-leading-whitespace)
@@ -158,14 +159,14 @@
 	     (if (empty? num) nums (conj nums num))
 	     (recur (if (empty? num) nums (conj nums num))))))))
 
-(defn header [type descriptors]
+(defn parse-header [type descriptors]
   {:type type :descriptors descriptors})
 
-(defn well-header []
+(defn parse-well-header []
   (goto-drop "~W")
-  (header :well-header (descriptors)))
+  (parse-header :well-header (parse-descriptors)))
 
-(defn version-header []
+(defn parse-version-header []
   (goto-drop "~V")
   (skip "VERS.")
   (let [version (to-num (trim (zapto ":")))]
@@ -173,38 +174,36 @@
     (skip "WRAP.")
     (let [wrap (to-bool (trim (zapto ":")))]
       (drop-line)
-      (struct _version-header version wrap))))
+      (struct version-header version wrap))))
 
-(defn curve-header []
+(defn parse-curve-header []
   (goto-drop "~C")
-  (header :curve-header (descriptors)))
+  (parse-header :curve-header (parse-descriptors)))
 
-(defn parameter-header []
+(defn parse-parameter-header []
   (goto-drop "~P")
-  (header :parameter-header (descriptors)))
+  (parse-header :parameter-header (parse-descriptors)))
 
-(defn las-data []
-  (goto-drop "~A")
-  (data))
-
-(defn las-curves [curve-header]
+(defn parse-curves [curve-header]
   (let [ds (:descriptors curve-header)
 	n (count ds)
-	data (las-data)
-	rows (partition n data)]
-    (for [i (range n)]
-      (assoc (nth ds i) :data (map #(nth % i) rows)))))
+	data (parse-data)
+	rows (partition n data)
+	curves (for [i (range n)]
+		 (assoc (nth ds i) :data (map #(nth % i) rows)))
+	index (first curves)]
+    [index (map #(assoc % :index index) (rest curves))]))
     
-(defn las-file []
-  (let [vh (save-excursion (version-header))
-	wh (save-excursion (well-header))
-	ch (save-excursion (curve-header))
-	ph (save-excursion (parameter-header))
-	lc (save-excursion (las-curves ch))]
-    (struct _las-file vh wh ch ph lc)))
+(defn _parse-las-file []
+  (let [vh (save-excursion (parse-version-header))
+	wh (save-excursion (parse-well-header))
+	ch (save-excursion (parse-curve-header))
+	ph (save-excursion (parse-parameter-header))
+	[index curves] (save-excursion (parse-curves ch))]
+    (struct las-file vh wh ch ph curves index)))
 
 (ns parser)
 (refer 'private-parser)
 
 (defn parse-las-file [text]
-  (with-input text (las-file)))
+  (with-input text (_parse-las-file)))

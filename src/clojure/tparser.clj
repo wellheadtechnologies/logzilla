@@ -22,19 +22,19 @@
 		    (limit-line (zapto-last ":"))))))
 
 (defn test-descriptors []
-  (let [parse-descriptor (fn [key] (with-input (key descriptors-text) (descriptor)))
+  (let [read-descriptor (fn [key] (with-input (key descriptors-text) (parse-descriptor)))
 	compare-descriptor (fn [a b c d e] 
 			     (println "testing " a)
-			     (assert (= a (struct _descriptor b c d e))))
-	dept (parse-descriptor :dept)
-	net-gross (parse-descriptor :net-gross)
-	facies (parse-descriptor :facies)
-	porosity (parse-descriptor :porosity)
-	gamma (parse-descriptor :gamma)
-	depth (parse-descriptor :depth)
-	start (parse-descriptor :start)
-	stop (parse-descriptor :stop)
-	date (parse-descriptor :date)]
+			     (assert (= a (struct descriptor b c d e))))
+	dept (read-descriptor :dept)
+	net-gross (read-descriptor :net-gross)
+	facies (read-descriptor :facies)
+	porosity (read-descriptor :porosity)
+	gamma (read-descriptor :gamma)
+	depth (read-descriptor :depth)
+	start (read-descriptor :start)
+	stop (read-descriptor :stop)
+	date (read-descriptor :date)]
     (compare-descriptor dept "DEPT" "m" nil "DEPTH")
     (compare-descriptor net-gross "NetGross" nil nil "NetGross")
     (compare-descriptor facies "Facies" nil nil "Facies")
@@ -47,11 +47,11 @@
 
 (defn test-version-header []
   (with-input version-header-text
-    (assert (= (version-header) {:version 2.0, :wrap false}))))
+    (assert (= (parse-version-header) {:version 2.0, :wrap false}))))
 
 (defn test-well-header []
   (with-input well-header-text
-    (let [wh (well-header)
+    (let [wh (parse-well-header)
 	  ds (:descriptors wh)
 	  date (find-first #(= "DATE" (:mnemonic %)) ds)]
       (assert (= (:data date) "Monday, January 26 2009 14:04:02"))
@@ -59,45 +59,43 @@
 
 (defn test-curve-header []
   (with-input curve-header-text
-    (let [ch (curve-header)
+    (let [ch (parse-curve-header)
 	  ds (:descriptors ch)]
       (assert (= 6 (count ds)))
       (assert (every? #(is-in ["DEPT" "NetGross" "Facies" "Porosity" "Gamma" "DEPTH"] %)
 		      (map #(:mnemonic %) ds))))))
 
-(def my-curve-header (with-input curve-header-text (curve-header)))
+(def my-curve-header (with-input curve-header-text (parse-curve-header)))
 
 (defn test-las-curves []
   (with-input las-data-text
-    (let [curves (las-curves my-curve-header)]
-      (assert (= 6 (count curves)))
+    (let [[index curves] (parse-curves my-curve-header)]
+      (assert (= 5 (count curves)))
+      (assert (not (nil? index)))
       (assert (every? #(= 9 (count (:data %))) curves)))))
 
 (defn test-las-file []
-  (with-input (slurp "las_files/test.las")
-    (let [lf (las-file)
-	  dept (get-curve lf "DEPT")
-	  gamma (get-curve lf "Gamma")
-	  porosity (get-curve lf "Porosity")]
-      (assert (= 1501.629 (nth (:data dept) 0)))
-      (assert (= "gAPI" (:unit gamma)))
-      (assert (= "m3/m3" (:unit porosity)))
-      (assert (= "DEPTH" (:description dept))))))
+  (let [lf (parse-las-file (slurp "las_files/test.las"))
+	dept (:index lf)
+	gamma (get-curve lf "Gamma")
+	porosity (get-curve lf "Porosity")]
+    (assert (= 1501.629 (nth (:data dept) 0)))
+    (assert (= "gAPI" (:unit gamma)))
+    (assert (= "m3/m3" (:unit porosity)))
+    (assert (= "DEPTH" (:description dept)))))
 
 (defn test-dollie []
-  (with-input (slurp "las_files/dollie.las")
-    (let [lf (las-file)
-	  dept (get-curve lf "DEPT")
-	  wtoc (get-curve lf "WTOC")]
-      (assert (not (nil? dept)))
-      (assert (not (nil? wtoc)))
-      (assert (= 7800 (nth (:data dept) 0)))
-      (assert (= 6680 (last (:data dept))))
-      (assert (= "LBF/LBF" (:unit wtoc))))))
+  (let [lf (parse-las-file (slurp "las_files/dollie.las"))
+	dept (:index lf)
+	wtoc (get-curve lf "WTOC")]
+    (assert (not (nil? dept)))
+    (assert (not (nil? wtoc)))
+    (assert (= 7800 (nth (:data dept) 0)))
+    (assert (= 6680 (last (:data dept))))
+    (assert (= "LBF/LBF" (:unit wtoc)))))
 
 (defn test-x4 []
-  (with-input (slurp "las_files/x4.las")
-    (let [lf (las-file)
+    (let [lf (parse-las-file (slurp "las_files/x4.las"))
 	  wh (:well-header lf)
 	  strt (:data (get-descriptor wh "STRT"))
 	  stop (:data (get-descriptor wh "STOP"))]
@@ -105,7 +103,7 @@
       (assert (not (nil? strt)))
       (assert (not (nil? stop)))
       (assert (= strt "57.000000000"))
-      (assert (= stop "5817.0000000")))))
+      (assert (= stop "5817.0000000"))))
 
 (defn run-tests []
   (test-zapping)

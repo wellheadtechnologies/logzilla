@@ -21,7 +21,7 @@
 	'(org.jfree.ui ApplicationFrame RectangleInsets 
 		       RefineryUtilities)
 	'(net.miginfocom.swing MigLayout)
-	'(java.awt Dimension))
+	'(java.awt Dimension Image))
 
 (defn- create-slider-listener [depth-slider x-axis]
   (proxy [ChangeListener] []
@@ -46,10 +46,16 @@
 (defn- create-chart [dataset curve index]
   (ChartFactory/createXYLineChart 
    (str (:mnemonic curve) " Chart")
-   (:mnemonic curve) 
    (:mnemonic index)
+   (:mnemonic curve) 
    dataset PlotOrientation/HORIZONTAL
    false false false))
+
+(defn curve-to-image [curve index]
+  (let [dataset (create-dataset curve index)
+	chart (create-chart dataset curve index)
+	image (.createBufferedImage chart 400 700)]
+    (.getScaledInstance image 64 64 Image/SCALE_SMOOTH)))
 
 (defn open-curve-editor [curve index]
   (let [min-depth (cmin index)

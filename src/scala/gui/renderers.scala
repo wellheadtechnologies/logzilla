@@ -17,10 +17,8 @@ class IconListCellRenderer extends DefaultListCellRenderer {
 
     if(isSelected) {
       setBackground(list.getSelectionBackground)
-      setForeground(list.getSelectionForeground)
     } else {
-      setBackground(list.getSelectionForeground)
-      setForeground(list.getSelectionBackground)
+      setBackground(Color.white)
     }
     
     this

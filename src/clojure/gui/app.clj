@@ -9,6 +9,7 @@
 		      UIManager JFileChooser
 		      JTabbedPane)
 	'(java.awt Dimension)
+	'(java.awt.event MouseMotionAdapter)
 	'(net.miginfocom.swing MigLayout))
 
 (def main-panel-size (new Dimension 400 700))
