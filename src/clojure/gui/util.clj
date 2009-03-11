@@ -18,3 +18,10 @@
 	   (.showOpenDialog chooser parent))
       (.getSelectedFiles chooser)
       [])))
+
+(defmacro on-action [widget & body]
+  `(.addActionListener ~widget 
+		       (proxy [ActionListener] []
+			 (actionPerformed [e#] ~@body))))
+					    
+		       

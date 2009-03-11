@@ -1,11 +1,11 @@
-(ns parser
+(ns private-parser
   (:use util clojure.contrib.trace))
 
 (def input)
 (def length)
 (def num-chars "-1234567890.")
 (def start-symbols ["~A", "~C", "~W", "~P", "~V"])
-(def next-char)
+(def current-char)
 (def drop-line)
 (def advance)
 (def input-empty)
@@ -31,7 +31,7 @@
 
 (defn skip-leading-whitespace []
   (set! input (drop-while #(is-in white-space %) input))
-  (when (= (next-char) \#)
+  (when (= (current-char) \#)
     (drop-line) 
     (recur)))
 
@@ -63,14 +63,14 @@
 (defn advance []
   (set! input (drop 1 input)))
 
-(defn next-char []
+(defn current-char []
   (first input))
 
 (defn upto [target]
   (loop [acc ""]
     (if (or (input-empty) (starting-substring? target input))
-      acc
-      (let [nacc (str acc (next-char))]
+      (when (not (= acc "")) acc)
+      (let [nacc (str acc (current-char))]
 	(advance)
 	(recur nacc)))))
 
@@ -79,10 +79,10 @@
     (if (input-empty)
       [(drop-last prev) (drop (count prev) acc)]
       (if (starting-substring? target input)
-	(let [prev (str acc (next-char))]
+	(let [prev (str acc (current-char))]
 	  (advance)
 	  (recur prev prev true))
-	(let [acc (str acc (next-char))]
+	(let [acc (str acc (current-char))]
 	  (advance)
 	  (recur acc prev false))))))
 
@@ -124,10 +124,14 @@
 	(drop-line)
 	(recur)))))
 
+(defn goto-drop [target]
+  (goto-line target)
+  (drop-line))
+
 (defn descriptor []
   (skip-leading-whitespace)
   (when (and (not (input-empty)) (not (is-in start-symbols (seq-to-str (take 2 input)))))
-    (let [mnemonic (upto ".")
+    (let [mnemonic (zapto ".")
 	  unit (upto " ")
 	  line (upto "\n")
 	  [data description] (with-input line (partition-last ":"))]
@@ -158,13 +162,11 @@
   {:type type :descriptors descriptors})
 
 (defn well-header []
-  (goto-line "~W")
-  (drop-line)
+  (goto-drop "~W")
   (header :well-header (descriptors)))
 
 (defn version-header []
-  (goto-line "~V")
-  (drop-line)
+  (goto-drop "~V")
   (skip "VERS.")
   (let [version (to-num (trim (zapto ":")))]
     (drop-line)
@@ -174,18 +176,15 @@
       (struct _version-header version wrap))))
 
 (defn curve-header []
-  (goto-line "~C")
-  (drop-line)
+  (goto-drop "~C")
   (header :curve-header (descriptors)))
 
 (defn parameter-header []
-  (goto-line "~P")
-  (drop-line)
+  (goto-drop "~P")
   (header :parameter-header (descriptors)))
 
 (defn las-data []
-  (goto-line "~A")
-  (drop-line)
+  (goto-drop "~A")
   (data))
 
 (defn las-curves [curve-header]
@@ -204,6 +203,8 @@
 	lc (save-excursion (las-curves ch))]
     (struct _las-file vh wh ch ph lc)))
 
+(ns parser)
+(refer 'private-parser)
+
 (defn parse-las-file [text]
   (with-input text (las-file)))
-

@@ -1,24 +1,27 @@
 (ns gui.app)
+(use 'util)
 (use 'gui.util)
+(use 'gui.lfview)
 (use 'parser)
 
 (import '(javax.swing JFrame JPanel JSlider
 		      JMenu JMenuItem JMenuBar
-		      UIManager JFileChooser)
+		      UIManager JFileChooser
+		      JTabbedPane)
 	'(java.awt Dimension)
 	'(net.miginfocom.swing MigLayout))
 
 (def main-panel-size (new Dimension 400 700))
-
 (def main-frame (new JFrame))
+(def main-panel (new JPanel (new MigLayout)))
+(def tab-pane (new JTabbedPane))
 
 (defn open-files [files]
-  (doseq [path (map #(.getPath %) files)]
-    (println path))
   (let [strings (map #(slurp (.getPath %)) files)
 	lfs (map #(parse-las-file %) strings)]
-    (doseq [lf lfs]
-      (println (:name lf)))))
+    (doseq [[file lf] (tuplize files lfs)]
+      (.addTab tab-pane (.getName file) (las-file-view lf)))
+    (.revalidate main-panel)))
 
 (defn create-file-menu []
   (let [menu (new JMenu "File")]
@@ -32,16 +35,11 @@
 ;(UIManager/setLookAndFeel (UIManager/getSystemLookAndFeelClassName))
 
 (let [file-menu (create-file-menu)
-      main-panel (new JPanel (new MigLayout))
-      menu-bar (new JMenuBar)
-      depth-slider (new JSlider)]
-
-  (doto depth-slider
-    (.setOrientation JSlider/VERTICAL))
-
+      menu-bar (new JMenuBar)]
+  
   (doto main-panel
     (.setPreferredSize main-panel-size)
-    (.add depth-slider "pushy, growy"))
+    (.add tab-pane "pushy, pushx, growy, growx"))
 
   (.add menu-bar file-menu)
 

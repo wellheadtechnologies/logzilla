@@ -55,8 +55,8 @@
 	  <include name="**/*.jar" />
 	</fileset>
       </classpath>
-<!--      <arg value="-e" />
-      <arg value="(use 'tparser) (run-tests)" /> -->
+      <arg value="-e" />
+      <arg value="(use 'gui.app)" />
     </java>
   </target>
 	
