@@ -2,7 +2,9 @@
   (:use util las))
 
 (import '(java.awt BorderLayout Color)
-	'(javax.swing BorderFactory JPanel JSlider JWindow JFrame)
+	'(javax.swing BorderFactory JPanel JSlider JWindow JFrame
+		      JTable JScrollPane)
+	'(javax.swing.table DefaultTableModel)
 	'(javax.swing.event ChangeListener)
 	'(javax.swing.border Border)
 	'(javax.swing.event ChangeEvent ChangeListener)
@@ -35,34 +37,49 @@
     (.setOrientation slider JSlider/VERTICAL)
     slider))
 
-(defn- create-dataset [curve index]
+(defn- create-dataset [curve]
   (let [series (new XYSeries "Series")
-	ds (new XYSeriesCollection)]
+	ds (new XYSeriesCollection)
+	index (:index curve)]
     (doseq [[x y] (tuplize (:data index) (:data curve))]
       (.add series x y))
     (.addSeries ds series)
     ds))
 
-(defn- create-chart [dataset curve index]
+(defn- create-chart [dataset curve]
   (ChartFactory/createXYLineChart 
    (str (:mnemonic curve) " Chart")
-   (:mnemonic index)
+   (:mnemonic (:index curve))
    (:mnemonic curve) 
    dataset PlotOrientation/HORIZONTAL
    false false false))
 
-(defn curve-to-image [curve index]
-  (let [dataset (create-dataset curve index)
-	chart (create-chart dataset curve index)
+(defn- create-table [curve]
+  (let [index (:index curve)
+	table (new JTable)
+	model (new DefaultTableModel)]
+    (doto model
+	(.addColumn (:mnemonic index) (into-array Object (:data index)))
+	(.addColumn (:mnemonic curve) (into-array Object (:data curve))))
+    (.setModel table model)
+    table))
+	    
+
+(defn curve-to-image [curve]
+  (let [dataset (create-dataset curve)
+	chart (create-chart dataset curve)
 	image (.createBufferedImage chart 400 700)]
     (.getScaledInstance image 64 64 Image/SCALE_SMOOTH)))
 
-(defn open-curve-editor [curve index]
-  (let [min-depth (cmin index)
+(defn open-curve-editor [curve]
+  (let [index (:index curve)
+	min-depth (cmin index)
 	max-depth (cmax index)
 	depth-slider (create-depth-slider min-depth max-depth)
-	dataset (create-dataset curve index)
-	chart (create-chart dataset curve index)
+	dataset (create-dataset curve)
+	chart (create-chart dataset curve)
+	table (create-table curve)
+	table-pane (new JScrollPane table)
 	chart-panel (new ChartPanel chart)
 	main-panel (new JPanel (new MigLayout))
 	frame (new JFrame "Editor")
@@ -79,8 +96,9 @@
       (.setRange (new Range min-depth (+ min-depth 100))))
       
     (doto main-panel
-      (.setPreferredSize (new Dimension 400 700))
+      (.setPreferredSize (new Dimension 700 700))
       (.add depth-slider "pushy, growy")
+      (.add table-pane "pushy, growy")
       (.add chart-panel "pushy, growy"))    
       
     (doto frame

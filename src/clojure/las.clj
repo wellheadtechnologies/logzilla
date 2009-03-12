@@ -5,6 +5,9 @@
   (let [curves (:curves lasfile)]
     (find-first #(= name (:mnemonic %)) curves)))
 
+(defn find-curve [curves name]
+  (find-first #(= name (:mnemonic %)) curves))
+
 (defn add-curve [lasfile curve]
   (let [pre-existing (:curves lasfile)]
     (assoc lasfile :curves (conj pre-existing curve))))

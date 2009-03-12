@@ -6,7 +6,6 @@
 
 (defn actions [menu & name-actions]
   (doseq [[name action] name-actions]
-    (println "adding " name " to menu")
     (let [item (.add menu name)]
       (.addActionListener item (proxy [ActionListener] []
 				 (actionPerformed [e] (action e)))))))
@@ -17,7 +16,6 @@
     m))
 
 (defn context-menu [[c x y] & name-actions]
-  (println "show popup")
   (let [m (new JPopupMenu)]
     (apply actions m name-actions)
     (.show m c x y)
