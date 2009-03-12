@@ -63,7 +63,6 @@
 	(.addColumn (:mnemonic curve) (into-array Object (:data curve))))
     (.setModel table model)
     table))
-	    
 
 (defn curve-to-image [curve]
   (let [dataset (create-dataset curve)
@@ -99,10 +98,11 @@
       (.setPreferredSize (new Dimension 700 700))
       (.add depth-slider "pushy, growy")
       (.add table-pane "pushy, growy")
-      (.add chart-panel "pushy, growy"))    
+      (.add chart-panel "pushy, growy"))
       
     (doto frame
       (.add main-panel)
       (.pack)
       (.setVisible true))
+
     frame))

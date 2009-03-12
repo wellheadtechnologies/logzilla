@@ -6,7 +6,7 @@
 (import '(gui IconListCellRenderer)
 	'(java.io File)
 	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
-		      JScrollPane JButton JWindow JPanel)
+		      JScrollPane JButton JWindow JPanel SwingUtilities)
 	'(javax.imageio ImageIO)
 	'(net.miginfocom.swing MigLayout)
 	'(java.awt Dimension Image)
@@ -49,7 +49,6 @@
 		      (alter stored-curves assoc curve-list 
 			     (concat curves @copied-curves))))))])))
 
-
 (defn las-file-view [lasfile]
   (let [_curves (:curves lasfile)
 	curves (rest _curves)
@@ -67,9 +66,13 @@
 	 (mouseClicked [e]
 		       (when (= MouseEvent/BUTTON3 (.getButton e))
 			 (open-curves-context-menu e clist))))))
-       
-    (let [icons (map curve-to-icon curves)]
-      (doseq [icon icons] (.addElement cmodel icon)))
+
+    (SwingUtilities/invokeLater       
+     (fn []
+       (let [icons (map curve-to-icon curves)]
+	 (doseq [icon icons]
+	   (.addElement cmodel icon)
+	   (.revalidate outer-panel)))))
 
     (dosync (alter stored-curves assoc clist curves))
 
@@ -84,25 +87,3 @@
 	(open-curve-editor sc)))
 
     outer-panel))
-	
-(defn demo []
-  (let [frame (new JFrame "Curve View")
-	pane (new JScrollPane)
-	model (new DefaultListModel)
-	list (new JList model)
-	icons (directory-to-icons "images")]
-
-    (doseq [icon icons]
-      (.addElement model icon))
-
-    (doto list
-      (.setCellRenderer (new IconListCellRenderer))
-      (.setLayoutOrientation JList/HORIZONTAL_WRAP))
-
-    (.. pane (getViewport) (setView list))
-    (.. frame (getContentPane) (add pane))
-
-    (doto frame
-      (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-      (.pack)
-      (.setVisible true))))
