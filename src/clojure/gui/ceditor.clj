@@ -47,12 +47,19 @@
     ds))
 
 (defn- create-chart [dataset curve]
-  (ChartFactory/createXYLineChart 
-   (str (:mnemonic curve) " Chart")
-   (:mnemonic (:index curve))
-   (:mnemonic curve) 
-   dataset PlotOrientation/HORIZONTAL
-   false false false))
+  (let [chart (ChartFactory/createXYLineChart 
+	       (str (:mnemonic curve) " Chart")
+	       (:mnemonic (:index curve))
+	       (:mnemonic curve) 
+	       dataset PlotOrientation/HORIZONTAL
+	       false false false)
+	plot (.getPlot chart)
+	renderer (.getRenderer plot)]
+    (.setBasePaint renderer Color/blue)
+    (.setSeriesPaint renderer 0 Color/blue)
+    (.setBackgroundPaint plot Color/white)
+    chart))
+
 
 (defn- create-table [curve]
   (let [index (:index curve)
@@ -86,9 +93,6 @@
 	x-axis (.getDomainAxis plot)]
 
     (.addChangeListener depth-slider (create-slider-listener depth-slider x-axis))
-
-    (doto plot 
-      (.setBackgroundPaint Color/white))
       
     (doto x-axis
       (.setAutoRange false)
