@@ -14,6 +14,8 @@
 
 (def stored-curves (ref {}))
 
+(def image-processor (agent nil))
+
 (defn- directory-to-icons [path]
   (let [directory (new File path)
 	files (.listFiles directory)]
@@ -67,12 +69,13 @@
 		       (when (= MouseEvent/BUTTON3 (.getButton e))
 			 (open-curves-context-menu e clist))))))
 
-    (SwingUtilities/invokeLater       
-     (fn []
-       (let [icons (map curve-to-icon curves)]
-	 (doseq [icon icons]
-	   (.addElement cmodel icon)
-	   (.revalidate outer-panel)))))
+    (send image-processor 
+	  (fn [s]
+	    (let [icons (map curve-to-icon curves)]
+	      (doseq [icon icons]
+		(SwingUtilities/invokeLater 
+		 (fn [] (.addElement cmodel icon))))
+	      s)))
 
     (dosync (alter stored-curves assoc clist curves))
 
