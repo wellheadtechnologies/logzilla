@@ -47,7 +47,7 @@
 		   (doseq [curve @copied-curves]
 		     (.addElement cmodel (curve-to-icon curve)))
 		   (dosync 
-		    (let [curves @stored-curves]
+		    (let [curves (get @stored-curves curve-list)]
 		      (alter stored-curves assoc curve-list 
 			     (concat curves @copied-curves))))))])))
 
