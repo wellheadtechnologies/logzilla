@@ -22,4 +22,5 @@
 (defn cmax [curve]
   (last (:data curve)))
   
-     
+(defn rows [lasfile]
+  (count (:data (:index lasfile))))

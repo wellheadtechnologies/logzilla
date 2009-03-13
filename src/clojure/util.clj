@@ -2,6 +2,9 @@
 
 (def white-space "\n\r\t ")
 
+(defn escape-quotes [text]
+  (.replaceAll text "\"" "\\\\\""))
+
 (defn add-value [dataset n comp1 comp2]
   (let [meth (.. dataset (getClass)
 		 (getDeclaredMethod "addValue" 
@@ -36,7 +39,7 @@
 
 (defn read-seq [s]
   (when (not (empty? s))
-    (read-string (str \" (seq-to-str s) \"))))
+    (read-string (str \" (escape-quotes (seq-to-str s)) \"))))
 
 (defn find-first [pred coll]
   (first (filter pred coll)))
@@ -44,3 +47,8 @@
 (defn tuplize [& colls]
   (let [n (count colls)]
     (partition n (apply interleave colls))))
+
+(defn nil-or? [text]
+  (when (not (empty? text))
+    text))
+    

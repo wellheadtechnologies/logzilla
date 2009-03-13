@@ -1,6 +1,7 @@
 (ns private-parser
   (:use util clojure.contrib.trace))
 
+(def debug false)
 (def input)
 (def length)
 (def num-chars "-1234567890.")
@@ -144,16 +145,17 @@
 
 (defn parse-descriptor []
   (skip-leading-whitespace)
-  (when (and (not (input-empty)) (not (is-in start-symbols (seq-to-str (take 2 input)))))
+  (when (and (not (input-empty))
+	     (not (is-in start-symbols (seq-to-str (take 2 input)))))
     (let [mnemonic (zapto ".")
 	  unit (upto " ")
 	  line (upto "\n")
 	  [data description] (with-input line (partition-last ":"))]
       (struct-map descriptor
-	:mnemonic (read-seq (trim mnemonic))
-	:unit (read-seq (trim unit))
+	:mnemonic (nil-or? (trim mnemonic))
+	:unit (nil-or? (trim unit))
 	:data (read-seq (trim data))
-	:description (read-seq (trim description))))))
+	:description (nil-or? (trim description))))))
 
 (defn parse-descriptors []
   (loop [ds []]
@@ -165,13 +167,17 @@
 (defn parse-data []
   (goto-drop "~A")
   (map #(to-num (seq-to-str %))
-       (loop [nums []]
+       (loop [nums []]	 
 	 (skip-leading-whitespace)
-	 (let [[num,_rest] (split-with #(is-in num-chars %) input)]
-	   (set! input _rest)
-	   (if (input-empty)
-	     (if (empty? num) nums (conj nums num))
-	     (recur (if (empty? num) nums (conj nums num))))))))
+	 (if (input-empty)
+	   nums
+	   (let [[num,_rest] (split-with #(is-in num-chars %) input)]
+	     (when (nil? num)
+	       (throw (new RuntimeException "Parser Error: num cannot be null")))
+	     (set! input _rest)
+	     (if (input-empty)
+	       (if (empty? num) nums (conj nums num))
+	       (recur (if (empty? num) nums (conj nums num)))))))))
 
 (defn parse-header [type]
   (let [prefix (get header-prefixes type)]
@@ -200,50 +206,10 @@
 	ph (save-excursion (parse-parameter-header))
 	[index curves] (save-excursion (parse-curves ch))]
     (struct las-file vh wh ch ph curves index)))
-
-(defn curves-to-string [lasfile]
-  (let [curves (:curves lasfile)
-	columns (count curves)
-	rows (count (first curves))
-	row-data (fn [r] (map #(nth % r) curves))]
-    (mapcat (fn [row]
-	      (str (seq-to-str (row-data row)) "\n"))
-	    (range 0 rows))))
-
-(defn descriptor-to-string [descriptor]
-  (str (:mnemonic descriptor)
-       (:unit descriptor)
-       (:data descriptor)
-       (:description descriptor)
-       "\n"))
-
-(defn header-to-string [header]
-  (let [type (:type header)
-	descriptors (:descriptors header)
-	prefix (get header-prefixes type)]
-    (str prefix "\n"
-	 (seq-to-str 
-	  (mapcat descriptor-to-string descriptors)))))
-
-(defn headers-to-string [lasfile]
-  (mapcat header-to-string (headers lasfile)))
 		  
 (ns parser)
 (refer 'private-parser)
-(import '(java.io File FileWriter BufferedWriter))
 
 (defn parse-las-file [text]
   (with-input text (_parse-las-file)))
 
-(defmulti write-las-file (fn [x y] (class x)))
-
-(defmethod write-las-file File [file-handle lasfile] 
-  (let [file-writer (new BufferedWriter (new FileWriter file-handle))]
-    (doto file-writer
-      (.write (headers-to-string lasfile))
-      (.write (curves-to-string lasfile))
-      (.close))))
-
-(defmethod write-las-file String [path lasfile]
-  (let [file-handle (new File path)]
-    (write-las-file file-handle lasfile)))
