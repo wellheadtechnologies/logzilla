@@ -3,51 +3,52 @@
 (use 'gui.util)
 (use 'gui.lfview)
 (use 'parser)
+(use 'writer)
+(use 'gui.filemanager)
 
 (import '(javax.swing JFrame JPanel JSlider
 		      JMenu JMenuItem JMenuBar
 		      UIManager JFileChooser
-		      JTabbedPane)
+		      JTabbedPane JDesktopPane
+		      JInternalFrame JScrollPane)
 	'(java.awt Dimension)
 	'(java.awt.event MouseMotionAdapter)
 	'(net.miginfocom.swing MigLayout))
 
-(def main-panel-size (new Dimension 400 700))
-(def main-frame (new JFrame))
+(def main-panel-size (new Dimension 800 800))
+(def main-frame (new JFrame "Curve Editor"))
 (def main-panel (new JPanel (new MigLayout)))
-(def tab-pane (new JTabbedPane))
+(def menu-bar (new JMenuBar))
 
-(defn open-files [files]
-  (let [strings (map #(slurp (.getPath %)) files)
-	lfs (map #(parse-las-file %) strings)]
-    (doseq [[file lf] (tuplize files lfs)]
-      (.addTab tab-pane (.getName file) (las-file-view lf)))
-    (.revalidate main-panel)))
-
-(defn create-file-menu []
-  (let [menu (new JMenu "File")]
+(defn create-las-menu []
+  (let [menu (new JMenu "Las")]
     (actions menu
       ["Open" (fn [e] (open-files (user-selected-files "." main-frame)))]
-      ["Save" (fn [e] nil)]
-      ["Save As" (fn [e] nil)]
-      ["Quit" (fn [e] nil)])
+      ["Save All" (fn [e] nil)]
+      ["Quit" (fn [e] (System/exit 0))])
     menu))
-  
+
+(defn create-lfview-panel []
+  (new JPanel))
+
 ;(UIManager/setLookAndFeel (UIManager/getSystemLookAndFeelClassName))
 
-(let [file-menu (create-file-menu)
-      menu-bar (new JMenuBar)]
-  
-  (doto main-panel
-    (.setPreferredSize main-panel-size)
-    (.add tab-pane "pushy, pushx, growy, growx"))
+(defn setup-main-frame []
+  (let [file-panel (create-file-panel)
+	lfview-panel (create-lfview-panel)
+	las-menu (create-las-menu)]      
 
-  (.add menu-bar file-menu)
+    (doto main-panel
+      (.add file-panel "pushx, pushy, growx, growy")
+      (.add lfview-panel)
+      (.setPreferredSize main-panel-size))
+    
+    (.add menu-bar las-menu)
 
-  (doto main-frame
-    (.add main-panel)
-    (.setJMenuBar menu-bar)
-    (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-    (.pack)
-    (.setVisible true)))
-
+    (swing 
+     (doto main-frame
+       (.add main-panel)
+       (.setJMenuBar menu-bar)
+       (.setSize main-panel-size)
+       (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
+       (.setVisible true)))))

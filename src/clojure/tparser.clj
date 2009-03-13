@@ -115,40 +115,12 @@
     (assert (= stop "5817.0000000"))))
 
 (defn test-write-lasfile []
-  (let [quick-compare 
-	(fn [lf1 lf2]
-	  (doseq [type header-types]
-	    (let [h1 (get lf1 type)
-		  h2 (get lf2 type)]
-	    (when (not (= h1 h2))
-	      (let [ds1 (:descriptors h1)
-		    ds2 (:descriptors h2)]
-		(assert (= (count ds1) (count ds2)))
-		(doseq [i (range 0 (count ds1))]
-		  (when (not (= (nth ds1 i) (nth ds2 i)))
-		    (println "ds1 = " (nth ds1 i))
-		    (println "ds2 = " (nth ds2 i))
-		    (assert false)))))))
-	  (assert (= (headers lf1) (headers lf2)))
-	  (let [cs1 (:curves lf1)
-		cs2 (:curves lf2)
-		rows1 (rows lf1)
-		rows2 (rows lf2)]
-	    (assert (= rows1 rows2))
-	    (doseq [r (range 0 (/ rows1 100))]
-	      (doseq [[c1 c2] (tuplize cs1 cs2)]
-		(let [d1 (nth (:data c1) r)
-		      d2 (nth (:data c2) r)]
-		  (when (not (= d1 d2))
-		    (println "d1 = " d1)
-		    (println "d2 = " d2)
-		    (assert false)))))))
-	in-out 
+  (let [in-out 
 	(fn [path] 
 	  (let [lf1 (parse-las-file (slurp path))]
 	    (write-las-file "output_test.las" lf1)
 	    (let [lf2 (binding [debug true](parse-las-file (slurp "output_test.las")))]
-	      (quick-compare lf1 lf2))))]
+	      (= lf1 lf2))))]
   
     (time (in-out "las_files/test.las"))
     (time (in-out "las_files/dollie.las"))))

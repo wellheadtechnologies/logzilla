@@ -83,6 +83,7 @@
 
     (doto outer-panel 
       (.add pane "pushx, pushy, growx, growy, wrap")
+      (.setPreferredSize (new Dimension 400 700))
       (.add editb))
 
     (on-action editb 

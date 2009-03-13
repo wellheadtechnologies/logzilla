@@ -2,7 +2,7 @@
   (:use util))
 
 (import '(java.awt.event ActionListener)
-	'(javax.swing JFileChooser JMenu JPopupMenu))
+	'(javax.swing JFileChooser JMenu JPopupMenu SwingUtilities))
 
 (defn actions [menu & name-actions]
   (doseq [[name action] name-actions]
@@ -21,17 +21,12 @@
     (.show m c x y)
     m))
 
-(defn user-selected-files [cwd parent]
-  (let [chooser (new JFileChooser cwd)]
-    (.setMultiSelectionEnabled chooser true)
-    (if (= JFileChooser/APPROVE_OPTION
-	   (.showOpenDialog chooser parent))
-      (.getSelectedFiles chooser)
-      [])))
-
 (defmacro on-action [widget & body]
   `(.addActionListener ~widget 
 		       (proxy [ActionListener] []
 			 (actionPerformed [e#] ~@body))))
 					    
 		       
+(defmacro swing [& body]
+  `(javax.swing.SwingUtilities/invokeLater 
+    (fn [] ~@body)))
