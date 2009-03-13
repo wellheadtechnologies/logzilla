@@ -21,3 +21,5 @@
 
 (defn cmax [curve]
   (last (:data curve)))
+  
+     

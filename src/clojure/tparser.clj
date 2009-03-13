@@ -47,7 +47,10 @@
 
 (defn test-version-header []
   (with-input version-header-text
-    (assert (= (parse-version-header) {:version 2.0, :wrap false}))))
+    (let [vh (parse-version-header)
+	  ds (:descriptors vh)]
+      (assert (= (:data (get-descriptor vh "VERS")) "2.0"))
+      (assert (= (:data (get-descriptor vh "WRAP")) "NO")))))
 
 (defn test-well-header []
   (with-input well-header-text
@@ -82,7 +85,12 @@
     (assert (= 1501.629 (nth (:data dept) 0)))
     (assert (= "gAPI" (:unit gamma)))
     (assert (= "m3/m3" (:unit porosity)))
-    (assert (= "DEPTH" (:description dept)))))
+    (assert (= "DEPTH" (:description dept)))
+
+    (let [hs (headers lf)]
+      (assert (= (count hs) (count header-types)))
+      (doseq [htype header-types]
+	(assert (not (nil? (get lf htype))))))))      
 
 (defn test-dollie []
   (let [lf (parse-las-file (slurp "las_files/dollie.las"))
@@ -95,15 +103,15 @@
     (assert (= "LBF/LBF" (:unit wtoc)))))
 
 (defn test-x4 []
-    (let [lf (parse-las-file (slurp "las_files/x4.las"))
-	  wh (:well-header lf)
-	  strt (:data (get-descriptor wh "STRT"))
-	  stop (:data (get-descriptor wh "STOP"))]
-      (assert (not (nil? wh)))
-      (assert (not (nil? strt)))
-      (assert (not (nil? stop)))
-      (assert (= strt "57.000000000"))
-      (assert (= stop "5817.0000000"))))
+  (let [lf (parse-las-file (slurp "las_files/x4.las"))
+	wh (:well-header lf)
+	strt (:data (get-descriptor wh "STRT"))
+	stop (:data (get-descriptor wh "STOP"))]
+    (assert (not (nil? wh)))
+    (assert (not (nil? strt)))
+    (assert (not (nil? stop)))
+    (assert (= strt "57.000000000"))
+    (assert (= stop "5817.0000000"))))
 
 (defn run-tests []
   (test-zapping)

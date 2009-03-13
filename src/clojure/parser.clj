@@ -10,12 +10,26 @@
 (def advance)
 (def input-empty)
 
-(defstruct version-header :version :wrap)
+(def header-prefixes
+     {:version-header "~Version"
+      :well-header "~Well"
+      :curve-header "~Curve"
+      :parameter-header "~Parameter"})
+
+(def header-types (keys header-prefixes))
+
 (defstruct descriptor :mnemonic :unit :data :description)
-(defstruct las-file :version-header 
-	   :well-header :curve-header 
-	   :parameter-header :curves :index)
+(defstruct las-file 
+  :version-header 
+  :well-header
+  :curve-header 
+  :parameter-header 
+  :curves :index)
 (defstruct curve :descriptor :data)
+(defstruct header :type :descriptors)
+
+(defn headers [lasfile] 
+  (map #(get lasfile %) header-types))
 
 (defn to-num [text]
   (read-string text))
@@ -159,30 +173,15 @@
 	     (if (empty? num) nums (conj nums num))
 	     (recur (if (empty? num) nums (conj nums num))))))))
 
-(defn parse-header [type descriptors]
-  {:type type :descriptors descriptors})
+(defn parse-header [type]
+  (let [prefix (get header-prefixes type)]
+    (goto-drop prefix)
+    (struct header type (parse-descriptors))))
 
-(defn parse-well-header []
-  (goto-drop "~W")
-  (parse-header :well-header (parse-descriptors)))
-
-(defn parse-version-header []
-  (goto-drop "~V")
-  (skip "VERS.")
-  (let [version (to-num (trim (zapto ":")))]
-    (drop-line)
-    (skip "WRAP.")
-    (let [wrap (to-bool (trim (zapto ":")))]
-      (drop-line)
-      (struct version-header version wrap))))
-
-(defn parse-curve-header []
-  (goto-drop "~C")
-  (parse-header :curve-header (parse-descriptors)))
-
-(defn parse-parameter-header []
-  (goto-drop "~P")
-  (parse-header :parameter-header (parse-descriptors)))
+(defn parse-well-header [] (parse-header :well-header))
+(defn parse-version-header [] (parse-header :version-header))
+(defn parse-curve-header [] (parse-header :curve-header))
+(defn parse-parameter-header [] (parse-header :parameter-header))
 
 (defn parse-curves [curve-header]
   (let [ds (:descriptors curve-header)
@@ -202,8 +201,49 @@
 	[index curves] (save-excursion (parse-curves ch))]
     (struct las-file vh wh ch ph curves index)))
 
+(defn curves-to-string [lasfile]
+  (let [curves (:curves lasfile)
+	columns (count curves)
+	rows (count (first curves))
+	row-data (fn [r] (map #(nth % r) curves))]
+    (mapcat (fn [row]
+	      (str (seq-to-str (row-data row)) "\n"))
+	    (range 0 rows))))
+
+(defn descriptor-to-string [descriptor]
+  (str (:mnemonic descriptor)
+       (:unit descriptor)
+       (:data descriptor)
+       (:description descriptor)
+       "\n"))
+
+(defn header-to-string [header]
+  (let [type (:type header)
+	descriptors (:descriptors header)
+	prefix (get header-prefixes type)]
+    (str prefix "\n"
+	 (seq-to-str 
+	  (mapcat descriptor-to-string descriptors)))))
+
+(defn headers-to-string [lasfile]
+  (mapcat header-to-string (headers lasfile)))
+		  
 (ns parser)
 (refer 'private-parser)
+(import '(java.io File FileWriter BufferedWriter))
 
 (defn parse-las-file [text]
   (with-input text (_parse-las-file)))
+
+(defmulti write-las-file (fn [x y] (class x)))
+
+(defmethod write-las-file File [file-handle lasfile] 
+  (let [file-writer (new BufferedWriter (new FileWriter file-handle))]
+    (doto file-writer
+      (.write (headers-to-string lasfile))
+      (.write (curves-to-string lasfile))
+      (.close))))
+
+(defmethod write-las-file String [path lasfile]
+  (let [file-handle (new File path)]
+    (write-las-file file-handle lasfile)))
