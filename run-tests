@@ -1,2 +1,2 @@
 #!/bin/sh
-echo "(use 'tlas)(run-tests)" | ./run
+echo "(use 'tparser2)(test-las-file)" | ./run

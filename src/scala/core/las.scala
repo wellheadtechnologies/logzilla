@@ -45,6 +45,20 @@ extends LasFile {
   override def getParameterHeader = {
     headers.find(_.getType == "ParameterHeader").get
   }
+
+  override def toString = {
+    val buf = new StringBuffer
+    buf.append("LasFile")
+    for(h <- headers){
+      buf.append(h)
+      buf.append("\n")
+    }
+    for(c <- curves){
+      buf.append(c)
+      buf.append("\n")
+    }
+    buf.toString
+  }
 }
 
 class DefaultCurve(descriptor:Descriptor, index:Curve, data:List[Number]) 
@@ -52,6 +66,7 @@ extends Curve {
   override def getDescriptor = descriptor
   override def getData = data
   override def getIndex = index
+  override def toString = descriptor.getMnemonic + data.size()
 }
 
 class DefaultHeader(htype:String, prefix:String, mdescriptors:List[Descriptor]) 
@@ -60,6 +75,17 @@ extends Header {
   override def getType = htype
   override def getPrefix = prefix
   override def getDescriptors = descriptors
+  override def toString = {
+    val buf = new StringBuffer 
+    def a(s:String) { buf.append(s) }
+    a(htype)
+    a("\n")
+    for(d <- descriptors){
+      a(d.toString)
+      a("\n")
+    }
+    buf.toString
+  }
 }
 
 class DefaultDescriptor(mnemonic:String, unit:Object, data:Object, description:String)
@@ -68,6 +94,7 @@ extends Descriptor {
   override def getUnit = unit
   override def getData = data
   override def getDescription = description
+  override def toString = mnemonic + " " + unit + " " + data + " " + description
 }
 
 object Headers {

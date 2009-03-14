@@ -5,7 +5,7 @@ import java.util.{List,LinkedList,StringTokenizer}
 import java.io.{File, FileReader, BufferedReader}
 import scala.collection.mutable.{Queue,ListBuffer}
 
-class DefaultLasParser extends LasParser {
+object DefaultLasParser extends LasParser {
 
   private val header_prefixes = Map("~V" -> "VersionHeader",
 				    "~W" -> "WellHeader",
@@ -30,63 +30,94 @@ class DefaultLasParser extends LasParser {
     val descriptors = curveHeader.getDescriptors().asInstanceOf[List[Descriptor]]
     val n = descriptors.size()
     val data:Queue[Number] = parseData(reader)
-    val cdatas = for(_ <- 0 to n) yield new LinkedList[Number]
+    val cdatas = new ListBuffer[List[Number]]
+    for(_ <- 0 until n){
+      cdatas += new LinkedList[Number]()
+    }
     while(!data.isEmpty){
-      (0 to n).foreach(i => cdatas(i).add(data.dequeue))
+      (0 until n).foreach(i => {
+	val d = data.dequeue
+	cdatas(i).add(d)
+      })
     }	
     val index = new DefaultCurve(descriptors(0), null, cdatas(0))
     val final_curves = new LinkedList[Curve]()
-    for(i <- 1 to n){
+    for(i <- 1 until n){
       final_curves.add(new DefaultCurve(descriptors(i), index, cdatas(i)))
     }
     (index, final_curves)
   }
 
   private def parseHeaders(reader:BufferedReader):List[Header] = {
-    skip_white_space(reader)
-    val line = reader.readLine()
+    val line = next_line(reader)
     val headers = new LinkedList[Header]()
-    for(i <- 0 to 4){
-      val prefix = line.take(2)
-      val descriptors = parseDescriptors(reader)
+    var prefix = line.trim.take(2)
+    for(i <- 0 until 4){
+      val (prefix_line, descriptors) = parseDescriptors(reader)
       val htype = header_prefixes(prefix)
       headers.add(new DefaultHeader(htype, prefix, descriptors))
+      prefix = prefix_line.trim.take(2)
     }
     return headers
   }
 
   private def parseData(reader:BufferedReader):Queue[Number] = {
-    skip_white_space(reader)
-    if(!reader.readLine().contains("~A")){
-      throw new RuntimeException("No ~A")
-    }
     val data = new Queue[Number]()
-    var continue = true
     while(reader.ready()) {
       val row = reader.readLine()
       val tokenizer = new StringTokenizer(row, " ")
       while(tokenizer.hasMoreTokens){
-	data += BigDecimal(tokenizer.nextToken())
+	val token = tokenizer.nextToken()
+	data += BigDecimal(token)
       }
     }
     return data
   }    
-    
-    
   
-  private def parseDescriptors(reader:BufferedReader):List[Descriptor] = null
-
-  private def skip_white_space(reader:BufferedReader) {
+  private def parseDescriptors(reader:BufferedReader) = {
     var continue = true
-    while(reader.ready() && continue) {
-      val c = reader.read()
-      if(!white_space.contains(c)){
-	if(c == '#')
-	  reader.readLine()
-	else 
-	  continue = false
+    val descriptors = new LinkedList[Descriptor]
+    var next_prefix:String = null
+    while(reader.ready() && continue){
+      val line = next_line(reader)
+      if(hasPrefix(line)){
+	continue = false
+	next_prefix = line
       }
-    }      
+      else {
+	descriptors.add(parseDescriptor(line))
+      }
+    }
+    (next_prefix, descriptors)
   }
+
+  private def parseDescriptor(line1:String):Descriptor = {
+    val dot = line1.indexOf('.')
+    val mnemonic = line1.substring(0, dot)
+    val line2 = line1.substring(dot+1)
+    val space = line2.indexOf(' ')
+    val unit = line2.substring(0, space)
+    val line3 = line2.substring(space+1)
+    val colon = line3.lastIndexOf(':')
+    val data = line3.substring(0, colon)
+    val description = line3.substring(colon+1)
+    return new DefaultDescriptor(mnemonic.trim, unit.trim, data.trim, description.trim)
+  }
+
+  private def isComment(line:String) = line.startsWith("#")
+
+  private def hasPrefix(line:String) = {
+    ((header_prefixes.keySet).exists(line.startsWith) || 
+     line.startsWith("~A"))
+
+  }
+
+  private def next_line(reader:BufferedReader) = {
+    var line = reader.readLine()
+    while(isComment(line)){
+      line = reader.readLine()
+    }
+    line
+  }
+
 }
-  
