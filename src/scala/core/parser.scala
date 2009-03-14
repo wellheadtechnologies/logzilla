@@ -4,6 +4,7 @@ import scala.collection.jcl.Conversions._
 import java.util.{List,LinkedList,StringTokenizer}
 import java.io.{File, FileReader, BufferedReader}
 import scala.collection.mutable.{Queue,ListBuffer}
+import java.math.BigDecimal
 
 object DefaultLasParser extends LasParser {
 
@@ -20,10 +21,14 @@ object DefaultLasParser extends LasParser {
 
   override def parseLasFile(file:File) = {
     var reader = new BufferedReader(new FileReader(file))
-    val headers = parseHeaders(reader)
-    val curveHeader = headers.find(_.getType == "CurveHeader").get
-    val (index, curves) = parseCurves(curveHeader, reader)
-    new DefaultLasFile(headers, curves)
+    try {
+      val headers = parseHeaders(reader)
+      val curveHeader = headers.find(_.getType == "CurveHeader").get
+      val (index, curves) = parseCurves(curveHeader, reader)
+      new DefaultLasFile(headers, index, curves)
+    } finally {
+      reader.close()
+    }
   }
 
   private def parseCurves(curveHeader:Header,reader:BufferedReader) = {
@@ -64,11 +69,18 @@ object DefaultLasParser extends LasParser {
   private def parseData(reader:BufferedReader):Queue[Number] = {
     val data = new Queue[Number]()
     while(reader.ready()) {
-      val row = reader.readLine()
-      val tokenizer = new StringTokenizer(row, " ")
+      val row = reader.readLine().trim().replaceAll("\t", " ")
+      var tokenizer:StringTokenizer = new StringTokenizer(row, " ")
       while(tokenizer.hasMoreTokens){
 	val token = tokenizer.nextToken()
-	data += BigDecimal(token)
+	try {
+	  data += new BigDecimal(token)
+	} catch {
+	  case (e:NumberFormatException) => 
+	    println("number format exception : " + token)
+	    e.printStackTrace()
+	    throw e
+	}
       }
     }
     return data
@@ -104,7 +116,7 @@ object DefaultLasParser extends LasParser {
     return new DefaultDescriptor(mnemonic.trim, unit.trim, data.trim, description.trim)
   }
 
-  private def isComment(line:String) = line.startsWith("#")
+  private def isComment(line:String) = line.startsWith("#") || line.trim.startsWith("#")
 
   private def hasPrefix(line:String) = {
     ((header_prefixes.keySet).exists(line.startsWith) || 

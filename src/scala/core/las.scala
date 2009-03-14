@@ -18,7 +18,7 @@ object Compat {
   }
 }
 
-class DefaultLasFile(mheaders: List[Header], mcurves: List[Curve])
+class DefaultLasFile(mheaders: List[Header], index: Curve, mcurves: List[Curve])
 extends LasFile {
   private val headers = Compat.unmodifiable(mheaders)
   private val curves = Compat.unmodifiable(mcurves)
@@ -32,7 +32,10 @@ extends LasFile {
   }
 
   override def getCurves = curves
+  override def getIndex = index
+  override def getCurve(name:String) = curves.find(_.getMnemonic == name).get
   override def getHeaders = headers
+
   override def getVersionHeader = {
     headers.find(_.getType == "VersionHeader").get
   }
@@ -64,9 +67,13 @@ extends LasFile {
 class DefaultCurve(descriptor:Descriptor, index:Curve, data:List[Number]) 
 extends Curve {
   override def getDescriptor = descriptor
-  override def getData = data
+  override def getLasData = data
   override def getIndex = index
   override def toString = descriptor.getMnemonic + data.size()
+  override def getMnemonic = descriptor.getMnemonic
+  override def getUnit = descriptor.getUnit
+  override def getData = descriptor.getData
+  override def getDescription = descriptor.getDescription
 }
 
 class DefaultHeader(htype:String, prefix:String, mdescriptors:List[Descriptor]) 
@@ -75,6 +82,9 @@ extends Header {
   override def getType = htype
   override def getPrefix = prefix
   override def getDescriptors = descriptors
+  override def getDescriptor(name:String) =
+    descriptors.find(_.getMnemonic == name).get
+
   override def toString = {
     val buf = new StringBuffer 
     def a(s:String) { buf.append(s) }

@@ -5,4 +5,5 @@ public interface Header {
     String getType();
     String getPrefix();
     List getDescriptors();
+    Descriptor getDescriptor(String name);
 }
