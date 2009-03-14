@@ -22,7 +22,6 @@
   </target>
   
   <target name="build" depends="clean,init">
-
     <javac srcdir="${java-src}"  destdir="${build}">
       <classpath>
 	<fileset dir="${lib}">

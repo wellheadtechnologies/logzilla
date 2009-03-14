@@ -1,5 +1,7 @@
 (ns util)
 
+(import '(java.util List LinkedList))
+
 (def white-space "\n\r\t ")
 
 (defn escape-quotes [text]
@@ -52,4 +54,8 @@
   (when (not (empty? text))
     text))
 
-    
+(defn to-linked-list [coll]
+  (let [ll (new LinkedList)]
+    (doseq [c coll]
+      (.add ll c))
+    ll))
