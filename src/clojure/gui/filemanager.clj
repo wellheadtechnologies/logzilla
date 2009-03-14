@@ -1,10 +1,11 @@
 (ns gui.filemanager
-  (:use util parser writer gui.util))
+  (:use util parser writer gui.util gui.lfview))
 (import '(org.apache.commons.io FileUtils)
 	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
 		      JScrollPane JButton JWindow JPanel SwingUtilities
 		      JFileChooser JMenu JPopupMenu)
 	'(java.io File)
+	'(java.awt.event MouseAdapter)
 	'(net.miginfocom.swing MigLayout))
 
 (def debug true)
@@ -13,6 +14,7 @@
 
 (def file-list (ref {}))
 (def file-cmodel (new DefaultListModel))
+
 (def file-jlist (new JList file-cmodel))
 
 (defn add-las-file [name las-file]
@@ -46,8 +48,20 @@
   (let [outer-panel (new JPanel (new MigLayout))
 	inner-panel (new JPanel (new MigLayout))
 	scroll-pane (new JScrollPane inner-panel)]
+
+    (.addMouseListener file-jlist 
+	  (proxy [MouseAdapter] []
+	    (mouseClicked 
+	     [e] 
+	     (when (= (.getClickCount e) 2)
+	       (let [index (.locationToIndex file-jlist (.getPoint e))]
+		 (open-lfview (get file-list 
+				   (.getElementAt file-cmodel index))))))))
+    
     (doto inner-panel
       (.add file-jlist "pushx, growx, pushy, growy"))
     (doto outer-panel 
       (.add scroll-pane "pushy, growy, width 25%"))
     outer-panel))
+
+(def file-panel (create-file-panel))

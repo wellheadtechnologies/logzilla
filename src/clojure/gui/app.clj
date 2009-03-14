@@ -28,16 +28,11 @@
       ["Quit" (fn [e] (System/exit 0))])
     menu))
 
-(defn create-lfview-panel []
-  (new JPanel))
-
 ;(UIManager/setLookAndFeel (UIManager/getSystemLookAndFeelClassName))
+(UIManager/setLookAndFeel "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel")
 
 (defn setup-main-frame []
-  (let [file-panel (create-file-panel)
-	lfview-panel (create-lfview-panel)
-	las-menu (create-las-menu)]      
-
+  (let [las-menu (create-las-menu)]      
     (doto main-panel
       (.add file-panel "pushx, pushy, growx, growy")
       (.add lfview-panel)
@@ -49,6 +44,6 @@
      (doto main-frame
        (.add main-panel)
        (.setJMenuBar menu-bar)
-       (.setSize main-panel-size)
        (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
+       (.pack)
        (.setVisible true)))))

@@ -22,20 +22,34 @@
   </target>
   
   <target name="build" depends="clean,init">
-    <scalac srcdir="${src}" destdir="${build}" force="changed">
+
+    <javac srcdir="${java-src}"  destdir="${build}">
+      <classpath>
+	<fileset dir="${lib}">
+	  <include name="*/*.jar" />
+	</fileset>
+      </classpath>
+      <include name="**/*.java" />
+    </javac>
+
+    <scalac srcdir="${src}/scala" destdir="${build}" force="changed">
       <classpath>
 	<fileset dir="${lib}">
 	  <include name="**/*.jar" />
 	</fileset>
+	<fileset dir="${build}">
+	  <include name="**/*.class" />
+	</fileset>
       </classpath>
       <include name="**/*.scala" />
-      <include name="**/*.java" />
     </scalac>
+
     <copy todir="${build}">
       <fileset dir="${clj-src}">
 	<include name="**/*.clj"/>
       </fileset>
     </copy>
+
   </target>
 
   <target name="jar" depends="build">

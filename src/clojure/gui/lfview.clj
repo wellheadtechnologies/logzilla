@@ -6,7 +6,8 @@
 (import '(gui IconListCellRenderer)
 	'(java.io File)
 	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
-		      JScrollPane JButton JWindow JPanel SwingUtilities)
+		      JScrollPane JButton JWindow JPanel SwingUtilities
+		      JTabbedPane)
 	'(javax.imageio ImageIO)
 	'(net.miginfocom.swing MigLayout)
 	'(java.awt Dimension Image)
@@ -15,6 +16,8 @@
 (def stored-curves (ref {}))
 
 (def image-processor (agent nil))
+
+(def lfview-panel (new JTabbedPane))
 
 (defn- directory-to-icons [path]
   (let [directory (new File path)
@@ -51,9 +54,8 @@
 		      (alter stored-curves assoc curve-list 
 			     (concat curves @copied-curves))))))])))
 
-(defn las-file-view [lasfile]
-  (let [_curves (:curves lasfile)
-	curves (rest _curves)
+(defn open-lfview [lasfile]
+  (let [curves (:curves lasfile)
 	cmodel (new DefaultListModel)
 	clist (new JList cmodel)
 	inner-panel (new JPanel (new MigLayout))
@@ -90,4 +92,5 @@
       (doseq [sc (selected-curves clist)]
 	(open-curve-editor sc)))
 
-    outer-panel))
+    (.addTab lfview-panel "foo" outer-panel)))
+
