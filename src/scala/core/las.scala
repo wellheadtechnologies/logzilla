@@ -70,20 +70,23 @@ extends Descriptor {
   override def getDescription = description
 }
 
-
-class VersionHeader(val version:String, val wrap:String) 
-extends DefaultHeader("VersionHeader", "~V",
+object Headers {
+  def VersionHeader(version:String, wrap:String) = {
+    new DefaultHeader("VersionHeader", "~V", 
 		      Compat.toList(
 			new DefaultDescriptor("VERS", null, version, null),
 			new DefaultDescriptor("WRAP", null, wrap, null)))
+  }
 
-class WellHeader(descriptors:List[Descriptor]) 
-extends DefaultHeader("WellHeader", "~W", descriptors)
+  def CurveHeader(descriptors:List[Descriptor]) = {
+    new DefaultHeader("CurveHeader", "~C", descriptors)
+  }
 
-class CurveHeader(descriptors:List[Descriptor])
-extends DefaultHeader("CurveHeader", "~C", descriptors)
+  def WellHeader(descriptors:List[Descriptor]) = {
+    new DefaultHeader("WellHeader", "~W", descriptors)
+  }
 
-class ParameterHeader(descriptors:List[Descriptor])
-extends DefaultHeader("ParameterHeader", "~P", descriptors)
-
-
+  def ParameterHeader(descriptors:List[Descriptor]) = {
+    new DefaultHeader("ParameterHeader", "~P", descriptors)
+  }
+}

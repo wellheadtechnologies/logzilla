@@ -212,4 +212,3 @@
 
 (defn parse-las-file [text]
   (with-input text (_parse-las-file)))
-

@@ -4,9 +4,8 @@
 (import '(core LasFile DefaultLasFile
 	       Curve DefaultCurve
 	       Header DefaultHeader
-	       Descriptor DefaultDescriptor
-	       VersionHeader WellHeader
-	       CurveHeader ParameterHeader)
+	       Headers
+	       Descriptor DefaultDescriptor)
 	'(java.util List))
 	
 
@@ -44,10 +43,10 @@
 (def parameter-descriptors [])
 
 (def headers
-     [(new VersionHeader "2.0" "NO")
-      (new WellHeader well-descriptors)
-      (new CurveHeader curve-descriptors)
-      (new ParameterHeader parameter-descriptors)])
+     [(Headers/VersionHeader "2.0" "NO")
+      (Headers/WellHeader well-descriptors)
+      (Headers/CurveHeader curve-descriptors)
+      (Headers/ParameterHeader parameter-descriptors)])
 
 (def curves 
      (let [new-curve (partial create-curve curve-descriptors)
