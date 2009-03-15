@@ -46,6 +46,33 @@ class CurveList extends JList {
     
 }
 
+class LasFileList extends JList {
+  val model = new DefaultListModel
+  val files = new LinkedList[LasFile]
+  setModel(model)
+  setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+
+  def addLasFiles(files:List[LasFile]){
+    files.foreach(addLasFile)
+  }
+
+  def addLasFile(file:LasFile){
+    model.addElement(file.getName)
+    files.add(file)
+    SwingUtilities.invokeLater(() => {
+      this.repaint()
+    })
+  }
+
+  def getLasFiles:List[LasFile] = Compat.unmodifiable(files)
+
+  def getSelectedLasFile:LasFile = {
+    files.find(_.getName == getSelectedValue).get
+  }
+
+}
+
+
 
 class IconListCellRenderer extends DefaultListCellRenderer {
   override def getListCellRendererComponent(list:JList, value:Object, index:int, isSelected:boolean, cellHasFocus:boolean) = {

@@ -36,3 +36,5 @@
   (.addMouseListener widget
 		     (proxy [MouseAdapter] []
 		       (mouseClicked [e] (fun e)))))
+
+

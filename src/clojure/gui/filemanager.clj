@@ -1,34 +1,23 @@
 (ns gui.filemanager
-  (:use util gui.util gui.lfview))
+  (:use util gui.util gui.lfview gui.widgets))
 (import '(org.apache.commons.io FileUtils)
 	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
 		      JScrollPane JButton JWindow JPanel SwingUtilities
 		      JFileChooser JMenu JPopupMenu)
 	'(java.io File)
 	'(core DefaultLasParser)
+	'(gui LasFileList)
 	'(net.miginfocom.swing MigLayout))
 
-(def file-list (agent {}))
-(def file-model (new DefaultListModel))
-(def file-jlist 
-     (let [list (new JList file-model)]
+(def file-list 
+     (let [list (new LasFileList)]
        (on-click list
 	 (fn [e]
-	   (when (= (.getClickCount e) 2)
-	     (let [index (.locationToIndex file-jlist (.getPoint e))]
-	       (send file-list 
-		     #(open-lfview (get % (.getElementAt file-model index))))))))
+	   (open-curve-view (.getSelectedLasFile list))))
        list))
 
-
 (defn add-las-file [name las-file]
-  (send file-list
-	(fn [files]
-	  (let [nfiles (assoc files name las-file)]
-	    (swing 
-	     (.addElement file-model name)
-	     (.repaint file-jlist))
-	    nfiles))))
+  (.addLasFile file-list las-file))
 
 (defmulti open-file class)
 
@@ -52,13 +41,14 @@
 	[]))))
 
 (defn create-file-panel []
-  (let [outer-panel (new JPanel (new MigLayout))
+  (let [outer-panel (create-titled-panel "Las Files")
 	inner-panel (new JPanel (new MigLayout))
 	scroll-pane (new JScrollPane inner-panel)]
     (doto inner-panel
-      (.add file-jlist "pushx, growx, pushy, growy"))
+      (.add file-list "pushy, growy, pushx, growx"))
     (doto outer-panel 
-      (.add scroll-pane "pushy, growy, width 25%"))
+      (.add scroll-pane "pushy, growy, pushx, growx"))
     outer-panel))
 
 (def file-panel (create-file-panel))
+

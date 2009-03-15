@@ -30,10 +30,9 @@
 (defn setup-main-frame []
   (let [las-menu (create-las-menu)]      
     (doto main-panel
-      (.add file-panel "pushx, pushy, growx, growy")
-      (.add lfview-panel)
-      (.setPreferredSize main-panel-size))
-    
+      (.setPreferredSize (new Dimension 500 750))
+      (.add file-panel "pushy, growy, width 25%")
+      (.add curve-panel "pushy, growy, width 75%"))
     (.add menu-bar las-menu)
 
     (swing 
