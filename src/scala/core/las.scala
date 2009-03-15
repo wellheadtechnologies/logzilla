@@ -16,9 +16,10 @@ object Compat {
     }
     return Compat.unmodifiable(list)
   }
+  implicit def fun2Run[T](x: => T) : Runnable = new Runnable() { def run = x }
 }
 
-class DefaultLasFile(mheaders: List[Header], index: Curve, mcurves: List[Curve])
+class DefaultLasFile(name:String, mheaders: List[Header], index: Curve, mcurves: List[Curve])
 extends LasFile {
   private val headers = Compat.unmodifiable(mheaders)
   private val curves = Compat.unmodifiable(mcurves)
@@ -31,9 +32,10 @@ extends LasFile {
     return true
   }
 
+  override def getName = name
   override def getCurves = curves
   override def getIndex = index
-  override def getCurve(name:String) = curves.find(_.getMnemonic == name).get
+  override def getCurve(mnemonic:String) = curves.find(_.getMnemonic == mnemonic).get
   override def getHeaders = headers
 
   override def getVersionHeader = {

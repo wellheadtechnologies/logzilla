@@ -25,7 +25,7 @@ object DefaultLasParser extends LasParser {
       val headers = parseHeaders(reader)
       val curveHeader = headers.find(_.getType == "CurveHeader").get
       val (index, curves) = parseCurves(curveHeader, reader)
-      new DefaultLasFile(headers, index, curves)
+      new DefaultLasFile(file.getName, headers, index, curves)
     } finally {
       reader.close()
     }

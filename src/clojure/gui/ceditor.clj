@@ -59,7 +59,7 @@
 	table-pane (new JScrollPane table)
 	chart-panel (new ChartPanel chart)
 	main-panel (new JPanel (new MigLayout))
-	frame (new JFrame "Foo Editor")
+	frame (new JFrame (str (.getMnemonic curve) " Editor"))
 	plot (.getPlot chart)
 	x-axis (.getDomainAxis plot)]
 

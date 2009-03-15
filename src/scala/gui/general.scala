@@ -2,11 +2,50 @@ package gui
 
 import java.awt._
 import javax.swing._
+import java.util.{List,LinkedList}
+import scala.collection.jcl.Conversions._
 import org.jfree.chart.{ChartFactory, ChartPanel, JFreeChart}
 import org.jfree.chart.plot.{PlotOrientation, XYPlot}
 import org.jfree.data.xy.{AbstractXYDataset, XYDataset, 
 			  XYSeries, XYSeriesCollection}
-import core._  
+import core._
+import core.Compat.fun2Run
+
+
+class CurveList extends JList {
+  val model = new DefaultListModel
+  val curves = new LinkedList[Curve]
+  setModel(model)
+  val renderer = new IconListCellRenderer
+  setCellRenderer(renderer)
+
+  def addCurves(curves:List[Curve]){
+    curves.foreach(addCurve)
+  }
+  
+  def addCurve(curve:Curve){
+    model.addElement(ChartUtil.curveToIcon(curve))
+    curves.add(curve)
+    SwingUtilities.invokeLater(() => {
+      this.repaint()
+    })
+  }
+
+  def getCurves:List[Curve] = Compat.unmodifiable(curves)
+
+  def getSelectedCurves:List[Curve] = {
+    val names = getSelectedValues.map{ 
+      label => label.asInstanceOf[JLabel].getText()
+    }
+    val scurves = new LinkedList[Curve]
+    for(name <- names){
+      scurves.add(curves.find(_.getMnemonic == name).get)
+    }
+    return scurves
+  }
+    
+}
+
 
 class IconListCellRenderer extends DefaultListCellRenderer {
   override def getListCellRendererComponent(list:JList, value:Object, index:int, isSelected:boolean, cellHasFocus:boolean) = {

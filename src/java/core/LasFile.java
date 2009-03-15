@@ -2,6 +2,7 @@ package core;
 import java.util.List;
 
 public interface LasFile {
+    String getName();
     List<Curve> getCurves();
     List<Header> getHeaders();
     Curve getIndex();
