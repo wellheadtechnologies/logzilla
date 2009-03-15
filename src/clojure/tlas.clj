@@ -48,14 +48,17 @@
       (Headers/CurveHeader curve-descriptors)
       (Headers/ParameterHeader parameter-descriptors)])
 
+(def index 
+     (create-curve curve-descriptors
+		   "DEPT" nil (take 9 (iterate #(+ 0.5 %) 1499.879))))
+
 (def curves 
      (let [new-curve (partial create-curve curve-descriptors)
-	   dept (new-curve "DEPT" nil (take 9 (iterate #(+ 0.5 %) 1499.879)))
-	   netgross (new-curve "NetGross" dept (take 9 (repeat 0)))
-	   facies (new-curve "Facies" dept
+	   netgross (new-curve "NetGross" index (take 9 (repeat 0)))
+	   facies (new-curve "Facies" index
 			     (concat (take 3 (repeat -999.25)) 
 				     (take 6 (repeat 0))))
-	   porosity (new-curve "Porosity" dept
+	   porosity (new-curve "Porosity" index
 			       (concat (take 3 (repeat -999.25))
 				       [0.2706460059
 					0.2674280107
@@ -63,20 +66,20 @@
 					0.2421260029
 					0.2385890037
 					0.2383770049]))
-	   gamma (new-curve "Gamma" dept
+	   gamma (new-curve "Gamma" index
 			    (concat (take 4 (repeat -999.25))
 				    [78.869453430
 				     78.008300781
 				     75.581558228
 				     73.238037109
 				     71.504173279]))
-	   depth (new-curve "DEPTH" dept
+	   depth (new-curve "DEPTH" index
 			    (take 9 (iterate #(+ 0.5 %) 1499.8790283)))]
-       [dept netgross facies porosity gamma depth]))
+       [index netgross facies porosity gamma depth]))
 
 (defn test-instantiation []
-  (let [lf1 (new DefaultLasFile headers curves)
-	lf2 (new DefaultLasFile headers curves)]
+  (let [lf1 (new DefaultLasFile headers index curves)
+	lf2 (new DefaultLasFile headers index curves)]
     (assert (= curves (.getCurves lf1)))
     (assert (= headers (.getHeaders lf1)))
     (assert (= lf1 lf2))))
