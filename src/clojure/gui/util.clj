@@ -2,7 +2,8 @@
   (:use util))
 
 (import '(java.awt.event ActionListener)
-	'(javax.swing JFileChooser JMenu JPopupMenu SwingUtilities))
+	'(javax.swing JFileChooser JMenu JPopupMenu SwingUtilities)
+	'(java.awt.event MouseAdapter))
 
 (defn actions [menu & name-actions]
   (doseq [[name action] name-actions]
@@ -30,3 +31,8 @@
 (defmacro swing [& body]
   `(javax.swing.SwingUtilities/invokeLater 
     (fn [] ~@body)))
+
+(defn on-click [widget fun]
+  (.addMouseListener widget
+		     (proxy [MouseAdapter] []
+		       (mouseClicked [e] (fun e)))))

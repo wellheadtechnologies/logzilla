@@ -1,9 +1,8 @@
 (ns gui.lfview
   (:use util gui.ceditor
-	gui.util las
-	gui.clipboard))
+	gui.util gui.clipboard))
 
-(import '(gui IconListCellRenderer)
+(import '(gui IconListCellRenderer ChartUtil)
 	'(java.io File)
 	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
 		      JScrollPane JButton JWindow JPanel SwingUtilities
@@ -29,15 +28,10 @@
 	    name (.getName file)]
 	(new JLabel name icon JLabel/LEFT)))))
 
-(defn- curve-to-icon [curve]
-  (let [image (curve-to-image curve)
-	icon (new ImageIcon image)
-	name (:mnemonic curve)]
-    (new JLabel name icon JLabel/LEFT)))
-
 (defn- selected-curves [curve-list]
-  (let [curves (get @stored-curves curve-list)]
-    (map (comp #(find-curve curves %) #(.getText %))
+  (let [curves (get @stored-curves curve-list)
+	find-curve (fn [name] (find-first #(= name (.getMnemonic %)) curves))]
+    (map (comp find-curve #(.getText %))
 	 (.getSelectedValues curve-list))))
 
 (defn- open-curves-context-menu [event curve-list]
@@ -48,49 +42,53 @@
       ["Paste" (fn [e] 
 		 (let [cmodel (.getModel curve-list)]
 		   (doseq [curve @copied-curves]
-		     (.addElement cmodel (curve-to-icon curve)))
+		     (.addElement cmodel (ChartUtil/curveToIcon curve)))
 		   (dosync 
 		    (let [curves (get @stored-curves curve-list)]
 		      (alter stored-curves assoc curve-list 
 			     (concat curves @copied-curves))))))])))
 
 (defn open-lfview [lasfile]
-  (let [curves (:curves lasfile)
-	cmodel (new DefaultListModel)
-	clist (new JList cmodel)
-	inner-panel (new JPanel (new MigLayout))
-	pane (new JScrollPane inner-panel)
-	outer-panel (new JPanel (new MigLayout))
-	editb (new JButton "Edit")]
+  (swing 
+   (let [curves (.getCurves lasfile)
+	 cmodel (new DefaultListModel)
+	 clist (new JList cmodel)
+	 inner-panel (new JPanel (new MigLayout))
+	 pane (new JScrollPane inner-panel)
+	 outer-panel (new JPanel (new MigLayout))
+	 editb (new JButton "Edit")]
 
-    (doto clist
-      (.setCellRenderer (new IconListCellRenderer))
-      (.addMouseListener 
-       (proxy [MouseAdapter] []
-	 (mouseClicked [e]
-		       (when (= MouseEvent/BUTTON3 (.getButton e))
-			 (open-curves-context-menu e clist))))))
+     (doto clist
+       (.setCellRenderer (new IconListCellRenderer))
+       (.addMouseListener 
+	(proxy [MouseAdapter] []
+	  (mouseClicked [e]
+			(when (= MouseEvent/BUTTON3 (.getButton e))
+			  (open-curves-context-menu e clist))))))
 
-    (send image-processor 
-	  (fn [s]
-	    (let [icons (map curve-to-icon curves)]
-	      (doseq [icon icons]
-		(SwingUtilities/invokeLater 
-		 (fn [] (.addElement cmodel icon))))
-	      s)))
+     (send image-processor 
+	   (fn [s]
+	     (println "in image processor")
+	     (let [icons (map #(ChartUtil/curveToIcon %) curves)]
+	       (doseq [icon icons]
+		 (swing 
+		  (.addElement cmodel icon)
+		  (.repaint clist))))
+	     s))
 
-    (dosync (alter stored-curves assoc clist curves))
 
-    (.add inner-panel clist "pushx, pushy, growx, growy, wrap")
+     (dosync (alter stored-curves assoc clist curves))
 
-    (doto outer-panel 
-      (.add pane "pushx, pushy, growx, growy, wrap")
-      (.setPreferredSize (new Dimension 400 700))
-      (.add editb))
+     (.add inner-panel clist "pushx, pushy, growx, growy, wrap")
 
-    (on-action editb 
-      (doseq [sc (selected-curves clist)]
-	(open-curve-editor sc)))
+     (doto outer-panel 
+       (.add pane "pushx, pushy, growx, growy, wrap")
+       (.setPreferredSize (new Dimension 400 700))
+       (.add editb))
 
-    (.addTab lfview-panel "foo" outer-panel)))
+     (on-action editb 
+       (doseq [sc (selected-curves clist)]
+	 (swing (open-curve-editor sc))))
+
+     (.addTab lfview-panel "foo" outer-panel))))
 

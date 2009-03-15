@@ -3,7 +3,7 @@ import java.util.List;
 
 public interface Curve {
     Descriptor getDescriptor();
-    List getLasData();
+    List<Number> getLasData();
     Curve getIndex();
     String getMnemonic();
     Object getUnit();

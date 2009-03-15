@@ -32,7 +32,7 @@ object DefaultLasParser extends LasParser {
   }
 
   private def parseCurves(curveHeader:Header,reader:BufferedReader) = {
-    val descriptors = curveHeader.getDescriptors().asInstanceOf[List[Descriptor]]
+    val descriptors = curveHeader.getDescriptors()
     val n = descriptors.size()
     val data:Queue[Number] = parseData(reader)
     val cdatas = new ListBuffer[List[Number]]

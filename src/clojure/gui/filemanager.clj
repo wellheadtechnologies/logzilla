@@ -1,32 +1,39 @@
 (ns gui.filemanager
-  (:use util parser writer gui.util gui.lfview))
+  (:use util gui.util gui.lfview))
 (import '(org.apache.commons.io FileUtils)
 	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
 		      JScrollPane JButton JWindow JPanel SwingUtilities
 		      JFileChooser JMenu JPopupMenu)
 	'(java.io File)
-	'(java.awt.event MouseAdapter)
+	'(core DefaultLasParser)
 	'(net.miginfocom.swing MigLayout))
 
-(def debug true)
-(defn dprintln [& args]
-  (when debug (apply println args)))
+(def file-list (agent {}))
+(def file-model (new DefaultListModel))
+(def file-jlist 
+     (let [list (new JList file-model)]
+       (on-click list
+	 (fn [e]
+	   (when (= (.getClickCount e) 2)
+	     (let [index (.locationToIndex file-jlist (.getPoint e))]
+	       (send file-list 
+		     #(open-lfview (get % (.getElementAt file-model index))))))))
+       list))
 
-(def file-list (ref {}))
-(def file-cmodel (new DefaultListModel))
-
-(def file-jlist (new JList file-cmodel))
 
 (defn add-las-file [name las-file]
-  (dosync (alter file-list assoc name las-file))
-  (swing 
-   (.addElement file-cmodel name)
-   (.repaint file-jlist)))
+  (send file-list
+	(fn [files]
+	  (let [nfiles (assoc files name las-file)]
+	    (swing 
+	     (.addElement file-model name)
+	     (.repaint file-jlist))
+	    nfiles))))
 
 (defmulti open-file class)
 
 (defmethod open-file File [file]
-  (let [lf (parse-las-file (FileUtils/readFileToString file))]
+  (let [lf (DefaultLasParser/parseLasFile file)]
     (add-las-file (.getName file) lf)))
 
 (defmethod open-file String [path]
@@ -48,16 +55,6 @@
   (let [outer-panel (new JPanel (new MigLayout))
 	inner-panel (new JPanel (new MigLayout))
 	scroll-pane (new JScrollPane inner-panel)]
-
-    (.addMouseListener file-jlist 
-	  (proxy [MouseAdapter] []
-	    (mouseClicked 
-	     [e] 
-	     (when (= (.getClickCount e) 2)
-	       (let [index (.locationToIndex file-jlist (.getPoint e))]
-		 (open-lfview (get file-list 
-				   (.getElementAt file-cmodel index))))))))
-    
     (doto inner-panel
       (.add file-jlist "pushx, growx, pushy, growy"))
     (doto outer-panel 

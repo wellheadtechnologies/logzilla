@@ -1,7 +1,8 @@
 (ns gui.ceditor
-  (:use util las))
+  (:use util))
 
 (import '(java.awt BorderLayout Color)
+	'(gui ChartUtil)
 	'(javax.swing BorderFactory JPanel JSlider JWindow JFrame
 		      JTable JScrollPane)
 	'(javax.swing.table DefaultTableModel)
@@ -37,58 +38,28 @@
     (.setOrientation slider JSlider/VERTICAL)
     slider))
 
-(defn- create-dataset [curve]
-  (let [series (new XYSeries "Series")
-	ds (new XYSeriesCollection)
-	index (:index curve)]
-    (doseq [[x y] (tuplize (:data index) (:data curve))]
-      (.add series x y))
-    (.addSeries ds series)
-    ds))
-
-(defn- create-chart [dataset curve]
-  (let [chart (ChartFactory/createXYLineChart 
-	       (str (:mnemonic curve) " Chart")
-	       (:mnemonic (:index curve))
-	       (:mnemonic curve) 
-	       dataset PlotOrientation/HORIZONTAL
-	       false false false)
-	plot (.getPlot chart)
-	renderer (.getRenderer plot)]
-    (.setBasePaint renderer Color/blue)
-    (.setSeriesPaint renderer 0 Color/blue)
-    (.setBackgroundPaint plot Color/white)
-    chart))
-
-
 (defn- create-table [curve]
-  (let [index (:index curve)
+  (let [index (.getIndex curve)
 	table (new JTable)
 	model (new DefaultTableModel)]
     (doto model
-	(.addColumn (:mnemonic index) (into-array Object (:data index)))
-	(.addColumn (:mnemonic curve) (into-array Object (:data curve))))
+	(.addColumn (.getMnemonic index) (into-array Object (.getLasData index)))
+	(.addColumn (.getMnemonic curve) (into-array Object (.getLasData curve))))
     (.setModel table model)
     table))
 
-(defn curve-to-image [curve]
-  (let [dataset (create-dataset curve)
-	chart (create-chart dataset curve)
-	image (.createBufferedImage chart 400 700)]
-    (.getScaledInstance image 64 64 Image/SCALE_SMOOTH)))
-
 (defn open-curve-editor [curve]
-  (let [index (:index curve)
-	min-depth (cmin index)
-	max-depth (cmax index)
+  (let [index (.getIndex curve)
+	depth-data (.getLasData index)
+	min-depth (first depth-data)
+	max-depth (last depth-data)
 	depth-slider (create-depth-slider min-depth max-depth)
-	dataset (create-dataset curve)
-	chart (create-chart dataset curve)
+	chart (ChartUtil/createChart curve)
 	table (create-table curve)
 	table-pane (new JScrollPane table)
 	chart-panel (new ChartPanel chart)
 	main-panel (new JPanel (new MigLayout))
-	frame (new JFrame "Editor")
+	frame (new JFrame "Foo Editor")
 	plot (.getPlot chart)
 	x-axis (.getDomainAxis plot)]
 

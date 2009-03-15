@@ -43,15 +43,27 @@
       <include name="**/*.scala" />
     </scalac>
 
-    <copy todir="${build}">
-      <fileset dir="${clj-src}">
-	<include name="**/*.clj"/>
+    <copy todir="build/gui">
+      <fileset dir="src/clojure/gui" />
+    </copy>
+    <copy todir="build">
+      <fileset dir="src/clojure">
+	<include name="*.clj" />
       </fileset>
     </copy>
 
   </target>
 
   <target name="jar" depends="build">
+    <jar destfile="CurveEditor.jar">
+      <fileset dir="${build}">
+	<include name="**/*.class" />
+	<include name="**/*.clj" />
+      </fileset>
+    </jar>
+  </target>
+
+  <target name="just-jar">
     <jar destfile="CurveEditor.jar">
       <fileset dir="${build}">
 	<include name="**/*.class" />

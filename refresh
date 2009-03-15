@@ -1,0 +1,4 @@
+cp -rv src/clojure/* build/
+rm -v CurveEditor.jar
+ant just-jar
+echo "(use 'gui.app)(setup-main-frame)" | java -cp CurveEditor.jar:$(find lib -name "*.jar" | xargs echo | sed "s/ /:/g") clojure.main

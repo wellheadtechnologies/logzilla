@@ -1,10 +1,6 @@
-(ns gui.app)
-(use 'util)
-(use 'gui.util)
-(use 'gui.lfview)
-(use 'parser)
-(use 'writer)
-(use 'gui.filemanager)
+(ns gui.app
+  (:use util gui.util gui.lfview
+	gui.filemanager))
 
 (import '(javax.swing JFrame JPanel JSlider
 		      JMenu JMenuItem JMenuBar

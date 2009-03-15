@@ -3,4 +3,5 @@
     (save-excursion 1)
     (actions 1)
     (on-action 1)
-    (context-menu 1))
+    (context-menu 1)
+    (on-click 1))
