@@ -29,8 +29,9 @@
 					    
 		       
 (defmacro swing [& body]
-  `(javax.swing.SwingUtilities/invokeLater 
-    (fn [] ~@body)))
+  `(if (javax.swing.SwingUtilities/isEventDispatchThread)
+     (do ~@body)
+     (javax.swing.SwingUtilities/invokeLater (fn [] ~@body))))
 
 (defn on-click [widget fun]
   (.addMouseListener widget

@@ -6,18 +6,28 @@
 	'(java.io File)
 	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
 		      JScrollPane JButton JWindow JPanel SwingUtilities
-		      JTabbedPane)
+		      JTabbedPane BorderFactory)
+	'(javax.swing.border BevelBorder)
 	'(javax.imageio ImageIO)
 	'(net.miginfocom.swing MigLayout)
 	'(java.awt Dimension Image Color)
 	'(java.awt.event MouseMotionAdapter MouseAdapter MouseEvent))
 
+(defn create-curve-panel []
+  (let [panel (new JPanel (new MigLayout))]
+    (doto panel
+      (.setBackground Color/white)
+      (.setBorder (BorderFactory/createEtchedBorder)))
+    panel))
+
+(defn create-inner-panel []
+  (let [panel (new JPanel (new MigLayout))]
+    (doto panel
+      (.setBackground Color/white)
+      (.setBorder (BorderFactory/createEmptyBorder)))))
+
 (def current-curve-view 
-     (agent 
-      (let [panel (new JPanel)]
-	(doto panel
-	  (.setBackground Color/white))
-	panel)))
+     (agent (create-curve-panel)))
 
 (def curve-panel (let [panel (create-titled-panel "Curves")]
 		   (doto panel
@@ -49,34 +59,41 @@
 	     (.revalidate)))
 	  new-view)))
 
+(defn install-curve-view [lasfile]
+  (swing 
+   (let [curves (.getCurves lasfile)
+	 curve-list (new CurveList)
+	 inner-panel (create-inner-panel)
+	 pane (new JScrollPane inner-panel)
+	 outer-panel (create-curve-panel)]
+    
+     (thread (.addCurves curve-list curves))
+     
+     (doto pane
+       (.setBorder (BorderFactory/createEmptyBorder)))
+
+     (on-click curve-list
+       (fn [e]
+	 (cond
+	  (and (= MouseEvent/BUTTON1 (.getButton e))
+	       (= 2 (.getClickCount e)))
+	  (doseq [sc (.getSelectedCurves curve-list)]
+	    (swing (open-curve-editor sc)))
+	 
+	  (= MouseEvent/BUTTON3 (.getButton e))
+	  (swing (open-curves-context-menu e curve-list)))))
+    
+     (.add inner-panel curve-list "pushx, pushy, growx, growy, wrap")	
+     (doto outer-panel 
+       (.add pane "pushx, pushy, growx, growy, wrap")
+       (.setPreferredSize (new Dimension 400 700)))
+     (dosync (alter curve-views assoc lasfile outer-panel))
+     outer-panel)))
+
 (defn open-curve-view [lasfile]
   (swing
    (set-curve-view 
     (let [existing-view (get @curve-views lasfile)]
       (if existing-view
 	existing-view
-	(let [curves (.getCurves lasfile)
-	      curve-list (new CurveList)
-	      inner-panel (new JPanel (new MigLayout))
-	      pane (new JScrollPane inner-panel)
-	      outer-panel (new JPanel (new MigLayout))]
-
-	  (thread (.addCurves curve-list curves))
-	  (on-click curve-list
-	    (fn [e]
-	      (cond
-	       (and (= MouseEvent/BUTTON1 (.getButton e))
-		    (= 2 (.getClickCount e)))
-	       (doseq [sc (.getSelectedCurves curve-list)]
-		 (swing (open-curve-editor sc)))
-
-	       (= MouseEvent/BUTTON3 (.getButton e))
-	       (swing (open-curves-context-menu e curve-list)))))
-
-	  (.add inner-panel curve-list "pushx, pushy, growx, growy, wrap")	
-	  (doto outer-panel 
-	    (.add pane "pushx, pushy, growx, growy, wrap")
-	    (.setPreferredSize (new Dimension 400 700)))
-	  (dosync (alter curve-views assoc lasfile outer-panel))
-	  outer-panel))))))
-
+	(install-curve-view))))))
