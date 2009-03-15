@@ -6,5 +6,5 @@
 
 (def executor-service (Executors/newCachedThreadPool))
 
-(defmacro execute-later [& body]
+(defmacro thread [& body]
   `(.execute executor-service (fn [] ~@body)))

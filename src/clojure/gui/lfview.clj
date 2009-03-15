@@ -54,52 +54,29 @@
    (set-curve-view 
     (let [existing-view (get @curve-views lasfile)]
       (if existing-view
-	(do
-	  (println "found preexisting lasfile named " (.getName lasfile))
-	  existing-view)
+	existing-view
 	(let [curves (.getCurves lasfile)
 	      curve-list (new CurveList)
 	      inner-panel (new JPanel (new MigLayout))
 	      pane (new JScrollPane inner-panel)
 	      outer-panel (new JPanel (new MigLayout))]
 
-	  (execute-later (.addCurves curve-list curves))
-	  (.add inner-panel curve-list "pushx, pushy, growx, growy, wrap")
-	
+	  (thread (.addCurves curve-list curves))
+	  (on-click curve-list
+	    (fn [e]
+	      (cond
+	       (and (= MouseEvent/BUTTON1 (.getButton e))
+		    (= 2 (.getClickCount e)))
+	       (doseq [sc (.getSelectedCurves curve-list)]
+		 (swing (open-curve-editor sc)))
+
+	       (= MouseEvent/BUTTON3 (.getButton e))
+	       (swing (open-curves-context-menu e curve-list)))))
+
+	  (.add inner-panel curve-list "pushx, pushy, growx, growy, wrap")	
 	  (doto outer-panel 
 	    (.add pane "pushx, pushy, growx, growy, wrap")
 	    (.setPreferredSize (new Dimension 400 700)))
 	  (dosync (alter curve-views assoc lasfile outer-panel))
 	  outer-panel))))))
 
-
-;(defn open-lfview [lasfile]
-;  (swing 
-;   (let [curves (.getCurves lasfile)
-;	 curve-list (new CurveList)
-;	 inner-panel (new JPanel (new MigLayout))
-;	 pane (new JScrollPane inner-panel)
-;	 outer-panel (new JPanel (new MigLayout))
-;	 editb (new JButton "Edit")]
-;
-;     (execute-later (.addCurves curve-list curves))
-;
-;     (on-click curve-list
-;       (fn [e]
-;	 (when (= MouseEvent/BUTTON3 (.getButton e))
-;	   (open-curves-context-menu e curve-list))))
-;
-;     (.add inner-panel curve-list "pushx, pushy, growx, growy, wrap")
-;
-;     (doto outer-panel 
-;       (.add pane "pushx, pushy, growx, growy, wrap")
-;       (.setPreferredSize (new Dimension 400 700))
-;       (.add editb))
-;
-;     (on-action editb 
-;       (doseq [sc (.getSelectedCurves curve-list)]
-;	 (swing (open-curve-editor sc))))
-;
-;     (.addTab lfview-panel (.getName lasfile) outer-panel))))
-;
-;
