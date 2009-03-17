@@ -16,15 +16,14 @@
 (defn create-curve-panel []
   (let [panel (new JPanel (new MigLayout))]
     (doto panel
-      (.setBackground Color/white)
       (.setBorder (BorderFactory/createEtchedBorder)))
     panel))
 
 (defn create-inner-panel []
   (let [panel (new JPanel (new MigLayout))]
     (doto panel
-      (.setBackground Color/white)
-      (.setBorder (BorderFactory/createEmptyBorder)))))
+      (.setBorder (BorderFactory/createEmptyBorder)))
+    panel))
 
 (def current-curve-view 
      (agent (create-curve-panel)))
@@ -66,11 +65,11 @@
 	 inner-panel (create-inner-panel)
 	 pane (new JScrollPane inner-panel)
 	 outer-panel (create-curve-panel)]
-    
+
      (long-task (.addCurves curve-list curves))
-     
-     (doto pane
-       (.setBorder (BorderFactory/createEmptyBorder)))
+
+     (doto curve-list
+       (.setFixedCellHeight 80))
 
      (on-click curve-list
        (fn [e]
@@ -82,8 +81,9 @@
 	 
 	  (= MouseEvent/BUTTON3 (.getButton e))
 	  (swing (open-curves-context-menu e curve-list)))))
-    
-     (.add inner-panel curve-list "pushx, pushy, growx, growy, wrap")	
+     
+     (doto inner-panel
+       (.add curve-list "pushx, growx, wrap"))
      (doto outer-panel 
        (.add pane "pushx, pushy, growx, growy, wrap")
        (.setPreferredSize (new Dimension 400 700)))

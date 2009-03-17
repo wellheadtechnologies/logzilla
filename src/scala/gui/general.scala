@@ -4,6 +4,7 @@ import java.awt._
 import java.awt.image.{BufferedImage}
 import java.awt.geom.Rectangle2D
 import javax.swing._
+import javax.swing.border._
 import java.util.{List,LinkedList}
 import scala.collection.jcl.Conversions._
 import org.jfree.chart.{ChartFactory, ChartPanel, JFreeChart, ChartRenderingInfo}
@@ -12,6 +13,7 @@ import org.jfree.data.xy.{AbstractXYDataset, XYDataset,
 			  XYSeries, XYSeriesCollection}
 import core._
 import core.Compat.fun2Run
+import org.jdesktop.swingx.graphics.ShadowRenderer
 
 
 class CurveList extends JList {
@@ -53,13 +55,14 @@ class LasFileList extends JList {
   val files = new LinkedList[LasFile]
   setModel(model)
   setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
+  setCellRenderer(new IconListCellRenderer)
 
   def addLasFiles(files:List[LasFile]){
     files.foreach(addLasFile)
   }
 
   def addLasFile(file:LasFile){
-    model.addElement(file.getName)
+    model.addElement(new JLabel(file.getName))
     files.add(file)
     SwingUtilities.invokeLater(() => {
       this.repaint()
@@ -69,49 +72,49 @@ class LasFileList extends JList {
   def getLasFiles:List[LasFile] = Compat.unmodifiable(files)
 
   def getSelectedLasFile:LasFile = {
-    files.find(_.getName == getSelectedValue).get
+    val selected = getSelectedValue.asInstanceOf[JLabel]
+    files.find(_.getName == selected.getText).get
   }
 
 }
 
 
 
-class IconListCellRenderer extends DefaultListCellRenderer {
-  val uid = UIManager.getLookAndFeel().getDefaults()
-  val listForeground = uid.getColor("List.foreground")
-  val listBackground = uid.getColor("List.background")
+class IconListCellRenderer extends JLabel with ListCellRenderer {
 
-  override def getListCellRendererComponent(list:JList, value:Object, index:int, isSelected:boolean, cellHasFocus:boolean) = {
-    if(value.isInstanceOf[JLabel]){
-      val jl = value.asInstanceOf[JLabel]
-      setText(jl.getText)
-      setIcon(jl.getIcon)
-    } else if (value.isInstanceOf[String]) {
-      setText(value.asInstanceOf[String])
-    } else {
-      setText(value.toString)
-    }
-
-    if(isSelected) {
-      setForeground(list.getSelectionForeground)
+  override def getListCellRendererComponent(list:JList, value:Object, index:int, isSelected:boolean, hasFocus:boolean) = {
+    val jlabel = value.asInstanceOf[JLabel]
+    setOpaque(true)
+    setText(jlabel.getText)
+    setIcon(jlabel.getIcon)
+    setComponentOrientation(list.getComponentOrientation)
+    if(isSelected){
       setBackground(list.getSelectionBackground)
-    } else {
-      setForeground(listForeground)
-      setBackground(listBackground)
+      setForeground(list.getSelectionForeground)
     }
-    
+    else{
+      setBackground(list.getBackground)
+      setForeground(list.getForeground)
+    }
+    if(hasFocus){
+      setBorder(UIManager.getBorder("List.focusCellHighlightBorder"))
+    }
+    else {
+      setBorder(new EmptyBorder(1,1,1,1))
+    }
     this
   }
 
   override protected def paintComponent(g: Graphics){
     import RenderingHints._
-    val g2d = g.asInstanceOf[Graphics2D]
-    val hint = g2d.setRenderingHint _
+    val g2 = g.asInstanceOf[Graphics2D]
+    val hint = g2.setRenderingHint _
     hint(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON)
     hint(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON)
     hint(KEY_RENDERING, VALUE_RENDER_QUALITY)
-    super.paintComponent(g2d)
+    super.paintComponent(g2)
   }
+
 }
 
 
@@ -167,20 +170,30 @@ object ChartUtil {
   def curveToIcon(curve: Curve):JLabel = {
     val chart = createChart(curve)
     val image = new BufferedImage(400, 700, BufferedImage.TYPE_INT_ARGB)
-    val graphics = image.createGraphics
-    chart.draw(graphics, new Rectangle2D.Double(0,0,400,700), null, null)
-    graphics.dispose()
+
+    var graphics = image.createGraphics
+    chart.draw(graphics, new Rectangle2D.Double(0,0,400,700), null, null)    
+    graphics.dispose()    
+
     val scaled = fastScale(image,64,64)
-    val icon = new ImageIcon(scaled)
+
+    val shadowRenderer = new ShadowRenderer()
+    val shadow = shadowRenderer.createShadow(scaled)
+    
+    val stacked = stackImages(scaled, shadow)
+
+    val icon = new ImageIcon(stacked)
     val name = curve.getMnemonic
     new JLabel(name, icon, SwingConstants.LEFT)
   }
 
-  def fastCurveToIcon(curve: Curve):JLabel = {
-    val scaled = createChart(curve).createBufferedImage(64,64,400,700, null)
-    val icon = new ImageIcon(scaled)
-    val name = curve.getMnemonic
-    new JLabel(name, icon, SwingConstants.LEFT)
+
+  def stackImages(top:BufferedImage, bottom:BufferedImage) = {
+    val graphics = bottom.createGraphics
+    graphics.setComposite(AlphaComposite.SrcOver.derive(1.0f))
+    graphics.drawImage(top, 0, 0, null)
+    graphics.dispose()
+    bottom
   }
 
   def fastScale(img:BufferedImage, targetWidth: Int, targetHeight: Int) = {

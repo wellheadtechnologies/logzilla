@@ -46,9 +46,9 @@
 	inner-panel (new JPanel (new MigLayout))
 	scroll-pane (new JScrollPane inner-panel)]
     (doto inner-panel
-      (.add file-list "pushy, growy, pushx, growx"))
+      (.add file-list "pushx, growx"))
     (doto outer-panel 
-      (.add scroll-pane "pushy, growy, pushx, growx"))
+      (.add scroll-pane "pushy, grow, pushx, growx"))
     outer-panel))
 
 (def file-panel (create-file-panel))
