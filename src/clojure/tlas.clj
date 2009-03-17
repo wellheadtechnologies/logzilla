@@ -78,8 +78,8 @@
        [index netgross facies porosity gamma depth]))
 
 (defn test-instantiation []
-  (let [lf1 (new DefaultLasFile headers index curves)
-	lf2 (new DefaultLasFile headers index curves)]
+  (let [lf1 (new DefaultLasFile "lf1" headers index curves)
+	lf2 (new DefaultLasFile "lf2" headers index curves)]
     (assert (= curves (.getCurves lf1)))
     (assert (= headers (.getHeaders lf1)))
     (assert (= lf1 lf2))))

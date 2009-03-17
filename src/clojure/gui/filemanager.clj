@@ -31,7 +31,7 @@
     
 (defn open-files [files]
   (doseq [file files]
-    (thread (open-file file))))
+    (short-task (open-file file))))
 
 (defn user-selected-files [cwd parent]
   (let [chooser (new JFileChooser cwd)]

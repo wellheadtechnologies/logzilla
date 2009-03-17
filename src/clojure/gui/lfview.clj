@@ -67,7 +67,7 @@
 	 pane (new JScrollPane inner-panel)
 	 outer-panel (create-curve-panel)]
     
-     (thread (.addCurves curve-list curves))
+     (long-task (.addCurves curve-list curves))
      
      (doto pane
        (.setBorder (BorderFactory/createEmptyBorder)))

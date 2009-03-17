@@ -24,7 +24,6 @@
       ["Quit" (fn [e] (System/exit 0))])
     menu))
 
-;(UIManager/setLookAndFeel (UIManager/getSystemLookAndFeelClassName))
 (UIManager/setLookAndFeel "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel")
 
 (defn setup-main-frame []
