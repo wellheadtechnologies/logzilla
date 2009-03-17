@@ -2,7 +2,7 @@
   (:use util))
 
 (import '(java.awt BorderLayout Color)
-	'(gui ChartUtil)
+	'(gui ChartUtil CustomChartPanel)
 	'(javax.swing BorderFactory JPanel JSlider JWindow JFrame
 		      JTable JScrollPane)
 	'(javax.swing.table DefaultTableModel)
@@ -11,6 +11,7 @@
 	'(javax.swing.event ChangeEvent ChangeListener)
 	'(org.jfree.chart ChartFactory ChartPanel JFreeChart)
 	'(org.jfree.chart.axis DateAxis)
+	'(org.jfree.chart ChartMouseListener)
 	'(org.jfree.chart.plot PlotOrientation XYPlot)
 	'(org.jfree.chart.renderer.xy XYItemRenderer)
 	'(org.jfree.data Range)
@@ -57,13 +58,26 @@
 	chart (ChartUtil/createChart curve)
 	table (create-table curve)
 	table-pane (new JScrollPane table)
-	chart-panel (new ChartPanel chart)
+	chart-panel (new CustomChartPanel chart)
 	main-panel (new JPanel (new MigLayout))
 	frame (new JFrame (str (.getMnemonic curve) " Editor"))
 	plot (.getPlot chart)
 	x-axis (.getDomainAxis plot)]
 
     (.addChangeListener depth-slider (create-slider-listener depth-slider x-axis))
+
+    (doto chart-panel
+      (.setDomainZoomable false)
+      (.setMouseZoomable false))
+
+    (.addChartMouseListener chart-panel
+			    (proxy [ChartMouseListener] []
+			      (chartMouseClicked [e] 
+						 (let [entity (.getEntity e)]
+						   (println entity)))
+			      (chartMouseMoved [e] nil)))
+    
+    
       
     (doto x-axis
       (.setAutoRange false)
