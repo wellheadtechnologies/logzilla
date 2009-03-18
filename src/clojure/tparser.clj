@@ -1,7 +1,8 @@
 (ns tparser  
   (:use util data))
 
-(import '(core DefaultLasParser DefaultLasWriter))
+(import '(java.io File)
+	'(core DefaultLasParser DefaultLasWriter))
 
 (defn test-las-file []
   (let [lf (DefaultLasParser/parseLasFile "las_files/test.las")
@@ -42,6 +43,12 @@
     (assert (= strt "57.000000000"))
     (assert (= stop "5817.0000000"))))
 
+(defn test-parse-all []
+  (let [directory (new File "las_files")
+	files (.listFiles directory)]
+    (doseq [file files]
+      (DefaultLasParser/parseLasFile file))))
+
 (defn test-write-lasfile []
   (let [in-out 
 	(fn [path] 
@@ -66,4 +73,7 @@
   (test-dollie)
   (println "finished dollie")
   (time (test-x4))
-  (println "finished x4"))
+  (println "finished x4")
+  
+  (test-parse-all)
+  (println "finished test parse all"))

@@ -2,7 +2,7 @@ package core
 
 import scala.collection.jcl.Conversions._
 import java.util.{List,LinkedList,StringTokenizer}
-import java.io.{File, FileReader, BufferedReader}
+import java.io.{File, FileReader, BufferedReader, LineNumberReader}
 import scala.collection.mutable.{Queue,ListBuffer}
 import java.math.BigDecimal
 
@@ -20,7 +20,8 @@ object DefaultLasParser extends LasParser {
   }
 
   override def parseLasFile(file:File) = {
-    var reader = new BufferedReader(new FileReader(file))
+    println("parsing " + file.getName)
+    var reader = new LineNumberReader(new FileReader(file))
     try {
       val headers = parseHeaders(reader)
       val curveHeader = headers.find(_.getType == "CurveHeader").get
@@ -31,7 +32,7 @@ object DefaultLasParser extends LasParser {
     }
   }
 
-  private def parseCurves(curveHeader:Header,reader:BufferedReader) = {
+  private def parseCurves(curveHeader:Header,reader:LineNumberReader) = {
     val descriptors = curveHeader.getDescriptors()
     val n = descriptors.size()
     val data:Queue[BigDecimal] = parseData(reader)
@@ -53,7 +54,7 @@ object DefaultLasParser extends LasParser {
     (index, final_curves)
   }
 
-  private def parseHeaders(reader:BufferedReader):List[Header] = {
+  private def parseHeaders(reader:LineNumberReader):List[Header] = {
     val line = next_line(reader)
     val headers = new LinkedList[Header]()
     var prefix = line.trim.take(2)
@@ -66,7 +67,7 @@ object DefaultLasParser extends LasParser {
     return headers
   }
 
-  private def parseData(reader:BufferedReader):Queue[BigDecimal] = {
+  private def parseData(reader:LineNumberReader):Queue[BigDecimal] = {
     val data = new Queue[BigDecimal]()
     while(reader.ready()) {
       val row = reader.readLine().trim().replaceAll("\t", " ")
@@ -78,7 +79,7 @@ object DefaultLasParser extends LasParser {
 	} catch {
 	  case (e:NumberFormatException) => 
 	    println("number format exception : " + token)
-	    e.printStackTrace()
+	    println("at line number : " + reader.getLineNumber)
 	    throw e
 	}
       }
@@ -86,21 +87,28 @@ object DefaultLasParser extends LasParser {
     return data
   }    
   
-  private def parseDescriptors(reader:BufferedReader) = {
-    var continue = true
-    val descriptors = new LinkedList[Descriptor]
-    var next_prefix:String = null
-    while(reader.ready() && continue){
-      val line = next_line(reader)
-      if(hasPrefix(line)){
-	continue = false
-	next_prefix = line
+  private def parseDescriptors(reader:LineNumberReader) = {
+    try {
+      var continue = true
+      val descriptors = new LinkedList[Descriptor]
+      var next_prefix:String = null
+      while(reader.ready() && continue){
+	val line = next_line(reader)
+	if(hasPrefix(line)){
+	  continue = false
+	  next_prefix = line
+	}
+	else {
+	  descriptors.add(parseDescriptor(line))
+	}
       }
-      else {
-	descriptors.add(parseDescriptor(line))
+      (next_prefix, descriptors)
+    } catch {
+      case e => {
+	println("parse failed at line no " + reader.getLineNumber)
+	throw e
       }
     }
-    (next_prefix, descriptors)
   }
 
   private def parseDescriptor(line1:String):Descriptor = {
@@ -124,9 +132,9 @@ object DefaultLasParser extends LasParser {
 
   }
 
-  private def next_line(reader:BufferedReader) = {
+  private def next_line(reader:LineNumberReader) = {
     var line = reader.readLine()
-    while(isComment(line)){
+    while(isComment(line) || line.trim == ""){
       line = reader.readLine()
     }
     line

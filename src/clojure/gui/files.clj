@@ -35,6 +35,12 @@
   (doseq [file files]
     (short-task (open-file file))))
 
+(defn open-files-in-directory [path]
+  (let [directory (new File path)
+	files (.listFiles directory)]
+    (open-files files)))
+  
+
 (defn user-selected-files [cwd parent]
   (let [chooser (new JFileChooser cwd)]
     (.setMultiSelectionEnabled chooser true)

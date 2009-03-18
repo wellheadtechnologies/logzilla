@@ -89,7 +89,6 @@
      outer-panel)))
 
 (defn insert-las-view [lasfile view]
-  (println "inserting " (.getName lasfile))
   (send las-views #(assoc % lasfile view)))
 
 (defn open-las-view [lasfile]
