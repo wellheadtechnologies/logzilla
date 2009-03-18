@@ -59,3 +59,8 @@
     (doseq [c coll]
       (.add ll c))
     ll))
+
+(defn guard [condition msg]
+  (when (not condition)
+    (throw (new RuntimeException msg))))
+    
