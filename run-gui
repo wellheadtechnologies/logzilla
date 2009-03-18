@@ -1,2 +1,0 @@
-#!/bin/sh
-echo "(use 'gui.app)(run-main)" | ./run

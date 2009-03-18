@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+require 'find'
+require 'fileutils'
+
+build = ARGV.any? {|a| a =~ /-b/}
+refresh = ARGV.any? {|a| a =~ /-r/}
+tests = ARGV.any? {|a| a =~ /-t/}
+gui = ARGV.any? {|a| a =~ /-g/}
+logscript = ARGV.any? {|a| a =~ /-s/}
+
+classpath = "CurveEditor.jar"
+Find.find("lib") do |p|
+  if p =~ /.jar$/
+    classpath += ":#{p}"
+  end
+end
+
+if build
+  system("ant jar") or fail
+end
+
+if refresh
+  system("cp -rv src/clojure* build/") or fail
+  system("rm -v CurveEditor.jar") or fail
+  system("ant just-jar") or fail
+end
+
+script = false
+  
+if tests 
+  script = '''
+(load \"tparser\")
+(tparser/run-tests)
+(load \"tlas\")
+(tlas/run-tests)
+'''
+elsif gui
+  script = """
+(use 'gui.app)
+(run-main)
+"""
+elsif logscript
+  script = """
+(load-file \\\"#{ARGV.last}\\\")
+"""
+end
+
+if script
+  system("echo \"#{script}\"")
+  system("echo \"#{script}\" | java -cp #{classpath} clojure.main -")
+end

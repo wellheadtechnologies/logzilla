@@ -1,2 +1,0 @@
-#!/bin/sh
-ant jar && java -cp CurveEditor.jar:$(find lib -name "*.jar" | xargs echo | sed "s/ /:/g") scala.tools.nsc.MainGenericRunner

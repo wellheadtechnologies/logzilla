@@ -1,5 +1,6 @@
 package core
 
+import org.slf4j.{Logger,LoggerFactory}
 import scala.collection.jcl.Conversions._
 import java.util.{List,LinkedList,StringTokenizer}
 import java.io.{File, FileReader, BufferedReader, LineNumberReader}
@@ -14,20 +15,27 @@ object DefaultLasParser extends LasParser {
 				    "~P" -> "ParameterHeader")
 
   private val white_space = "\n\r\t "
+  
+  private val logger = LoggerFactory.getLogger("core.LasParser")
 
   override def parseLasFile(path:String) = {
     parseLasFile(new File(path))
   }
 
   override def parseLasFile(file:File) = {
-    println("parsing " + file.getName)
+    logger.info("Parsing {}", file.getName)
     var reader = new LineNumberReader(new FileReader(file))
     try {
       val headers = parseHeaders(reader)
       val curveHeader = headers.find(_.getType == "CurveHeader").get
       val (index, curves) = parseCurves(curveHeader, reader)
       new DefaultLasFile(file.getName, headers, index, curves)
-    } finally {
+    } catch {
+      case e => 
+	logger.error("parser failed at line number : " + reader.getLineNumber)
+        throw e
+    }	    
+    finally {
       reader.close()
     }
   }
@@ -74,41 +82,27 @@ object DefaultLasParser extends LasParser {
       var tokenizer:StringTokenizer = new StringTokenizer(row, " ")
       while(tokenizer.hasMoreTokens){
 	val token = tokenizer.nextToken()
-	try {
-	  data += new BigDecimal(token)
-	} catch {
-	  case (e:NumberFormatException) => 
-	    println("number format exception : " + token)
-	    println("at line number : " + reader.getLineNumber)
-	    throw e
-	}
+	data += new BigDecimal(token)
       }
     }
     return data
   }    
   
   private def parseDescriptors(reader:LineNumberReader) = {
-    try {
-      var continue = true
-      val descriptors = new LinkedList[Descriptor]
-      var next_prefix:String = null
-      while(reader.ready() && continue){
-	val line = next_line(reader)
-	if(hasPrefix(line)){
-	  continue = false
-	  next_prefix = line
-	}
-	else {
-	  descriptors.add(parseDescriptor(line))
-	}
+    var continue = true
+    val descriptors = new LinkedList[Descriptor]
+    var next_prefix:String = null
+    while(reader.ready() && continue){
+      val line = next_line(reader)
+      if(hasPrefix(line)){
+	continue = false
+	next_prefix = line
       }
-      (next_prefix, descriptors)
-    } catch {
-      case e => {
-	println("parse failed at line no " + reader.getLineNumber)
-	throw e
+      else {
+	descriptors.add(parseDescriptor(line))
       }
     }
+    (next_prefix, descriptors)
   }
 
   private def parseDescriptor(line1:String):Descriptor = {
@@ -129,7 +123,6 @@ object DefaultLasParser extends LasParser {
   private def hasPrefix(line:String) = {
     ((header_prefixes.keySet).exists(line.startsWith) || 
      line.startsWith("~A"))
-
   }
 
   private def next_line(reader:LineNumberReader) = {
