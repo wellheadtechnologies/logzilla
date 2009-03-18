@@ -122,52 +122,6 @@ extends ChartPanel(chart, false, false, false, false, false) {
 
 }
 
-
-class CurveList extends JList {
-  val lock = new ReentrantReadWriteLock(true)
-  val model = new DefaultListModel
-  val curves = new LinkedList[Curve]
-  setModel(model)
-  val renderer = new IconListCellRenderer
-  setCellRenderer(renderer)
-
-  def addCurves(curves:List[Curve]){
-    withWriteLock(lock){
-      curves.foreach(addCurve)
-    }
-  }
-  
-  def addCurve(curve:Curve){
-    withWriteLock(lock){
-      model.addElement(ChartUtil.curveToIcon(curve))
-      curves.add(curve)
-      SwingUtilities.invokeLater(() => {
-	this.repaint()
-      })
-    }
-  }
-
-  def getCurves:List[Curve] = {
-    withReadLock(lock){
-      Compat.unmodifiable(curves)
-    }
-  }
-
-  def getSelectedCurves:List[Curve] = {
-    withReadLock(lock){
-      val names = getSelectedValues.map{ 
-	label => label.asInstanceOf[JLabel].getText()
-      }
-      val scurves = new LinkedList[Curve]
-      for(name <- names){
-	scurves.add(curves.find(_.getMnemonic == name).get)
-      }
-      scurves
-    }
-  }
-  
-}
-
 class IconListCellRenderer extends JLabel with ListCellRenderer {
 
   override def getListCellRendererComponent(list:JList, value:Object, index:int, isSelected:boolean, hasFocus:boolean) = {

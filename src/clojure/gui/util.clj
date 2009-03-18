@@ -2,7 +2,9 @@
   (:use util))
 
 (import '(java.awt.event ActionListener)
-	'(javax.swing JFileChooser JMenu JPopupMenu SwingUtilities JList DefaultListModel)
+	'(javax.swing JFileChooser JMenu JPopupMenu 
+		      SwingUtilities JList DefaultListModel
+		      JTabbedPane BorderFactory)
 	'(java.awt.event MouseAdapter)
 	'(gui IconListCellRenderer))
 
@@ -38,12 +40,3 @@
   (.addMouseListener widget
 		     (proxy [MouseAdapter] []
 		       (mouseClicked [e] (fun e)))))
-
-(defn create-jlist []
-  (let [model (new DefaultListModel)
-	jlist (new JList model)
-	renderer (new IconListCellRenderer)]
-    (doto jlist
-      (.setCellRenderer renderer)
-      (.setModel model))
-    jlist))
