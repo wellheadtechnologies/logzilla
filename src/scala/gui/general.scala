@@ -22,6 +22,22 @@ import core._
 import core.Compat.fun2Run
 import org.jdesktop.swingx.graphics.ShadowRenderer
 
+class CustomJTable extends JTable {
+  def showCell(row:Int, col:Int){
+    val rect = getCellRect(row, col, true)
+    scrollRectToVisible(rect)
+  }
+
+  def showAtPercentage(n:Double){
+    if(n > 1 || n < 0)
+      throw new RuntimeException("invalid n (must be from 0.0 to 1.0) : " + n) 
+    val rows = getRowCount - 1
+    val row = (n * rows).intValue
+    showCell(row, 0)
+  }
+    
+}
+
 class CustomChartPanel(curve: Curve, chart:JFreeChart) 
 extends ChartPanel(chart, false, false, false, false, false) {
   val chartMouseListeners = new LinkedList[ChartMouseListener]
@@ -55,9 +71,7 @@ extends ChartPanel(chart, false, false, false, false, false) {
     var y = ((event.getY() - insets.top) / getScaleY).asInstanceOf[Int]
     
     setAnchor(new Point2D.Double(x, y))
-    if (getChart == null) {
-      return
-    }
+    if (getChart == null) return
     getChart.setNotify(true)  // force a redraw
     // new entity code...
     if(chartMouseListeners.length == 0) return
@@ -66,10 +80,6 @@ extends ChartPanel(chart, false, false, false, false, false) {
     if (getChartRenderingInfo != null) {
       val entities = getChartRenderingInfo.getEntityCollection()
       if (entities != null) {
-	var continue = true
-	val xrange = -10 to 10
-	val yrange = -10 to 10
-	
 	//bounds are reversed because graph is vertical
 	val picks = new LinkedList[ChartEntity]
 	for(entity <- entities.getEntities.toArray){
@@ -86,16 +96,11 @@ extends ChartPanel(chart, false, false, false, false, false) {
 		      Math.pow(Math.abs(y - bounds.x),2))
 	  }
 	  for(pick <- picks){
-	    println(delta(pick) + " vs " + delta(chosen))
 	    if(delta(pick) < delta(chosen)){
 	      chosen = pick
 	    }
 	  }
-	  println("x = " + x)
-	  println("y = " + y)
-	  println("pick = " + chosen + " at " + chosen.getArea.getBounds)
 	  entity = chosen
-
 	}
       }
     }

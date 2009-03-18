@@ -2,7 +2,7 @@
   (:use util gui.util))
 
 (import '(java.awt BorderLayout Color)
-	'(gui ChartUtil CustomChartPanel)
+	'(gui ChartUtil CustomChartPanel CustomJTable)
 	'(javax.swing BorderFactory JPanel JSlider JWindow JFrame
 		      JTable JScrollPane)
 	'(javax.swing.table DefaultTableModel)
@@ -28,34 +28,50 @@
 	'(java.awt Dimension Image))
 
 (def dragged-item (agent nil))
+(def slider-n 100)
+(def scale-n 10)
 
-(defn- create-slider-listener [depth-slider x-axis]
-  (proxy [ChangeListener] []
-    (stateChanged [event]
-		  (let [value (.getValue depth-slider)
-			range (.getRange x-axis)]
-		    (.setRange x-axis value (+ value 100))))))
+(defn get-scale [range]
+  (let [diff (- (.getUpperBound range) (.getLowerBound range))
+	scale (/ diff scale-n)]
+    scale))
+
+(defn scale-value [scale value]
+  (let [ratio (/ slider-n scale-n)]
+    (* (/ value ratio) scale)))
+
+(defn- create-slider-listener [depth-slider xaxis min-depth table]
+  (let [scale (get-scale (.getRange xaxis))]
+    (proxy [ChangeListener] []
+      (stateChanged [event]
+		    (let [value (.getValue depth-slider)
+			  scaled (scale-value scale value)]
+		      (.setRange xaxis 
+				 (+ scaled min-depth)
+				 (+ scaled min-depth (* scale 1)))
+		      (.showAtPercentage table (- 1 (/ value slider-n)))
+		      )))))
 
 (defn- create-depth-slider [min-depth max-depth]
-  (let [slider (new JSlider min-depth max-depth min-depth)]
+  (let [slider (new JSlider 0 slider-n 0)]
     (.setOrientation slider JSlider/VERTICAL)
     slider))
 
 (defn- create-table [curve]
   (let [index (.getIndex curve)
-	table (new JTable)
+	table (new CustomJTable)
 	model (new DefaultTableModel)]
     (doto model
-	(.addColumn (.getMnemonic index) (into-array Object (.getLasData index)))
-	(.addColumn (.getMnemonic curve) (into-array Object (.getLasData curve))))
+	(.addColumn (.getMnemonic index) (into-array Object (reverse (.getLasData index))))
+	(.addColumn (.getMnemonic curve) (into-array Object (reverse (.getLasData curve)))))
     (.setModel table model)
     table))
 
 (defn open-curve-editor [curve]
   (let [index (.getIndex curve)
 	depth-data (.getLasData index)
-	min-depth (first depth-data)
-	max-depth (last depth-data)
+	min-depth (reduce min depth-data)
+	max-depth (reduce max depth-data)
 	depth-slider (create-depth-slider min-depth max-depth)
 	chart (ChartUtil/createChart curve)
 	table (create-table curve)
@@ -64,9 +80,12 @@
 	main-panel (new JPanel (new MigLayout))
 	frame (new JFrame (str (.getMnemonic curve) " Editor"))
 	plot (.getPlot chart)
-	x-axis (.getDomainAxis plot)]
+	x-axis (.getDomainAxis plot)
+	scale (get-scale x-axis)]
 
-    (.addChangeListener depth-slider (create-slider-listener depth-slider x-axis))
+    (.addChangeListener 
+     depth-slider 
+     (create-slider-listener depth-slider x-axis min-depth table))
 
     (doto chart-panel
       (.setDomainZoomable false)
@@ -75,7 +94,13 @@
     (.addChartMouseListener 
      chart-panel
      (proxy [ChartMouseListener] []
-       (chartMouseClicked [e] (send dragged-item (fn [_] (.getEntity e))))
+       (chartMouseClicked 
+	[e] 
+	(send dragged-item 
+	      (fn [entity]
+		(if entity
+		  nil ;unset dragged-item
+		  (.getEntity e)))))
        (chartMouseMoved 
 	[e] 
 	(send dragged-item 
@@ -89,19 +114,14 @@
 			bounds (.. entity (getArea) (getBounds))
 			new-value (.java2DToValue chart-panel (.getX mouse-event))]
 		    (swing 
-		     (println "mouseX = " (.getX mouse-event))
-		     (println "java2dToValue = " 
-			      (.java2DToValue chart-panel (.getX mouse-event)))
-		     (println "item = " item)
-		     (flush)
-		     (when (not (.isNaN new-value))
+		     (when (not (or (.isNaN new-value) (.isInfinite new-value)))
 		       (.updateByIndex series index new-value)
 		       (.repaint chart-panel)))))
 		entity)))))
     
     (doto x-axis
       (.setAutoRange false)
-      (.setRange (new Range min-depth (+ min-depth 100))))
+      (.setRange (new Range min-depth (+ min-depth (* scale 1)))))
       
     (doto main-panel
       (.setPreferredSize (new Dimension 700 700))
