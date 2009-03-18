@@ -217,18 +217,18 @@ object ChartUtil {
     chart.draw(graphics, new Rectangle2D.Double(0,0,400,700), null, null)    
     graphics.dispose()    
 
-    val scaled = fastScale(image,64,64)
+    val finalImage = renderShadow(fastScale(image,64,64))
 
-    val shadowRenderer = new ShadowRenderer()
-    val shadow = shadowRenderer.createShadow(scaled)
-    
-    val stacked = stackImages(scaled, shadow)
-
-    val icon = new ImageIcon(stacked)
+    val icon = new ImageIcon(finalImage)
     val name = curve.getMnemonic
     new JLabel(name, icon, SwingConstants.LEFT)
   }
-
+  
+  def renderShadow(image:BufferedImage) = {
+    val shadowRenderer = new ShadowRenderer()
+    val shadow = shadowRenderer.createShadow(image)
+    stackImages(image, shadow)
+  }
 
   def stackImages(top:BufferedImage, bottom:BufferedImage) = {
     val graphics = bottom.createGraphics
@@ -296,4 +296,3 @@ object ChartUtil {
   }
 
 }
-

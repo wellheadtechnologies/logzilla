@@ -27,21 +27,30 @@
   (send file-list
 	(fn [flist]
 	  (.. file-list-widget (getModel) (addElement (new JLabel name)))
-	  (swing (insert-las-view lasfile (create-las-view lasfile)))
-	  (conj flist lasfile))))
+	  (send las-views assoc lasfile (create-las-view lasfile))
+	  (conj flist lasfile)))
+  (when *synchronous*
+    (await file-list)))
+
+(defn get-las-file [name]
+  (find-first #(= (.getName %) name) @file-list))
 
 (defmulti open-file class)
 
 (defmethod open-file File [file]
   (let [lf (DefaultLasParser/parseLasFile file)]
-    (add-las-file (.getName file) lf)))
+    (add-las-file (.getName file) lf)
+    lf))
 
 (defmethod open-file String [path]
   (open-file (new File path)))
     
 (defn open-files [files]
-  (doseq [file files]
-    (short-task (open-file file))))
+  (if *synchronous*
+    (for [file files]
+      (open-file file))
+    (doseq [file files]
+      (short-task (open-file file)))))
 
 (defn open-files-in-directory [path]
   (let [directory (new File path)
@@ -67,4 +76,3 @@
     outer-panel))
 
 (def file-panel (create-file-panel))
-

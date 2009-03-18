@@ -2,5 +2,9 @@
      'gui.curves 'gui.global 'gui.util
      'util)
 
-(long-task (run-main))
-(open-files ["las_files/test.las" "las_files/dollie.las"])
+(async-run-main)
+(synchronous
+ (let [[t d] (open-files ["las_files/test.las" "las_files/dollie.las"])]
+   (open-las-view t)
+   (open-curve-editor (first (.getCurves d)))))
+

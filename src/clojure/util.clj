@@ -64,3 +64,8 @@
   (when (not condition)
     (throw (new RuntimeException msg))))
     
+(defn index-of [obj coll]
+  (count (take-while #(not= obj %) coll)))
+
+(defn get-curve [name curves]
+  (find-first #(= (.getMnemonic %) name) curves))

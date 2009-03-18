@@ -1,5 +1,5 @@
 (ns gui.app
-  (:use util gui.util gui.las gui.files)
+  (:use util gui.util gui.las gui.files gui.global)
   (:import (javax.swing JFrame JPanel JSlider
 			JMenu JMenuItem JMenuBar
 			UIManager JFileChooser
@@ -39,3 +39,6 @@
      (.pack)
      (.setResizable false)
      (.setVisible true))))
+
+(defn async-run-main []
+  (long-task (run-main)))

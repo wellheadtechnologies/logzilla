@@ -26,25 +26,25 @@
 	 (.revalidate))
        panel))
 
-(defn set-las-view [new-view]
-  (send current-las-view
-	(fn [old-view]
-	  (swing 
-	   (doto las-panel
-	     (.remove old-view)
-	     (.add new-view)
-	     (.revalidate))
-	   (doto new-view
-	     (.repaint)
-	     (.revalidate)))
-	  new-view)))
+(def las-curves (agent {}))
 
-(defn insert-las-view [lasfile view]
-  (send las-views #(assoc % lasfile view)))
-
-(defn add-curve [jlist curve]
+(defn add-curve [lasfile curve]
   (let [icon (ChartUtil/curveToIcon curve)]
-    (swing (.addElement (.getModel jlist) icon))))
+    (send las-curves 
+	  (fn [lcs]
+	    (let [[jlist curves] (get lcs lasfile)]
+	      (swing (.addElement (.getModel jlist) icon))
+	      (assoc lcs lasfile [jlist (conj curves curve)])
+	      )))))
+
+(defn remove-curve [lasfile curve]
+  (send las-curves
+	(fn [lcs]
+	  (let [[jlist curves] (get lcs lasfile)
+		index (index-of curve curves)]
+	    (swing (.removeElementAt (.getModel jlist) index))
+	    (assoc lcs lasfile [jlist (remove #(= curve %) curves)])
+	    ))))		   
 
 (defn- get-selected-curves [jlist curves]
   (let [selected (map #(.getText %) (.getSelectedValues jlist))]
@@ -53,21 +53,26 @@
 		(some #(= name %) selected)))
 	    curves)))
 
-(defn- open-curves-context-menu [event jlist curves]
-  (let [[c x y] [(.getComponent event) (.getX event) (.getY event)]
+(defn- open-curves-context-menu [lasfile jlist event]
+  (let [curves (.getCurves lasfile)
+	[c x y] [(.getComponent event) (.getX event) (.getY event)]
 	scurves (get-selected-curves jlist curves)]
     (context-menu [c x y]
       ["Copy" (fn [e] (send copied-curves (fn [x] scurves)))]
       ["Paste" (fn [e] 
 		 (doseq [curve @copied-curves]
-		   (add-curve jlist curve)))])))
+		   (add-curve lasfile curve)))])))
 
-(defn- create-curve-list [curves]
-  (let [jlist (create-jlist)]
-    (long-task
-     (doseq [curve curves]
-       (add-curve jlist curve)))
-
+(defn- create-curve-list [lasfile]
+  (let [curves (.getCurves lasfile)
+	jlist (create-jlist)]
+    (send las-curves
+	  (fn [lcs]
+	    (long-task
+	     (doseq [curve curves]	       
+	       (add-curve lasfile curve)))
+	    (assoc lcs lasfile [jlist []])))
+    
     (swing 
      (doto jlist
        (.setFixedCellHeight 80)
@@ -82,30 +87,45 @@
 	    (swing (open-curve-editor sc)))
 	  
 	  (= MouseEvent/BUTTON3 (.getButton e))
-	  (swing (open-curves-context-menu e jlist))))))
+	  (swing (open-curves-context-menu lasfile jlist e))))))
     jlist))
 
 (defn create-las-view [lasfile]
-  (swing 
-   (let [curves (.getCurves lasfile)
-	 curve-list (create-curve-list curves)
-	 inner-panel (create-inner-panel)
-	 pane (new JScrollPane inner-panel)
-	 outer-panel (create-curve-panel)]
+  (let [curve-list (create-curve-list lasfile)
+	inner-panel (create-inner-panel)
+	pane (new JScrollPane inner-panel)
+	outer-panel (create-curve-panel)]
+    
+    (doto inner-panel
+      (.add curve-list "pushx, growx, pushy, growy, wrap"))
 
-     (doto inner-panel
-       (.add curve-list "pushx, growx, pushy, growy, wrap"))
-     (doto outer-panel 
-       (.add pane "pushx, pushy, growx, growy, wrap")
-       (.setPreferredSize (new Dimension 400 700)))
-     outer-panel)))
+    (doto outer-panel 
+      (.add pane "pushx, pushy, growx, growy, wrap")
+      (.setPreferredSize (new Dimension 400 700)))
+    outer-panel))
+
+(defn set-las-view [new-view]
+  (send current-las-view
+	(fn [old-view]
+	  (swing 
+	   (doto las-panel
+	     (.remove old-view)
+	     (.add new-view)
+	     (.revalidate))
+	   (doto new-view
+	     (.repaint)
+	     (.revalidate)))
+	  new-view)))
 
 (defn open-las-view [lasfile]
-  (swing
-   (set-las-view 
-    (let [existing-view (get @las-views lasfile)]
-      (if existing-view
-	existing-view
-	(let [view (create-las-view lasfile)]
-	  (insert-las-view lasfile view)
-	  view))))))
+  (send las-views 
+	(fn [views]
+	  (let [existing-view (get views lasfile)]
+	    (if existing-view
+	      (do 
+		(set-las-view existing-view)
+		views)
+	      (let [view (create-las-view lasfile)]
+		(do
+		  (set-las-view view)
+		  (assoc views lasfile view))))))))

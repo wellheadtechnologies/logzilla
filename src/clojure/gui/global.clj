@@ -16,3 +16,10 @@
 
 (defmacro long-task [& body]
   `(.execute cached-executor-service (fn [] ~@body)))
+
+(def *synchronous* false)
+
+(defmacro synchronous [& body]
+  `(binding [gui.global/*synchronous* true]
+     ~@body))
+  
