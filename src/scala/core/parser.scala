@@ -34,10 +34,10 @@ object DefaultLasParser extends LasParser {
   private def parseCurves(curveHeader:Header,reader:BufferedReader) = {
     val descriptors = curveHeader.getDescriptors()
     val n = descriptors.size()
-    val data:Queue[Number] = parseData(reader)
-    val cdatas = new ListBuffer[List[Number]]
+    val data:Queue[BigDecimal] = parseData(reader)
+    val cdatas = new ListBuffer[List[BigDecimal]]
     for(_ <- 0 until n){
-      cdatas += new LinkedList[Number]()
+      cdatas += new LinkedList[BigDecimal]()
     }
     while(!data.isEmpty){
       (0 until n).foreach(i => {
@@ -66,8 +66,8 @@ object DefaultLasParser extends LasParser {
     return headers
   }
 
-  private def parseData(reader:BufferedReader):Queue[Number] = {
-    val data = new Queue[Number]()
+  private def parseData(reader:BufferedReader):Queue[BigDecimal] = {
+    val data = new Queue[BigDecimal]()
     while(reader.ready()) {
       val row = reader.readLine().trim().replaceAll("\t", " ")
       var tokenizer:StringTokenizer = new StringTokenizer(row, " ")

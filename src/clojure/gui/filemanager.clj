@@ -14,6 +14,8 @@
        (on-click list
 	 (fn [e]
 	   (open-curve-view (.getSelectedLasFile list))))
+       (doto list 
+	 (.setOpaque false))
        list))
 
 (defn add-las-file [name las-file]

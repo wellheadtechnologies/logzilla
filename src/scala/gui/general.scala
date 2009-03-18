@@ -1,5 +1,7 @@
 package gui
 
+import java.math.BigDecimal
+
 import java.awt._
 import java.awt.event.{MouseEvent}
 import java.awt.image.{BufferedImage}
@@ -14,13 +16,38 @@ import org.jfree.chart.entity.{ChartEntity,XYItemEntity}
 import org.jfree.chart.{ChartMouseEvent, ChartMouseListener}
 import org.jfree.data.xy.{AbstractXYDataset, XYDataset, 
 			  XYSeries, XYSeriesCollection}
+import org.jfree.ui.RectangleEdge
+
 import core._
 import core.Compat.fun2Run
 import org.jdesktop.swingx.graphics.ShadowRenderer
 
-class CustomChartPanel(chart:JFreeChart) 
+class CustomChartPanel(curve: Curve, chart:JFreeChart) 
 extends ChartPanel(chart, false, false, false, false, false) {
   val chartMouseListeners = new LinkedList[ChartMouseListener]
+
+  def java2DToValue(x:Double) = {
+    val xaxis = chart.getPlot.asInstanceOf[XYPlot].getRangeAxis //reversed, remember?
+    val value = xaxis.java2DToValue(x, 
+				    getScreenDataArea,
+				    RectangleEdge.TOP) //dunno why this has to be top
+    value
+  }
+
+  lazy val curveXRange = {
+    val data = curve.getLasData
+    val cmax = data.reduceLeft(max)
+    val cmin = data.reduceLeft(min)
+    cmax.subtract(cmin)
+  }
+
+  private def max(a:BigDecimal, b:BigDecimal) = {
+    if(a.compareTo(b) == 1) a else b
+  }
+
+  private def min(a:BigDecimal, b:BigDecimal) = {
+    if(a.compareTo(b) == -1) a else b
+  }
 
   override def mouseClicked(event:MouseEvent) {
     val insets = getInsets()
@@ -68,6 +95,7 @@ extends ChartPanel(chart, false, false, false, false, false) {
 	  println("y = " + y)
 	  println("pick = " + chosen + " at " + chosen.getArea.getBounds)
 	  entity = chosen
+
 	}
       }
     }
@@ -79,10 +107,12 @@ extends ChartPanel(chart, false, false, false, false, false) {
   
   override def addChartMouseListener(listener:ChartMouseListener){
     chartMouseListeners += listener
+    super.addChartMouseListener(listener)
   }
 
   override def removeChartMouseListener(listener:ChartMouseListener){
     chartMouseListeners -= listener
+    super.addChartMouseListener(listener)
   }
 
 }

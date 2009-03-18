@@ -1,9 +1,10 @@
 package core;
 import java.util.List;
+import java.math.BigDecimal;
 
 public interface Curve {
     Descriptor getDescriptor();
-    List<Number> getLasData();
+    List<BigDecimal> getLasData();
     Curve getIndex();
     String getMnemonic();
     Object getUnit();

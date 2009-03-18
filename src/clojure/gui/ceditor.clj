@@ -1,5 +1,5 @@
 (ns gui.ceditor
-  (:use util))
+  (:use util gui.util))
 
 (import '(java.awt BorderLayout Color)
 	'(gui ChartUtil CustomChartPanel)
@@ -26,6 +26,8 @@
 		       RefineryUtilities)
 	'(net.miginfocom.swing MigLayout)
 	'(java.awt Dimension Image))
+
+(def dragged-item (agent nil))
 
 (defn- create-slider-listener [depth-slider x-axis]
   (proxy [ChangeListener] []
@@ -58,7 +60,7 @@
 	chart (ChartUtil/createChart curve)
 	table (create-table curve)
 	table-pane (new JScrollPane table)
-	chart-panel (new CustomChartPanel chart)
+	chart-panel (new CustomChartPanel curve chart)
 	main-panel (new JPanel (new MigLayout))
 	frame (new JFrame (str (.getMnemonic curve) " Editor"))
 	plot (.getPlot chart)
@@ -70,15 +72,33 @@
       (.setDomainZoomable false)
       (.setMouseZoomable false))
 
-    (.addChartMouseListener chart-panel
-			    (proxy [ChartMouseListener] []
-			      (chartMouseClicked [e] 
-						 (let [entity (.getEntity e)]
-						   (println entity)))
-			      (chartMouseMoved [e] nil)))
+    (.addChartMouseListener 
+     chart-panel
+     (proxy [ChartMouseListener] []
+       (chartMouseClicked [e] (send dragged-item (fn [_] (.getEntity e))))
+       (chartMouseMoved 
+	[e] 
+	(send dragged-item 
+	      (fn [entity]
+		(when entity
+		  (let [mouse-event (.getTrigger e)
+			dataset (.getDataset entity)
+			series (first (.getSeries dataset))
+			index (.getItem entity)
+			item (.getDataItem series index)
+			bounds (.. entity (getArea) (getBounds))
+			new-value (.java2DToValue chart-panel (.getX mouse-event))]
+		    (swing 
+		     (println "mouseX = " (.getX mouse-event))
+		     (println "java2dToValue = " 
+			      (.java2DToValue chart-panel (.getX mouse-event)))
+		     (println "item = " item)
+		     (flush)
+		     (when (not (.isNaN new-value))
+		       (.updateByIndex series index new-value)
+		       (.repaint chart-panel)))))
+		entity)))))
     
-    
-      
     (doto x-axis
       (.setAutoRange false)
       (.setRange (new Range min-depth (+ min-depth 100))))

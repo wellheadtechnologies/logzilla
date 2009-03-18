@@ -69,7 +69,8 @@
      (long-task (.addCurves curve-list curves))
 
      (doto curve-list
-       (.setFixedCellHeight 80))
+       (.setFixedCellHeight 80)
+       (.setOpaque false))
 
      (on-click curve-list
        (fn [e]
@@ -83,7 +84,7 @@
 	  (swing (open-curves-context-menu e curve-list)))))
      
      (doto inner-panel
-       (.add curve-list "pushx, growx, wrap"))
+       (.add curve-list "pushx, growx, pushy, growy, wrap"))
      (doto outer-panel 
        (.add pane "pushx, pushy, growx, growy, wrap")
        (.setPreferredSize (new Dimension 400 700)))

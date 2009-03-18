@@ -40,4 +40,5 @@
        (.setJMenuBar menu-bar)
        (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
        (.pack)
+       (.setResizable false)
        (.setVisible true)))))

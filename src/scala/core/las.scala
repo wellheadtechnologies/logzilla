@@ -1,5 +1,6 @@
 package core
 
+import java.math.BigDecimal
 import core._
 import scala.collection.jcl.Conversions._
 import org.apache.commons.collections.list.UnmodifiableList
@@ -66,7 +67,7 @@ extends LasFile {
   }
 }
 
-class DefaultCurve(descriptor:Descriptor, index:Curve, data:List[Number]) 
+class DefaultCurve(descriptor:Descriptor, index:Curve, data:List[BigDecimal]) 
 extends Curve {
   override def getDescriptor = descriptor
   override def getLasData = data
