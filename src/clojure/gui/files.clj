@@ -1,5 +1,5 @@
-(ns gui.filemanager
-  (:use util gui.util gui.lfview gui.widgets gui.global))
+(ns gui.files
+  (:use util gui.util gui.las gui.widgets gui.global))
 (import '(org.apache.commons.io FileUtils)
 	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
 		      JScrollPane JButton JWindow JPanel SwingUtilities
@@ -13,14 +13,14 @@
      (let [list (new LasFileList)]
        (on-click list
 	 (fn [e]
-	   (open-curve-view (.getSelectedLasFile list))))
+	   (open-las-view (.getSelectedLasFile list))))
        (doto list 
 	 (.setOpaque false))
        list))
 
-(defn add-las-file [name las-file]
-  (.addLasFile file-list las-file)
-  (install-curve-view las-file))
+(defn add-las-file [name lasfile]
+  (.addLasFile file-list lasfile)
+  (swing (insert-las-view lasfile (create-las-view lasfile))))
 
 (defmulti open-file class)
 

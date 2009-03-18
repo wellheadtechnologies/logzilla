@@ -1,4 +1,4 @@
-(ns gui.ceditor
+(ns gui.curves
   (:use util gui.util))
 
 (import '(java.awt BorderLayout Color)

@@ -1,2 +1,2 @@
 #!/bin/sh
-echo "(use 'gui.app)(setup-main-frame)" | ./run
+echo "(use 'gui.app)(run-main)" | ./run

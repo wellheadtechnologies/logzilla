@@ -1,40 +1,38 @@
-(ns gui.lfview
-  (:use util gui.ceditor
-	gui.util gui.global gui.widgets))
+(ns gui.las
+  (:use util gui.curves gui.util gui.global gui.widgets)
+  (:import (gui IconListCellRenderer ChartUtil CurveList)
+	   (java.io File)
+	   (javax.swing JList JFrame DefaultListModel ImageIcon JLabel
+			JScrollPane JButton JWindow JPanel SwingUtilities
+			JTabbedPane BorderFactory)
+	   (javax.swing.border BevelBorder)
+	   (javax.imageio ImageIO)
+	   (net.miginfocom.swing MigLayout)
+	   (java.awt Dimension Image Color)
+	   (java.awt.event MouseMotionAdapter MouseAdapter MouseEvent)))
 
-(import '(gui IconListCellRenderer ChartUtil CurveList)
-	'(java.io File)
-	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
-		      JScrollPane JButton JWindow JPanel SwingUtilities
-		      JTabbedPane BorderFactory)
-	'(javax.swing.border BevelBorder)
-	'(javax.imageio ImageIO)
-	'(net.miginfocom.swing MigLayout)
-	'(java.awt Dimension Image Color)
-	'(java.awt.event MouseMotionAdapter MouseAdapter MouseEvent))
-
-(defn create-curve-panel []
+(defn- create-curve-panel []
   (let [panel (new JPanel (new MigLayout))]
     (doto panel
       (.setBorder (BorderFactory/createEtchedBorder)))
     panel))
 
-(defn create-inner-panel []
-  (let [panel (new JPanel (new MigLayout))]
-    (doto panel
-      (.setBorder (BorderFactory/createEmptyBorder)))
-    panel))
+(defn- create-inner-panel []
+     (let [panel (new JPanel (new MigLayout))]
+       (doto panel
+	 (.setBorder (BorderFactory/createEmptyBorder)))
+       panel))
 
-(def current-curve-view 
-     (agent (create-curve-panel)))
+(def current-las-view (agent (create-curve-panel)))
 
-(def curve-panel (let [panel (create-titled-panel "Curves")]
-		   (doto panel
-		     (.add @current-curve-view "pushy, growy, pushx, growx")
-		     (.revalidate))
-		   panel))
+(def las-panel 
+     (let [panel (create-titled-panel "Curves")]
+       (doto panel
+	 (.add @current-las-view "pushy, growy, pushx, growx")
+	 (.revalidate))
+       panel))
 
-(def curve-views (ref {}))
+(def las-views (agent {}))
 
 (defn- open-curves-context-menu [event curve-list]
   (let [[c x y] [(.getComponent event) (.getX event) (.getY event)]
@@ -45,11 +43,11 @@
 		 (doseq [curve @copied-curves]
 		   (.addCurve curve-list curve)))])))
 
-(defn set-curve-view [new-view]
-  (send current-curve-view
+(defn set-las-view [new-view]
+  (send current-las-view
 	(fn [old-view]
 	  (swing 
-	   (doto curve-panel
+	   (doto las-panel
 	     (.remove old-view)
 	     (.add new-view)
 	     (.revalidate))
@@ -58,7 +56,7 @@
 	     (.revalidate)))
 	  new-view)))
 
-(defn install-curve-view [lasfile]
+(defn create-las-view [lasfile]
   (swing 
    (let [curves (.getCurves lasfile)
 	 curve-list (new CurveList)
@@ -88,13 +86,18 @@
      (doto outer-panel 
        (.add pane "pushx, pushy, growx, growy, wrap")
        (.setPreferredSize (new Dimension 400 700)))
-     (dosync (alter curve-views assoc lasfile outer-panel))
      outer-panel)))
 
-(defn open-curve-view [lasfile]
+(defn insert-las-view [lasfile view]
+  (println "inserting " (.getName lasfile))
+  (send las-views #(assoc % lasfile view)))
+
+(defn open-las-view [lasfile]
   (swing
-   (set-curve-view 
-    (let [existing-view (get @curve-views lasfile)]
+   (set-las-view 
+    (let [existing-view (get @las-views lasfile)]
       (if existing-view
 	existing-view
-	(install-curve-view))))))
+	(let [view (create-las-view lasfile)]
+	  (insert-las-view lasfile view)
+	  view))))))
