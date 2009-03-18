@@ -35,7 +35,7 @@ class CustomJTable extends JTable {
     val row = (n * rows).intValue
     showCell(row, 0)
   }
-    
+
 }
 
 class CustomChartPanel(curve: Curve, chart:JFreeChart) 
