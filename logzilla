@@ -20,7 +20,7 @@ if build
 end
 
 if refresh
-  system("cp -rv src/clojure* build/") or fail
+  system("cp -rv src/clojure/* build/") or fail
   system("rm -v CurveEditor.jar") or fail
   system("ant just-jar") or fail
 end

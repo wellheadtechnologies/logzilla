@@ -5,6 +5,7 @@ import core._
 import scala.collection.jcl.Conversions._
 import org.apache.commons.collections.list.UnmodifiableList
 import java.util.{List, LinkedList}
+import java.util.concurrent.locks.{ReadWriteLock,ReentrantReadWriteLock}
 
 object Compat {
   def unmodifiable[A](l: List[A]):List[A] = {
@@ -18,6 +19,27 @@ object Compat {
     return Compat.unmodifiable(list)
   }
   implicit def fun2Run[T](x: => T) : Runnable = new Runnable() { def run = x }
+
+  def withReadLock[A](lock:ReadWriteLock)(fn: => A):A = {
+    val readLock = lock.readLock
+    readLock.lock()
+    try {
+      fn
+    } finally {
+      readLock.unlock()
+    }
+  }
+
+  def withWriteLock[A](lock:ReadWriteLock)(fn: => A):A = {
+    val writeLock = lock.writeLock
+    writeLock.lock()
+    try {
+      fn
+    } finally {
+      writeLock.unlock()
+    }
+  }
+    
 }
 
 class DefaultLasFile(name:String, mheaders: List[Header], index: Curve, mcurves: List[Curve])

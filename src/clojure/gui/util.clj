@@ -2,8 +2,9 @@
   (:use util))
 
 (import '(java.awt.event ActionListener)
-	'(javax.swing JFileChooser JMenu JPopupMenu SwingUtilities)
-	'(java.awt.event MouseAdapter))
+	'(javax.swing JFileChooser JMenu JPopupMenu SwingUtilities JList DefaultListModel)
+	'(java.awt.event MouseAdapter)
+	'(gui IconListCellRenderer))
 
 (defn actions [menu & name-actions]
   (doseq [[name action] name-actions]
@@ -38,4 +39,11 @@
 		     (proxy [MouseAdapter] []
 		       (mouseClicked [e] (fun e)))))
 
-
+(defn create-jlist []
+  (let [model (new DefaultListModel)
+	jlist (new JList model)
+	renderer (new IconListCellRenderer)]
+    (doto jlist
+      (.setCellRenderer renderer)
+      (.setModel model))
+    jlist))

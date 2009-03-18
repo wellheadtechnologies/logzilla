@@ -11,6 +11,8 @@
 	   (java.awt Dimension Image Color)
 	   (java.awt.event MouseMotionAdapter MouseAdapter MouseEvent)))
 
+(def las-views (agent {}))
+
 (defn- create-curve-panel []
   (let [panel (new JPanel (new MigLayout))]
     (doto panel
@@ -31,8 +33,6 @@
 	 (.add @current-las-view "pushy, growy, pushx, growx")
 	 (.revalidate))
        panel))
-
-(def las-views (agent {}))
 
 (defn- open-curves-context-menu [event curve-list]
   (let [[c x y] [(.getComponent event) (.getX event) (.getY event)]

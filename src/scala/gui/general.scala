@@ -19,8 +19,9 @@ import org.jfree.data.xy.{AbstractXYDataset, XYDataset,
 import org.jfree.ui.RectangleEdge
 
 import core._
-import core.Compat.fun2Run
+import core.Compat.{fun2Run,withReadLock,withWriteLock}
 import org.jdesktop.swingx.graphics.ShadowRenderer
+import java.util.concurrent.locks.{ReadWriteLock,ReentrantReadWriteLock}
 
 class CustomJTable extends JTable {
   def showCell(row:Int, col:Int){
@@ -35,7 +36,6 @@ class CustomJTable extends JTable {
     val row = (n * rows).intValue
     showCell(row, 0)
   }
-
 }
 
 class CustomChartPanel(curve: Curve, chart:JFreeChart) 
@@ -124,6 +124,7 @@ extends ChartPanel(chart, false, false, false, false, false) {
 
 
 class CurveList extends JList {
+  val lock = new ReentrantReadWriteLock(true)
   val model = new DefaultListModel
   val curves = new LinkedList[Curve]
   setModel(model)
@@ -131,61 +132,41 @@ class CurveList extends JList {
   setCellRenderer(renderer)
 
   def addCurves(curves:List[Curve]){
-    curves.foreach(addCurve)
+    withWriteLock(lock){
+      curves.foreach(addCurve)
+    }
   }
   
   def addCurve(curve:Curve){
-    model.addElement(ChartUtil.curveToIcon(curve))
-    curves.add(curve)
-    SwingUtilities.invokeLater(() => {
-      this.repaint()
-    })
+    withWriteLock(lock){
+      model.addElement(ChartUtil.curveToIcon(curve))
+      curves.add(curve)
+      SwingUtilities.invokeLater(() => {
+	this.repaint()
+      })
+    }
   }
 
-  def getCurves:List[Curve] = Compat.unmodifiable(curves)
+  def getCurves:List[Curve] = {
+    withReadLock(lock){
+      Compat.unmodifiable(curves)
+    }
+  }
 
   def getSelectedCurves:List[Curve] = {
-    val names = getSelectedValues.map{ 
-      label => label.asInstanceOf[JLabel].getText()
+    withReadLock(lock){
+      val names = getSelectedValues.map{ 
+	label => label.asInstanceOf[JLabel].getText()
+      }
+      val scurves = new LinkedList[Curve]
+      for(name <- names){
+	scurves.add(curves.find(_.getMnemonic == name).get)
+      }
+      scurves
     }
-    val scurves = new LinkedList[Curve]
-    for(name <- names){
-      scurves.add(curves.find(_.getMnemonic == name).get)
-    }
-    return scurves
   }
   
 }
-
-class LasFileList extends JList {
-  val model = new DefaultListModel
-  val files = new LinkedList[LasFile]
-  setModel(model)
-  setSelectionMode(ListSelectionModel.SINGLE_SELECTION)
-  setCellRenderer(new IconListCellRenderer)
-
-  def addLasFiles(files:List[LasFile]){
-    files.foreach(addLasFile)
-  }
-
-  def addLasFile(file:LasFile){
-    model.addElement(new JLabel(file.getName))
-    files.add(file)
-    SwingUtilities.invokeLater(() => {
-      this.repaint()
-    })
-  }
-
-  def getLasFiles:List[LasFile] = Compat.unmodifiable(files)
-
-  def getSelectedLasFile:LasFile = {
-    val selected = getSelectedValue.asInstanceOf[JLabel]
-    files.find(_.getName == selected.getText).get
-  }
-
-}
-
-
 
 class IconListCellRenderer extends JLabel with ListCellRenderer {
 
