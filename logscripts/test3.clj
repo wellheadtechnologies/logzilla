@@ -10,5 +10,3 @@
    (open-las-view lf)
    (Thread/sleep 2000)
    (remove-curve lf facies)))
-
-

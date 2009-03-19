@@ -46,22 +46,27 @@
 	    (assoc lcs lasfile [jlist (remove #(= curve %) curves)])
 	    ))))		   
 
-(defn- get-selected-curves [jlist curves]
-  (let [selected (map #(.getText %) (.getSelectedValues jlist))]
+(defn- get-selected-curves [lasfile]
+  (let [[jlist curves] (get @las-curves lasfile)
+	selected (map #(.getText %) (.getSelectedValues jlist))]
     (filter (fn [curve]
 	      (let [name (.getMnemonic curve)]
 		(some #(= name %) selected)))
 	    curves)))
 
-(defn- open-curves-context-menu [lasfile jlist event]
-  (let [curves (.getCurves lasfile)
+(defn- open-curves-context-menu [lasfile event]
+  (let [[jlist curves] (get @las-curves lasfile)
 	[c x y] [(.getComponent event) (.getX event) (.getY event)]
-	scurves (get-selected-curves jlist curves)]
+	scurves (get-selected-curves lasfile)]
     (context-menu [c x y]
       ["Copy" (fn [e] (send copied-curves (fn [x] scurves)))]
       ["Paste" (fn [e] 
 		 (doseq [curve @copied-curves]
-		   (add-curve lasfile curve)))])))
+		   (add-curve lasfile curve)))]
+      ["Remove" (fn [e]
+		  (doseq [scurve scurves]
+		    (remove-curve lasfile scurve)))]
+      )))
 
 (defn- create-curve-list [lasfile]
   (let [curves (.getCurves lasfile)
@@ -83,11 +88,11 @@
 	 (cond
 	  (and (= MouseEvent/BUTTON1 (.getButton e))
 	       (= 2 (.getClickCount e)))
-	  (doseq [sc (get-selected-curves jlist curves)]
+	  (doseq [sc (get-selected-curves lasfile)]
 	    (swing (open-curve-editor sc)))
 	  
 	  (= MouseEvent/BUTTON3 (.getButton e))
-	  (swing (open-curves-context-menu lasfile jlist e))))))
+	  (swing (open-curves-context-menu lasfile e))))))
     jlist))
 
 (defn create-las-view [lasfile]
