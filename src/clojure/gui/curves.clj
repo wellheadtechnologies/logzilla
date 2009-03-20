@@ -101,15 +101,18 @@
   (- (dec (.getRowCount table)) row))
 
 (defn- sync-chart-with-table [table chart-panel row]
-  (when (get @dragged-entities chart-panel)
-    (swing 
-     (let [model (.getModel table)
-	   chart (.getChart chart-panel)
-	   series (first (.. chart (getPlot) (getDataset) (getSeries)))
-	   column (get @chart-columns chart-panel)]
-       (let [index (row-to-index row table)]
-	 (.updateByIndex series index (Double/valueOf (.getValueAt model row column)))
-	 (.repaint chart-panel))))))
+  (swing 
+   (let [model (.getModel table)
+	 chart (.getChart chart-panel)
+	 series (first (.. chart (getPlot) (getDataset) (getSeries)))
+	 column (get @chart-columns chart-panel)]
+     (let [index (row-to-index row table)]
+       (.updateByIndex series index 
+		       (let [value (.getValueAt model row column)]
+			 (if (string? value)
+			   (Double/valueOf value)
+			   (double value))))
+       (.repaint chart-panel)))))
 
 (defn- sync-table-with-chart [table chart-panel index]
   (let [model (.getModel table)
@@ -128,7 +131,8 @@
     (tableChanged [e]
 		  (guard (= (.getFirstRow e) (.getLastRow e))
 			 "first row must equal last row")
-		  (sync-chart-with-table table chart-panel (.getFirstRow e)))))
+		  (when (= 0 (count @dragged-entities))
+		    (sync-chart-with-table table chart-panel (.getFirstRow e))))))
 
 (defn- change-dragged-plot [chart-panel chart-event]
   (send dragged-entities
