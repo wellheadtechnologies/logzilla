@@ -57,8 +57,8 @@
   (let [pdata (large-to-small (.getLasData primary-index))
 	cidata (large-to-small (.getLasData (.getIndex curve)))
 	srate (sample-rate curve)
-	start-padding (repeat (start-offset pdata cidata srate) 0)
-	end-padding (repeat (end-offset pdata cidata srate) 0)]
+	start-padding (repeat (start-offset pdata cidata srate) Double/NaN)
+	end-padding (repeat (end-offset pdata cidata srate) Double/NaN)]
     
     (new DefaultCurve 
 	 (.getDescriptor curve)
@@ -67,3 +67,22 @@
 				 (.getLasData curve)
 				 end-padding)))
     ))
+
+(defn merge-data [index datas]
+  (for [i (range 0 (count (.getLasData index)))]
+    (merge-row ())))
+
+(defn merge-curves [index curves]
+  (guard (all-same (map #(.getDescriptor %) curves))
+	 "cannot merge curves with different descriptors")
+  (guard (all-same (map #(count #(.getLasData %) curves)))
+	 "all curves must be the same length (or be appropriated padded)")
+  (guard (= (count index) (count (.getLasData (first curves))))
+	 "curve data length must equal index length")
+  (let [prototype (first curves)]
+    (new DefaultCurve
+	 (.getDescriptor prototype)
+	 index
+	 (merge-data (map #(.getLasData %) curves))
+	 )))
+

@@ -1,32 +1,31 @@
 (ns gui.curves
-  (:use util gui.util core.las))
-
-(import '(java.awt BorderLayout Color)
-	'(gui ChartUtil CustomChartPanel CustomJTable)
-	'(javax.swing BorderFactory JPanel JSlider JWindow JFrame
-		      JTable JScrollPane)
-	'(javax.swing.table DefaultTableModel)
-	'(javax.swing.event ChangeListener TableModelListener)
-	'(javax.swing.border Border)
-	'(javax.swing.event ChangeEvent ChangeListener)
-	'(org.jfree.chart ChartFactory ChartPanel JFreeChart)
-	'(org.jfree.chart.axis DateAxis)
-	'(org.jfree.chart ChartMouseListener)
-	'(org.jfree.chart.plot PlotOrientation XYPlot)
-	'(org.jfree.chart.renderer.xy XYItemRenderer)
-	'(org.jfree.data Range)
-	'(org.jfree.data.general DatasetChangeEvent
-				 DatasetChangeListener
-				 DatasetUtilities
-				 SeriesChangeListener)
-	'(org.jfree.data.time Minute RegularTimePeriod
-			      TimeSeries TimeSeriesCollection)
-	'(org.jfree.data.xy AbstractXYDataset XYDataset XYSeries
-			    XYSeriesCollection)
-	'(org.jfree.ui ApplicationFrame RectangleInsets 
-		       RefineryUtilities)
-	'(net.miginfocom.swing MigLayout)
-	'(java.awt Dimension Image))
+  (:use util gui.util core.las)
+  (:import (java.awt BorderLayout Color)
+	   (gui ChartUtil CustomChartPanel CustomJTable)
+	   (javax.swing BorderFactory JPanel JSlider JWindow JFrame
+			JTable JScrollPane JButton)
+	   (javax.swing.table DefaultTableModel)
+	   (javax.swing.event ChangeListener TableModelListener)
+	   (javax.swing.border Border)
+	   (javax.swing.event ChangeEvent ChangeListener)
+	   (org.jfree.chart ChartFactory ChartPanel JFreeChart)
+	   (org.jfree.chart.axis DateAxis)
+	   (org.jfree.chart ChartMouseListener)
+	   (org.jfree.chart.plot PlotOrientation XYPlot)
+	   (org.jfree.chart.renderer.xy XYItemRenderer)
+	   (org.jfree.data Range)
+	   (org.jfree.data.general DatasetChangeEvent
+				   DatasetChangeListener
+				   DatasetUtilities
+				   SeriesChangeListener)
+	   (org.jfree.data.time Minute RegularTimePeriod
+				TimeSeries TimeSeriesCollection)
+	   (org.jfree.data.xy AbstractXYDataset XYDataset XYSeries
+			      XYSeriesCollection)
+	   (org.jfree.ui ApplicationFrame RectangleInsets 
+			 RefineryUtilities)
+	   (net.miginfocom.swing MigLayout)
+	   (java.awt Dimension Image)))
 
 (def dragged-entities (agent {})) ;chart-panel -> chart-entity (panel to plot)
 (def slider-n 100)
@@ -34,8 +33,8 @@
 
 (def chart-columns (agent {})) ;chart-panel -> table-column
 
-(defn get-scale [range]
-  (let [diff (- (.getUpperBound range) (.getLowerBound range))
+(defn get-scale [max-depth min-depth]
+  (let [diff (- max-depth min-depth)
 	scale (/ diff scale-n)]
     scale))
 
@@ -43,21 +42,22 @@
   (let [ratio (/ slider-n scale-n)]
     (* (/ value ratio) scale)))
 
-(defn- create-slider-listener [depth-slider xaxis max-depth min-depth table]
-  (let [scale (get-scale (.getRange xaxis))]
+(defn- create-slider-listener [depth-slider xaxes max-depth min-depth table]
+  (let [scale (get-scale max-depth min-depth)]
     (proxy [ChangeListener] []
       (stateChanged [event]
 		    (let [value (.getValue depth-slider)
 			  scaled (scale-value scale value)
 			  lower (+ scaled min-depth)
 			  upper (+ lower scale)]
-		      (.setRange xaxis 
-				 (if (> lower (- max-depth scale))
-				   (- max-depth scale)
-				   lower)
-				 (if (> upper max-depth)
-				   max-depth
-				   upper))
+		      (doseq [xaxis xaxes]
+			(.setRange xaxis 
+				   (if (> lower (- max-depth scale))
+				     (- max-depth scale)
+				     lower)
+				   (if (> upper max-depth)
+				     max-depth
+				     upper)))
 		      (.showAtPercentage table (- 1 (/ value slider-n)))
 		      )))))
 
@@ -163,10 +163,29 @@
     (chartMouseClicked [e] (change-dragged-plot chart-panel e))
     (chartMouseMoved [e] (drag-plot chart-panel table e))))
 
+(defn- create-merge-button [curves]
+  (let [button (new JButton "Merge")]
+    (on-action button
+      (merge-curves curves))
+    button))
+
+(defn- add-chart-panels [main-panel table chart-panels]
+  (let [model (.getModel table)]
+    (doseq [i (range 0 (count chart-panels))]
+      (let [cp (nth chart-panels i)]
+	(send chart-columns assoc cp (inc i))
+
+	(doto cp
+	  (.setDomainZoomable false)
+	  (.setMouseZoomable false))
+	
+	(.addChartMouseListener cp (create-chart-mouse-listener cp table))
+	(.addTableModelListener model (create-table-model-listener table cp))
+	(.add main-panel cp "pushy, growy")))))
+
 (defn open-curve-editor [curves]
-  (println "sample rates = " (map sample-rate curves))
-  (when (not (all-samef (map sample-rate curves)))
-    (throw (new RuntimeException "Sample rates must be the same")))
+  (guard (not (all-samef (map sample-rate curves)))
+	 "Sample rates must be the same")
 
   (let [index (largest-index curves)
 	acurves (map #(adjust-curve index %) curves)
@@ -183,46 +202,35 @@
 	main-panel (new JPanel (new MigLayout))
 	frame (new JFrame (str "Curves Editor"))
 	plots (map #(.getPlot %) charts)
-	x-axes (map #(.getDomainAxis %) plots)]
-    
-    (doseq [x-axis x-axes]
-      (let [scale (get-scale x-axis)]
-	(.addChangeListener depth-slider 
-			    (create-slider-listener depth-slider
-						    x-axis max-depth
-						    min-depth table))
-	
-	(doto x-axis
-	  (.setAutoRange false)
-	  (.setRange (new Range min-depth (+ min-depth (* scale 1)))))
-	))
+	x-axes (map #(.getDomainAxis %) plots)
+	tool-panel (new JPanel (new MigLayout))
+	merge-button (create-merge-button)]
+
+    (doto tool-panel
+      (.add depth-slider "pushy, growy")
+      (.add table-pane "pushy, growy, wrap")
+      (.add merge-button "cell 1 1"))
 
     (doto main-panel
-      (.add depth-slider "pushy, growy")
-      (.add table-pane "pushy, growy"))
+      (.add tool-panel "pushy, growy"))
 
-    (doseq [i (range 0 (count chart-panels))]
-      (let [chart-panel (nth chart-panels i)]
-	(send chart-columns assoc chart-panel (inc i))
+    (add-chart-panels main-panel table chart-panels)
 
-	(doto chart-panel
-	  (.setDomainZoomable false)
-	  (.setMouseZoomable false))
-	
-	(.addChartMouseListener chart-panel
-				(create-chart-mouse-listener chart-panel table))
-	
-	(.addTableModelListener (.getModel table)
-				(create-table-model-listener table chart-panel))
-	
-	(.add main-panel chart-panel "pushy, growy")))
+    (doseq [x-axis x-axes]
+      (let [scale (get-scale max-depth min-depth)]
+	(doto x-axis 
+	  (.setAutoRange false)
+	  (.setRange (new Range min-depth (+ min-depth (* scale 1)))))))
+
+    (.addChangeListener depth-slider 
+			(create-slider-listener depth-slider
+						x-axes max-depth
+						min-depth table))    
 
     (let [width (* 600 (count chart-panels))
 	  height 700]
       (.setPreferredSize main-panel (new Dimension width height)))
 
-    (println (.getPreferredSize main-panel))
-    
     (doto table
       (.showAtPercentage 1))
     
@@ -232,5 +240,3 @@
       (.setVisible true))
     
     frame))
-
-  
