@@ -59,10 +59,12 @@
 	[c x y] [(.getComponent event) (.getX event) (.getY event)]
 	scurves (get-selected-curves lasfile)]
     (context-menu [c x y]
+      ["Edit" (fn [e] (open-curve-editor scurves))]
       ["Copy" (fn [e] (send copied-curves (fn [x] scurves)))]
       ["Paste" (fn [e] 
 		 (doseq [curve @copied-curves]
 		   (add-curve lasfile curve)))]
+;      ["Merge" (fn [e] (open-merge-editor scurves))
       ["Remove" (fn [e]
 		  (doseq [scurve scurves]
 		    (remove-curve lasfile scurve)))]
@@ -88,8 +90,7 @@
 	 (cond
 	  (and (= MouseEvent/BUTTON1 (.getButton e))
 	       (= 2 (.getClickCount e)))
-	  (doseq [sc (get-selected-curves lasfile)]
-	    (swing (open-curve-editor sc)))
+	  (swing (open-curve-editor (get-selected-curves lasfile)))
 	  
 	  (= MouseEvent/BUTTON3 (.getButton e))
 	  (swing (open-curves-context-menu lasfile e))))))

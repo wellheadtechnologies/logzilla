@@ -1,5 +1,5 @@
 (ns gui.curves
-  (:use util gui.util))
+  (:use util gui.util core.las))
 
 (import '(java.awt BorderLayout Color)
 	'(gui ChartUtil CustomChartPanel CustomJTable)
@@ -28,7 +28,7 @@
 	'(net.miginfocom.swing MigLayout)
 	'(java.awt Dimension Image))
 
-(def dragged-item (agent nil))
+(def dragged-entities (agent {})) ;;chart-panel -> chart-entity (panel to plot)
 (def slider-n 100)
 (def scale-n 10)
 
@@ -64,19 +64,16 @@
     (.setOrientation slider JSlider/VERTICAL)
     slider))
 
-(defn- create-table [curve]
-  (let [index (.getIndex curve)
-	table (new CustomJTable)
+(defn- create-table [index curves]
+  (let [table (new CustomJTable)
 	model (new DefaultTableModel)]
-    (doto model
-	(.addColumn (.getMnemonic index) 
-		    (into-array Object 
-				(reverse (sort (.getLasData index)))))
-	(.addColumn (.getMnemonic curve) 
-		    (into-array Object 
-				(reverse (sort (.getLasData curve))))))
+    (.addColumn model (.getMnemonic index) 
+		(into-array Object 
+			    (reverse (sort (.getLasData index)))))
+    (doseq [curve curves]
+      (.addColumn model (.getMnemonic curve) 
+		  (into-array Object (reverse (sort (.getLasData curve))))))
     (.setModel table model)
-    
     table))
 
 (defn- index-to-row [index table]
@@ -85,16 +82,17 @@
 (defn- row-to-index [row table]
   (- (dec (.getRowCount table)) row))
 
-(defn- sync-chart-with-table [table chart-panel row]
-  (swing 
-   (let [model (.getModel table)
-	 chart (.getChart chart-panel)
-	 series (first (.. chart (getPlot) (getDataset) (getSeries)))]
-     (let [index (row-to-index row table)]
-       (.updateByIndex series index (Double/valueOf (.getValueAt model row 1)))
-       (.repaint chart-panel)))))
+(defn- sync-chart-with-table [table chart-panel row column]
+  (when (get @dragged-entities chart-panel)
+    (swing 
+     (let [model (.getModel table)
+	   chart (.getChart chart-panel)
+	   series (first (.. chart (getPlot) (getDataset) (getSeries)))]
+       (let [index (row-to-index row table)]
+	 (.updateByIndex series index (Double/valueOf (.getValueAt model row column)))
+	 (.repaint chart-panel))))))
 
-(defn- sync-table-with-chart [table chart-panel index]
+(defn- sync-table-with-chart [table chart-panel index column]
   (let [model (.getModel table)
 	chart (.getChart chart-panel)
 	series (first (.. chart (getPlot) (getDataset) (getSeries)))
@@ -102,83 +100,97 @@
 	item (.getDataItem series index)
 	new-value (.getY item)]
     (swing
-     (.setValueAt (.getModel table) new-value row 1)
+     (.setValueAt (.getModel table) new-value row column)
      (.repaint table))))
 
-(defn- create-table-model-listener [table chart-panel]
+(defn- create-table-model-listener [table chart-panel column]
   (proxy [TableModelListener] []
     (tableChanged [e]
 		  (guard (= (.getFirstRow e) (.getLastRow e))
 			 "first row must equal last row")
-		  (sync-chart-with-table table chart-panel (.getFirstRow e)))))
+		  (sync-chart-with-table table chart-panel (.getFirstRow e) column))))
 
-(defn- update-entity [chart-event]
-  (send dragged-item
-	(fn [entity]
-	  (if entity
-	    nil 
-	    (.getEntity chart-event)))))
+(defn- change-dragged-plot [chart-panel chart-event]
+  (send dragged-entities
+	(fn [entities]
+	  (let [entity (get entities chart-panel)]
+	    (if entity
+	      (dissoc entities chart-panel)
+	      (assoc entities chart-panel (.getEntity chart-event)))))))
 
-(defn- drag-entity [chart-panel table chart-event]
-  (send dragged-item
-	(fn [entity]
-	  (when entity
-	    (let [mouse-event (.getTrigger chart-event)
-		  series (first (.. entity (getDataset) (getSeries)))
-		  index (.getItem entity)
-		  new-value (.java2DToValue chart-panel (.getX mouse-event))]
-	      (swing 
-	       (when (not (or (.isNaN new-value) (.isInfinite new-value)))
-		 (.updateByIndex series index new-value)
-		 (sync-table-with-chart table chart-panel index)
-		 (.repaint chart-panel)))))
-	  entity)))
+(defn- drag-plot [chart-panel table chart-event column]
+  (send dragged-entities
+	(fn [entities]
+	  (let [entity (get entities chart-panel)]
+	    (when entity
+	      (let [mouse-event (.getTrigger chart-event)
+		    series (first (.. entity (getDataset) (getSeries)))
+		    index (.getItem entity)
+		    new-value (.java2DToValue chart-panel (.getX mouse-event))]
+		(swing 
+		 (when (not (or (.isNaN new-value) (.isInfinite new-value)))
+		   (.updateByIndex series index new-value)
+		   (sync-table-with-chart table chart-panel index column)
+		   (.repaint chart-panel))))))
+	  entities)))
 
-(defn- create-chart-mouse-listener [chart-panel table]
+(defn- create-chart-mouse-listener [chart-panel table column]
   (proxy [ChartMouseListener] []
-    (chartMouseClicked [e] (update-entity e))
-    (chartMouseMoved [e] (drag-entity chart-panel table e))))
+    (chartMouseClicked [e] (change-dragged-plot chart-panel e))
+    (chartMouseMoved [e] (drag-plot chart-panel table e column))))
 
-(defn open-curve-editor [curve]
-  (let [index (.getIndex curve)
+(defn open-curve-editor [curves]
+  (let [index (largest-index curves)
 	depth-data (.getLasData index)
 	min-depth (reduce min depth-data)
 	max-depth (reduce max depth-data)
 	depth-slider (create-depth-slider min-depth max-depth)
-	chart (ChartUtil/createChart curve)
-	table (create-table curve)
+	charts (map #(ChartUtil/createChart %) curves)
+	table (create-table index curves)
 	table-pane (new JScrollPane table)
-	chart-panel (new CustomChartPanel curve chart)
+	chart-panels (map (fn [[curve chart]]
+			    (new CustomChartPanel curve chart))
+			  (tuplize curves charts))
 	main-panel (new JPanel (new MigLayout))
-	frame (new JFrame (str (.getMnemonic curve) " Editor"))
-	plot (.getPlot chart)
-	x-axis (.getDomainAxis plot)
-	scale (get-scale x-axis)]
+	frame (new JFrame (str "Curves Editor"))
+	plots (map #(.getPlot %) charts)
+	x-axes (map #(.getDomainAxis %) plots)]
+    
+    (doseq [x-axis x-axes]
+      (let [scale (get-scale x-axis)]
+	(.addChangeListener depth-slider 
+			    (create-slider-listener depth-slider
+						    x-axis max-depth
+						    min-depth table))
+	
+	(doto x-axis
+	  (.setAutoRange false)
+	  (.setRange (new Range min-depth (+ min-depth (* scale 1)))))
+	))
 
-    (.addChangeListener depth-slider 
-			(create-slider-listener depth-slider
-						x-axis max-depth
-						min-depth table))
-
-    (doto chart-panel
-      (.setDomainZoomable false)
-      (.setMouseZoomable false))
-    
-    (.addChartMouseListener chart-panel
-			    (create-chart-mouse-listener chart-panel table))
-    
-    (.addTableModelListener (.getModel table)
-			    (create-table-model-listener table chart-panel))
-    
-    (doto x-axis
-      (.setAutoRange false)
-      (.setRange (new Range min-depth (+ min-depth (* scale 1)))))
-    
     (doto main-panel
-      (.setPreferredSize (new Dimension 700 700))
       (.add depth-slider "pushy, growy")
-      (.add table-pane "pushy, growy")
-      (.add chart-panel "pushy, growy"))
+      (.add table-pane "pushy, growy"))
+
+    (doseq [i (range 0 (count chart-panels))]
+      (let [chart-panel (nth chart-panels i)]
+	(doto chart-panel
+	  (.setDomainZoomable false)
+	  (.setMouseZoomable false))
+	
+	(.addChartMouseListener chart-panel
+				(create-chart-mouse-listener chart-panel table (inc i)))
+	
+	(.addTableModelListener (.getModel table)
+				(create-table-model-listener table chart-panel (inc i)))
+	
+	(.add main-panel chart-panel "pushy, growy")))
+
+    (let [width (* 600 (count chart-panels))
+	  height 700]
+      (.setPreferredSize main-panel (new Dimension width height)))
+
+    (println (.getPreferredSize main-panel))
     
     (doto table
       (.showAtPercentage 1))
@@ -189,3 +201,5 @@
       (.setVisible true))
     
     frame))
+
+  
