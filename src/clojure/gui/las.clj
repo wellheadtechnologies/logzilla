@@ -59,7 +59,7 @@
 	[c x y] [(.getComponent event) (.getX event) (.getY event)]
 	scurves (get-selected-curves lasfile)]
     (context-menu [c x y]
-      ["Edit" (fn [e] (open-curve-editor scurves))]
+      ["Edit" (fn [e] (long-task (open-curve-editor scurves)))]
       ["Copy" (fn [e] (send copied-curves (fn [x] scurves)))]
       ["Paste" (fn [e] 
 		 (doseq [curve @copied-curves]

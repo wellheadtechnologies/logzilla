@@ -65,5 +65,8 @@
     (throw (new RuntimeException msg))))
     
 (defn index-of [obj coll]
-  (count (take-while #(not= obj %) coll)))
+  (let [c (count (take-while #(not= obj %) coll))]
+    (if (not= c (count coll))
+      c 
+      -1)))
 

@@ -28,9 +28,11 @@
 	'(net.miginfocom.swing MigLayout)
 	'(java.awt Dimension Image))
 
-(def dragged-entities (agent {})) ;;chart-panel -> chart-entity (panel to plot)
+(def dragged-entities (agent {})) ;chart-panel -> chart-entity (panel to plot)
 (def slider-n 100)
 (def scale-n 10)
+
+(def chart-columns (agent {})) ;chart-panel -> table-column
 
 (defn get-scale [range]
   (let [diff (- (.getUpperBound range) (.getLowerBound range))
@@ -66,13 +68,18 @@
 
 (defn- create-table [index curves]
   (let [table (new CustomJTable)
-	model (new DefaultTableModel)]
-    (.addColumn model (.getMnemonic index) 
-		(into-array Object 
-			    (reverse (sort (.getLasData index)))))
-    (doseq [curve curves]
-      (.addColumn model (.getMnemonic curve) 
-		  (into-array Object (reverse (sort (.getLasData curve))))))
+	model (new DefaultTableModel)
+	index-data (large-to-small (.getLasData index))
+	do-reverse (not= (first index-data) (first (.getLasData index)))
+	curve-datas (if do-reverse
+		      (map #(reverse (.getLasData %)) curves)
+		      (map #(.getLasData %) curves))]
+
+    (.addColumn model (.getMnemonic index) (into-array Object index-data))
+
+    (doseq [[curve curve-data] (tuplize curves curve-datas)]
+      (.addColumn model (.getMnemonic curve) (into-array Object curve-data)))
+
     (.setModel table model)
     table))
 
@@ -82,33 +89,35 @@
 (defn- row-to-index [row table]
   (- (dec (.getRowCount table)) row))
 
-(defn- sync-chart-with-table [table chart-panel row column]
+(defn- sync-chart-with-table [table chart-panel row]
   (when (get @dragged-entities chart-panel)
     (swing 
      (let [model (.getModel table)
 	   chart (.getChart chart-panel)
-	   series (first (.. chart (getPlot) (getDataset) (getSeries)))]
+	   series (first (.. chart (getPlot) (getDataset) (getSeries)))
+	   column (get @chart-columns chart-panel)]
        (let [index (row-to-index row table)]
 	 (.updateByIndex series index (Double/valueOf (.getValueAt model row column)))
 	 (.repaint chart-panel))))))
 
-(defn- sync-table-with-chart [table chart-panel index column]
+(defn- sync-table-with-chart [table chart-panel index]
   (let [model (.getModel table)
 	chart (.getChart chart-panel)
 	series (first (.. chart (getPlot) (getDataset) (getSeries)))
 	row (index-to-row index table)
+	column (get @chart-columns chart-panel)
 	item (.getDataItem series index)
 	new-value (.getY item)]
     (swing
      (.setValueAt (.getModel table) new-value row column)
      (.repaint table))))
 
-(defn- create-table-model-listener [table chart-panel column]
+(defn- create-table-model-listener [table chart-panel]
   (proxy [TableModelListener] []
     (tableChanged [e]
 		  (guard (= (.getFirstRow e) (.getLastRow e))
 			 "first row must equal last row")
-		  (sync-chart-with-table table chart-panel (.getFirstRow e) column))))
+		  (sync-chart-with-table table chart-panel (.getFirstRow e)))))
 
 (defn- change-dragged-plot [chart-panel chart-event]
   (send dragged-entities
@@ -118,7 +127,7 @@
 	      (dissoc entities chart-panel)
 	      (assoc entities chart-panel (.getEntity chart-event)))))))
 
-(defn- drag-plot [chart-panel table chart-event column]
+(defn- drag-plot [chart-panel table chart-event]
   (send dragged-entities
 	(fn [entities]
 	  (let [entity (get entities chart-panel)]
@@ -130,14 +139,14 @@
 		(swing 
 		 (when (not (or (.isNaN new-value) (.isInfinite new-value)))
 		   (.updateByIndex series index new-value)
-		   (sync-table-with-chart table chart-panel index column)
+		   (sync-table-with-chart table chart-panel index)
 		   (.repaint chart-panel))))))
 	  entities)))
 
-(defn- create-chart-mouse-listener [chart-panel table column]
+(defn- create-chart-mouse-listener [chart-panel table]
   (proxy [ChartMouseListener] []
     (chartMouseClicked [e] (change-dragged-plot chart-panel e))
-    (chartMouseMoved [e] (drag-plot chart-panel table e column))))
+    (chartMouseMoved [e] (drag-plot chart-panel table e))))
 
 (defn open-curve-editor [curves]
   (let [index (largest-index curves)
@@ -174,15 +183,17 @@
 
     (doseq [i (range 0 (count chart-panels))]
       (let [chart-panel (nth chart-panels i)]
+	(send chart-columns assoc chart-panel (inc i))
+
 	(doto chart-panel
 	  (.setDomainZoomable false)
 	  (.setMouseZoomable false))
 	
 	(.addChartMouseListener chart-panel
-				(create-chart-mouse-listener chart-panel table (inc i)))
+				(create-chart-mouse-listener chart-panel table))
 	
 	(.addTableModelListener (.getModel table)
-				(create-table-model-listener table chart-panel (inc i)))
+				(create-table-model-listener table chart-panel))
 	
 	(.add main-panel chart-panel "pushy, growy")))
 
