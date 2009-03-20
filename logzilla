@@ -7,6 +7,7 @@ refresh = ARGV.any? {|a| a =~ /-r/}
 tests = ARGV.any? {|a| a =~ /-t/}
 gui = ARGV.any? {|a| a =~ /-g/}
 logscript = ARGV.any? {|a| a =~ /-s/}
+interactive = ARGV.any? {|a| a =~ /-i/}
 
 classpath = "CurveEditor.jar"
 Find.find("lib") do |p|
@@ -48,4 +49,6 @@ end
 if script
   system("echo \"#{script}\"")
   system("echo \"#{script}\" | java -cp #{classpath} clojure.main -")
+elsif interactive
+  system("java -cp #{classpath} clojure.main")
 end

@@ -64,7 +64,6 @@
       ["Paste" (fn [e] 
 		 (doseq [curve @copied-curves]
 		   (add-curve lasfile curve)))]
-;      ["Merge" (fn [e] (open-merge-editor scurves))
       ["Remove" (fn [e]
 		  (doseq [scurve scurves]
 		    (remove-curve lasfile scurve)))]

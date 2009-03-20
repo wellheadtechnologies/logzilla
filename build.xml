@@ -51,6 +51,11 @@
 	<include name="*.clj" />
       </fileset>
     </copy>
+    <copy todir="build/core">
+      <fileset dir="src/clojure/core">
+	<include name="*.clj" />
+      </fileset>
+    </copy>
 
   </target>
 

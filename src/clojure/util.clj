@@ -70,3 +70,13 @@
       c 
       -1)))
 
+(defn all-same [coll]
+  (let [example (first coll)]
+    (not (some #(not= example %) coll))))
+
+(defn all-samef [coll]
+  (let [example (first coll)]
+    (not (some #(> (- example %) 0.00001) coll))))
+
+
+

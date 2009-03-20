@@ -74,12 +74,23 @@
 	curve-datas (if do-reverse
 		      (map #(reverse (.getLasData %)) curves)
 		      (map #(.getLasData %) curves))]
-
+    
     (.addColumn model (.getMnemonic index) (into-array Object index-data))
 
-    (doseq [[curve curve-data] (tuplize curves curve-datas)]
-      (.addColumn model (.getMnemonic curve) (into-array Object curve-data)))
+    (doseq [curve curves]
+      (adjust-curve index curve))
 
+    (doseq [[curve curve-data] (tuplize curves curve-datas)]
+      (let [curve-index-data (large-to-small (.getLasData (.getIndex curve)))
+	    srate (isample-rate index)
+	    begin-padding (repeat (start-offset index-data curve-index-data srate) 0)
+	    after-padding (repeat (end-offset index-data curve-index-data srate) 0)]
+	(.addColumn model (.getMnemonic curve) 
+		    (into-array Object (concat 
+					begin-padding
+					curve-data
+					after-padding)))
+	))
     (.setModel table model)
     table))
 
@@ -149,17 +160,22 @@
     (chartMouseMoved [e] (drag-plot chart-panel table e))))
 
 (defn open-curve-editor [curves]
+  (println "sample rates = " (map sample-rate curves))
+  (when (not (all-samef (map sample-rate curves)))
+    (throw (new RuntimeException "Sample rates must be the same")))
+
   (let [index (largest-index curves)
+	acurves (map #(adjust-curve index %) curves)
 	depth-data (.getLasData index)
 	min-depth (reduce min depth-data)
 	max-depth (reduce max depth-data)
 	depth-slider (create-depth-slider min-depth max-depth)
-	charts (map #(ChartUtil/createChart %) curves)
-	table (create-table index curves)
+	charts (map #(ChartUtil/createChart %) acurves)
+	table (create-table index acurves)
 	table-pane (new JScrollPane table)
 	chart-panels (map (fn [[curve chart]]
 			    (new CustomChartPanel curve chart))
-			  (tuplize curves charts))
+			  (tuplize acurves charts))
 	main-panel (new JPanel (new MigLayout))
 	frame (new JFrame (str "Curves Editor"))
 	plots (map #(.getPlot %) charts)
