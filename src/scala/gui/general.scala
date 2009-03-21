@@ -232,7 +232,7 @@ object ChartUtil {
 
   def stackImages(top:BufferedImage, bottom:BufferedImage) = {
     val graphics = bottom.createGraphics
-    graphics.setComposite(AlphaComposite.SrcOver.derive(1.0f))
+    graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f))
     graphics.drawImage(top, 0, 0, null)
     graphics.dispose()
     bottom
