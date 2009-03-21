@@ -16,7 +16,7 @@
      (let [menu (new JMenu "Las")]
        (actions menu
 	 ["Open" (fn [e] (open-files (user-selected-files "." main-frame)))]
-	 ["Save All" (fn [e] nil)]
+	 ["Save All" (fn [e] )]
 	 ["Quit" (fn [e] (System/exit 0))])
        menu))
 

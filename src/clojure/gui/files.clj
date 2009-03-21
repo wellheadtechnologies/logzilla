@@ -1,12 +1,12 @@
 (ns gui.files
-  (:use util gui.util gui.las gui.widgets gui.global))
-(import '(org.apache.commons.io FileUtils)
-	'(javax.swing JList JFrame DefaultListModel ImageIcon JLabel
-		      JScrollPane JButton JWindow JPanel SwingUtilities
-		      JFileChooser JMenu JPopupMenu)
-	'(java.io File)
-	'(core DefaultLasParser)
-	'(net.miginfocom.swing MigLayout))
+  (:use util gui.util gui.las gui.widgets gui.global)
+  (:import (org.apache.commons.io FileUtils)
+	   (javax.swing JList JFrame DefaultListModel ImageIcon JLabel
+			JScrollPane JButton JWindow JPanel SwingUtilities
+			JFileChooser JMenu JPopupMenu)
+	   (java.io File)
+	   (core DefaultLasParser)
+	   (net.miginfocom.swing MigLayout)))
 
 (def file-list (agent []))
 

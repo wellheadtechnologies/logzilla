@@ -1,6 +1,6 @@
 (ns core.las
   (:use util)
-  (:import (core DefaultCurve)
+  (:import (core DefaultCurve DefaultLasWriter)
 	   (java.util LinkedList)))
 
 (defn get-curve [name curves]
@@ -53,6 +53,13 @@
   (let [index (.getIndex curve)]
     (isample-rate index)))
 
+(defn replace-Null-with-NaN [data]
+  (map (fn [d]
+	 (if (> 0.00001 (abs (+ (double d) 999.25)))
+	   Double/NaN 
+	   d))
+       data))
+
 (defn adjust-curve [primary-index curve]
   (let [pdata (large-to-small (.getLasData primary-index))
 	cidata (large-to-small (.getLasData (.getIndex curve)))
@@ -64,11 +71,7 @@
 	 (.getDescriptor curve)
 	 primary-index
 	 (new LinkedList (concat start-padding 
-				 (map (fn [d]
-					(if (> 0.00001 (abs (+ (double d) 999.25)))
-					  Double/NaN 
-					  d))
-				      (.getLasData curve))
+				 (replace-Null-with-NaN (.getLasData curve))
 				 end-padding)))
     ))
 
@@ -79,13 +82,9 @@
 	   d2 (double d2)]
        (cond 
 	(and (.isNaN d1) (.isNaN d2)) Double/NaN
-
 	(.isNaN d1) d2
-
 	(.isNaN d2) d1
-      
-	:else
-	(/ (+ d1 d2) 2))))
+	:else (/ (+ d1 d2) 2))))
    row-data))
 
 (defn merge-data [index datas]
@@ -94,7 +93,6 @@
       (merge-row (map #(.get % i) datas)))))
 
 (defn merge-curves [index curves]
-  (println "descriptors = " (map #(.getDescriptor %) curves))
   (guard (all-same (map #(count (.getLasData %)) curves))
 	 "all curves must be the same length (or be appropriated padded)")
   (guard (= (count (.getLasData index)) (count (.getLasData (first curves))))
@@ -105,4 +103,5 @@
 	 index
 	 (merge-data index (map #(.getLasData %) curves))
 	 )))
+
 
