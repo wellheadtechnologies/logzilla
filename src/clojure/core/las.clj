@@ -64,7 +64,11 @@
 	 (.getDescriptor curve)
 	 primary-index
 	 (new LinkedList (concat start-padding 
-				 (.getLasData curve)
+				 (map (fn [d]
+					(if (> 0.00001 (abs (+ (double d) 999.25)))
+					  Double/NaN 
+					  d))
+				      (.getLasData curve))
 				 end-padding)))
     ))
 
@@ -90,8 +94,7 @@
       (merge-row (map #(.get % i) datas)))))
 
 (defn merge-curves [index curves]
-  (guard (all-same (map #(.getDescriptor %) curves))
-	 "cannot merge curves with different descriptors")
+  (println "descriptors = " (map #(.getDescriptor %) curves))
   (guard (all-same (map #(count (.getLasData %)) curves))
 	 "all curves must be the same length (or be appropriated padded)")
   (guard (= (count (.getLasData index)) (count (.getLasData (first curves))))
