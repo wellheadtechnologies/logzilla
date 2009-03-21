@@ -46,6 +46,9 @@
 	    (assoc lcs lasfile [jlist (remove #(= curve %) curves)])
 	    ))))		   
 
+(defn copy-curve [curve]
+  (send copied-curves identity curve))
+
 (defn- get-selected-curves [lasfile]
   (let [[jlist curves] (get @las-curves lasfile)
 	selected (map #(.getText %) (.getSelectedValues jlist))]

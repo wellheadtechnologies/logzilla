@@ -68,21 +68,38 @@
 				 end-padding)))
     ))
 
+(defn merge-row [row-data]
+  (reduce 
+   (fn [d1 d2]
+     (let [d1 (double d1)
+	   d2 (double d2)]
+       (cond 
+	(and (.isNaN d1) (.isNaN d2)) Double/NaN
+
+	(.isNaN d1) d2
+
+	(.isNaN d2) d1
+      
+	:else
+	(/ (+ d1 d2) 2))))
+   row-data))
+
 (defn merge-data [index datas]
   (for [i (range 0 (count (.getLasData index)))]
-    (merge-row ())))
+    (do
+      (merge-row (map #(.get % i) datas)))))
 
 (defn merge-curves [index curves]
   (guard (all-same (map #(.getDescriptor %) curves))
 	 "cannot merge curves with different descriptors")
-  (guard (all-same (map #(count #(.getLasData %) curves)))
+  (guard (all-same (map #(count (.getLasData %)) curves))
 	 "all curves must be the same length (or be appropriated padded)")
-  (guard (= (count index) (count (.getLasData (first curves))))
+  (guard (= (count (.getLasData index)) (count (.getLasData (first curves))))
 	 "curve data length must equal index length")
   (let [prototype (first curves)]
     (new DefaultCurve
 	 (.getDescriptor prototype)
 	 index
-	 (merge-data (map #(.getLasData %) curves))
+	 (merge-data index (map #(.getLasData %) curves))
 	 )))
 

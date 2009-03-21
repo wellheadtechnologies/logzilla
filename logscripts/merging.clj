@@ -1,4 +1,5 @@
 (use 'gui.app 'gui.files 'gui.las
+     'core.las
      'gui.curves 'gui.global 'gui.util
      'util)
 
@@ -6,4 +7,6 @@
 (synchronous
  (let [[a b] (open-files ["las_files/test.las"
 			  "las_files/test2.las"])]
-   (open-las-view a)))
+   (open-curve-editor [(get-curve "Facies" (.getCurves  a))
+		       (get-curve "Facies" (.getCurves  b))])
+))

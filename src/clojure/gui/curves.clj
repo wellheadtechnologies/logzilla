@@ -27,6 +27,7 @@
 	   (net.miginfocom.swing MigLayout)
 	   (java.awt Dimension Image)))
 
+(def open-curve-editor)
 (def dragged-entities (agent {})) ;chart-panel -> chart-entity (panel to plot)
 (def slider-n 100)
 (def scale-n 10)
@@ -163,10 +164,10 @@
     (chartMouseClicked [e] (change-dragged-plot chart-panel e))
     (chartMouseMoved [e] (drag-plot chart-panel table e))))
 
-(defn- create-merge-button [curves]
+(defn- create-merge-button [index curves]
   (let [button (new JButton "Merge")]
     (on-action button
-      (merge-curves curves))
+      (open-curve-editor [(merge-curves index curves)]))
     button))
 
 (defn- add-chart-panels [main-panel table chart-panels]
@@ -184,7 +185,7 @@
 	(.add main-panel cp "pushy, growy")))))
 
 (defn open-curve-editor [curves]
-  (guard (not (all-samef (map sample-rate curves)))
+  (guard (all-samef (map sample-rate curves))
 	 "Sample rates must be the same")
 
   (let [index (largest-index curves)
@@ -204,7 +205,7 @@
 	plots (map #(.getPlot %) charts)
 	x-axes (map #(.getDomainAxis %) plots)
 	tool-panel (new JPanel (new MigLayout))
-	merge-button (create-merge-button)]
+	merge-button (create-merge-button index acurves)]
 
     (doto tool-panel
       (.add depth-slider "pushy, growy")
