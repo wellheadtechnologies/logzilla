@@ -10,52 +10,29 @@
 
 (def file-list (agent []))
 
+(defn get-las-file [name]
+  (find-first #(= (.getName %) name) @file-list))
+
 (def file-list-widget 
      (let [jlist (create-jlist)]
        (on-click jlist
 	 (fn [e] 
 	   (let [name (.. jlist (getSelectedValue) (getText))]
 	     (send file-list 
-		   (fn [flist]
-		     (let [file (find-first #(= (.getName %) name) flist)]
+		   (fn [files]
+		     (let [file (get-las-file name)]
 		       (open-las-view file))
-		     flist)))))
+		     files)))))
        (.setOpaque jlist false)
        jlist))
 
 (defn add-las-file [name lasfile]
   (send file-list
-	(fn [flist]
-	  (.. file-list-widget (getModel) (addElement (new JLabel name)))
-	  (send las-views assoc lasfile (create-las-view lasfile))
-	  (conj flist lasfile)))
+	(fn [files]
+	  (swing (.. file-list-widget (getModel) (addElement (new JLabel name))))
+	  (conj files lasfile)))
   (when *synchronous*
     (await file-list)))
-
-(defn get-las-file [name]
-  (find-first #(= (.getName %) name) @file-list))
-
-(defmulti open-file class)
-
-(defmethod open-file File [file]
-  (let [lf (DefaultLasParser/parseLasFile file)]
-    (add-las-file (.getName file) lf)
-    lf))
-
-(defmethod open-file String [path]
-  (open-file (new File path)))
-    
-(defn open-files [files]
-  (if *synchronous*
-    (for [file files]
-      (open-file file))
-    (doseq [file files]
-      (short-task (open-file file)))))
-
-(defn open-files-in-directory [path]
-  (let [directory (new File path)
-	files (.listFiles directory)]
-    (open-files files)))
 
 (defn user-selected-files [cwd parent]
   (let [chooser (new JFileChooser cwd)]

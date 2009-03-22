@@ -57,6 +57,8 @@ extends ChartPanel(chart, false, false, false, false, false) {
     cmax.subtract(cmin)
   }
 
+  def getCurve:Curve = curve
+
   private def max(a:BigDecimal, b:BigDecimal) = {
     if(a.compareTo(b) == 1) a else b
   }

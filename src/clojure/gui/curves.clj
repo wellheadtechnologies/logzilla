@@ -1,6 +1,8 @@
 (ns gui.curves
-  (:use util gui.util core.las)
+  (:use util gui.util core.las gui.widgets)
   (:import (java.awt BorderLayout Color)
+	   (org.slf4j Logger LoggerFactory)
+	   (core DefaultCurve)
 	   (gui ChartUtil CustomChartPanel CustomJTable)
 	   (javax.swing BorderFactory JPanel JSlider JWindow JFrame
 			JTable JScrollPane JButton)
@@ -28,11 +30,16 @@
 	   (java.awt Dimension Image)))
 
 (def open-curve-editor)
+
 (def dragged-entities (agent {})) ;chart-panel -> chart-entity (panel to plot)
+(def chart-columns (agent {})) ;chart-panel -> table-column
+(def curve-charts (agent {})) ;curve -> chart
+(def saved-curves (agent {})) ;lasfile -> curves
+
 (def slider-n 100)
 (def scale-n 10)
 
-(def chart-columns (agent {})) ;chart-panel -> table-column
+(def logger (LoggerFactory/getLogger "gui.curves"))
 
 (defn get-scale [max-depth min-depth]
   (let [diff (- max-depth min-depth)
@@ -164,18 +171,37 @@
     (chartMouseClicked [e] (change-dragged-plot chart-panel e))
     (chartMouseMoved [e] (drag-plot chart-panel table e))))
 
-(defn- create-merge-button [index curves]
-  (let [button (new JButton "Merge")]
-    (on-action button
-      (open-curve-editor [(merge-curves index curves)]))
-    button))
+(defn- dirty-curves-for [curves]
+  (doall
+   (for [curve curves]
+     (let [chart (get @curve-charts curve)]
+       (let [series (first (.. chart (getPlot) (getDataset) (getSeries)))
+	     points (.getItems series)]
+	 (new DefaultCurve
+	      (.getDescriptor curve)
+	      (.getIndex curve)
+	      (map #(.getY %) points)))))))
+
+(defn- save-curves [lasfile curves]
+  (doseq [c curves] (.info logger "Saving Curve {}" c))
+  (send saved-curves assoc lasfile curves))
+
+(defn- merge-button [lasfile index curves]
+  (button "Merge" 
+    (fn [e]
+      (open-curve-editor lasfile [(merge-curves index curves)]))))
+
+(defn- save-button [lasfile curves]
+  (button "Save"
+    (fn [e]
+      (save-curves lasfile (dirty-curves-for curves)))))
 
 (defn- add-chart-panels [main-panel table chart-panels]
   (let [model (.getModel table)]
     (doseq [i (range 0 (count chart-panels))]
       (let [cp (nth chart-panels i)]
 	(send chart-columns assoc cp (inc i))
-
+	(send curve-charts assoc (.getCurve cp) (.getChart cp))
 	(doto cp
 	  (.setDomainZoomable false)
 	  (.setMouseZoomable false))
@@ -184,7 +210,15 @@
 	(.addTableModelListener model (create-table-model-listener table cp))
 	(.add main-panel cp "pushy, growy")))))
 
-(defn open-curve-editor [curves]
+(defn configure-xaxes [x-axes max-depth min-depth]
+  (doseq [x-axis x-axes]
+    (let [scale (get-scale max-depth min-depth)]
+      (doto x-axis 
+	(.setAutoRange false)
+	(.setRange (new Range min-depth (+ min-depth (* scale 1))))))))
+
+
+(defn open-curve-editor [lasfile curves]
   (guard (all-samef (map sample-rate curves))
 	 "Sample rates must be the same")
 
@@ -200,38 +234,31 @@
 	chart-panels (map (fn [[curve chart]]
 			    (new CustomChartPanel curve chart))
 			  (tuplize acurves charts))
-	main-panel (new JPanel (new MigLayout))
 	frame (new JFrame (str "Curves Editor"))
 	plots (map #(.getPlot %) charts)
 	x-axes (map #(.getDomainAxis %) plots)
-	tool-panel (new JPanel (new MigLayout))
-	merge-button (create-merge-button index acurves)]
+	mergeb (merge-button lasfile index acurves)
+	saveb (save-button lasfile acurves)
 
-    (doto tool-panel
-      (.add depth-slider "pushy, growy")
-      (.add table-pane "pushy, growy, wrap")
-      (.add merge-button "cell 1 1"))
+	tool-panel (panel 
+		    [depth-slider "pushy, growy"]
+		    [table-pane "pushy, growy, wrap"]
+		    [saveb ""]
+		    [mergeb ""])
 
-    (doto main-panel
-      (.add tool-panel "pushy, growy"))
+	main-panel (panelS 
+		    (* 600 (count chart-panels)) 700
+		    [tool-panel "pushy, growy"])
+	]
+
+    (configure-xaxes x-axes max-depth min-depth)
 
     (add-chart-panels main-panel table chart-panels)
-
-    (doseq [x-axis x-axes]
-      (let [scale (get-scale max-depth min-depth)]
-	(doto x-axis 
-	  (.setAutoRange false)
-	  (.setRange (new Range min-depth (+ min-depth (* scale 1)))))))
 
     (.addChangeListener depth-slider 
 			(create-slider-listener depth-slider
 						x-axes max-depth
 						min-depth table))    
-
-    (let [width (* 600 (count chart-panels))
-	  height 700]
-      (.setPreferredSize main-panel (new Dimension width height)))
-
     (doto table
       (.showAtPercentage 1))
     

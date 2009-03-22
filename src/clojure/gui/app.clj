@@ -1,5 +1,6 @@
 (ns gui.app
-  (:use util gui.util gui.las gui.files gui.global)
+  (:use util gui.util gui.las gui.global core.files)
+  (:require gui.files)
   (:import (javax.swing JFrame JPanel JSlider
 			JMenu JMenuItem JMenuBar
 			UIManager JFileChooser
@@ -15,7 +16,9 @@
 (def las-menu 
      (let [menu (new JMenu "Las")]
        (actions menu
-	 ["Open" (fn [e] (open-files (user-selected-files "." main-frame)))]
+	 ["Open" (fn [e] 
+		   (binding [add-las-file gui.files/add-las-file]
+		       (open-files (gui.files/user-selected-files "." main-frame))))]
 	 ["Save All" (fn [e] )]
 	 ["Quit" (fn [e] (System/exit 0))])
        menu))
@@ -24,10 +27,10 @@
 (def main-height 750)
 
 (defn run-main []
-  (UIManager/setLookAndFeel "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel")
+(UIManager/setLookAndFeel "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel")
   (doto main-panel
     (.setPreferredSize (new Dimension main-width main-height))
-    (.add file-panel "pushy, growy, width 25%")
+    (.add gui.files/file-panel "pushy, growy, width 25%")
     (.add las-panel "pushy, growy, width 75%"))
   (.add menu-bar las-menu)
   

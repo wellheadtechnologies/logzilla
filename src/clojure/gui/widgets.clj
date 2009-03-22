@@ -1,8 +1,9 @@
 (ns gui.widgets)
 (import '(javax.swing JPanel JLabel JFileChooser 
 		      JMenu JPopupMenu SwingUtilities
-		      JList DefaultListModel
+		      JList DefaultListModel JButton
 		      JTabbedPane BorderFactory)
+	'(java.awt Dimension)
 	'(net.miginfocom.swing MigLayout)
 	'(java.awt.event MouseAdapter ActionListener)
 	'(gui IconListCellRenderer))
@@ -31,3 +32,21 @@
        (doto panel
 	 (.setBorder (BorderFactory/createEmptyBorder)))
        panel))
+
+(defn panel [& widget-layouts]
+  (let [panel (new JPanel (new MigLayout))]
+    (doseq [[widget layout] widget-layouts]
+      (.add panel widget layout))
+    panel))
+
+(defn panelS [width height & widget-layouts]
+  (let [p (apply panel widget-layouts)]
+    (.setPreferredSize p (new Dimension width height))
+    p))
+
+(defn button [name fun]
+  (let [b (new JButton name)]
+    (.addActionListener b
+     (proxy [ActionListener] []
+       (actionPerformed [e] (fun e))))
+    b))

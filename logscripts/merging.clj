@@ -1,12 +1,16 @@
-(use 'gui.app 'gui.files 'gui.las
-     'core.las
-     'gui.curves 'gui.global 'gui.util
-     'util)
+(require 'gui.app
+	 'core.files
+	 'gui.curves)
 
-(async-run-main)
+(use 'gui.global)
+
+(gui.app/async-run-main)
 (synchronous
- (let [[a b] (open-files ["las_files/test.las"
-			  "las_files/test2.las"])]
-   (open-curve-editor [(get-curve "Facies" (.getCurves  a))
-		       (get-curve "Facies" (.getCurves  b))])
-))
+ (gui-mode
+  (let [[a b] (core.files/open-files
+	       ["las_files/test.las"
+		"las_files/test2.las"])]
+    (gui.curves/open-curve-editor a
+     [(core.las/get-curve "Facies" (.getCurves  a))
+      (core.las/get-curve "Facies" (.getCurves  b))])
+    )))

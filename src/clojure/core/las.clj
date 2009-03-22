@@ -1,6 +1,6 @@
 (ns core.las
   (:use util)
-  (:import (core DefaultCurve DefaultLasWriter)
+  (:import (core DefaultLasFile DefaultCurve DefaultLasWriter)
 	   (java.util LinkedList)))
 
 (defn get-curve [name curves]
@@ -104,4 +104,14 @@
 	 (merge-data index (map #(.getLasData %) curves))
 	 )))
 
-
+(defn clone-file [lasfile dirty-curves]
+  (new DefaultLasFile
+       (.getName lasfile)
+       (.getHeaders lasfile)
+       (.getIndex lasfile)
+       (map
+	(fn [x]
+	  (if (some #(= (.getName x) (.getName %)) dirty-curves)
+	    (find-first #(.getName x) dirty-curves)
+	    x)
+	  (.getCurves lasfile)))))

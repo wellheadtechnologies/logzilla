@@ -11,18 +11,20 @@
 	   (java.awt Dimension Image Color)
 	   (java.awt.event MouseMotionAdapter MouseAdapter MouseEvent)))
 
+(def file-views (agent {}))
+
 (defn- create-curve-panel []
   (let [panel (new JPanel (new MigLayout))]
     (doto panel
       (.setBorder (BorderFactory/createEtchedBorder)))
     panel))
 
-(def las-views (agent {}))
-(def current-las-view (agent (create-curve-panel)))
+(def current-file-view (agent (create-curve-panel)))
+
 (def las-panel 
      (let [panel (create-titled-panel "Curves")]
        (doto panel
-	 (.add @current-las-view "pushy, growy, pushx, growx")
+	 (.add @current-file-view "pushy, growy, pushx, growx")
 	 (.revalidate))
        panel))
 
@@ -62,7 +64,7 @@
 	[c x y] [(.getComponent event) (.getX event) (.getY event)]
 	scurves (get-selected-curves lasfile)]
     (context-menu [c x y]
-      ["Edit" (fn [e] (long-task (open-curve-editor scurves)))]
+      ["Edit" (fn [e] (long-task (open-curve-editor lasfile scurves)))]
       ["Copy" (fn [e] (send copied-curves (fn [x] scurves)))]
       ["Paste" (fn [e] 
 		 (doseq [curve @copied-curves]
@@ -113,7 +115,7 @@
     outer-panel))
 
 (defn set-las-view [new-view]
-  (send current-las-view
+  (send current-file-view
 	(fn [old-view]
 	  (swing 
 	   (doto las-panel
@@ -126,15 +128,16 @@
 	  new-view)))
 
 (defn open-las-view [lasfile]
-  (send las-views 
+  (send file-views
 	(fn [views]
 	  (let [existing-view (get views lasfile)]
 	    (if existing-view
 	      (do 
 		(set-las-view existing-view)
 		views)
-	      (let [view (create-las-view lasfile)]
+	      (let [new-view (create-las-view lasfile)]
 		(do
-		  (set-las-view view)
-		  (assoc views lasfile view))))))))
+		  (set-las-view new-view)
+		  (assoc views lasfile new-view))))))))
+
 

@@ -47,14 +47,6 @@ extends LasFile {
   private val headers = Compat.unmodifiable(mheaders)
   private val curves = Compat.unmodifiable(mcurves)
 
-  override def equals(_that:Any):Boolean = {
-    if(!_that.isInstanceOf[LasFile]) return false
-    val that = _that.asInstanceOf[LasFile]
-    if(this.headers != that.getHeaders) return false
-    if(this.curves != that.getCurves) return false
-    return true
-  }
-
   override def getName = name
   override def getCurves = curves
   override def getIndex = index
@@ -87,6 +79,16 @@ extends LasFile {
     }
     buf.toString
   }
+
+ 
+  override def equals(_that:Any):Boolean = {
+    if(!_that.isInstanceOf[LasFile]) return false
+    val that = _that.asInstanceOf[LasFile]
+    if(this.headers != that.getHeaders) return false
+    if(this.curves != that.getCurves) return false
+    return true
+  }
+
 }
 
 class DefaultCurve(descriptor:Descriptor, index:Curve, data:List[BigDecimal]) 
@@ -94,11 +96,19 @@ extends Curve {
   override def getDescriptor = descriptor
   override def getLasData = data
   override def getIndex = index
-  override def toString = descriptor.getMnemonic + data.size()
   override def getMnemonic = descriptor.getMnemonic
   override def getUnit = descriptor.getUnit
   override def getData = descriptor.getData
   override def getDescription = descriptor.getDescription
+  override def toString = getMnemonic + " " + getLasData.size()
+  
+  //name based equality : of dubious quality
+  override def equals(_that:Any):Boolean = {
+    if(!_that.isInstanceOf[Curve]) return false
+    val that = _that.asInstanceOf[Curve]
+    if(this.getMnemonic != that.getMnemonic) return false
+    return true
+  }
 }
 
 class DefaultHeader(htype:String, prefix:String, mdescriptors:List[Descriptor]) 

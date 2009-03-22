@@ -22,4 +22,7 @@
 (defmacro synchronous [& body]
   `(binding [gui.global/*synchronous* true]
      ~@body))
-  
+
+(defmacro gui-mode [& body]
+  `(binding [core.files/add-las-file gui.files/add-las-file]
+     ~@body))

@@ -63,7 +63,7 @@ object DefaultLasParser extends LasParser {
   }
 
   private def parseHeaders(reader:LineNumberReader):List[Header] = {
-    val line = next_line(reader)
+    val line = nextLine(reader)
     val headers = new LinkedList[Header]()
     var prefix = line.trim.take(2)
     for(i <- 0 until 4){
@@ -93,7 +93,7 @@ object DefaultLasParser extends LasParser {
     val descriptors = new LinkedList[Descriptor]
     var next_prefix:String = null
     while(reader.ready() && continue){
-      val line = next_line(reader)
+      val line = nextLine(reader)
       if(hasPrefix(line)){
 	continue = false
 	next_prefix = line
@@ -125,7 +125,7 @@ object DefaultLasParser extends LasParser {
      line.startsWith("~A"))
   }
 
-  private def next_line(reader:LineNumberReader) = {
+  private def nextLine(reader:LineNumberReader) = {
     var line = reader.readLine()
     while(isComment(line) || line.trim == ""){
       line = reader.readLine()
