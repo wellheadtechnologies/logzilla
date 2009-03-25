@@ -5,7 +5,6 @@
 			JScrollPane JButton JWindow JPanel SwingUtilities
 			JFileChooser JMenu JPopupMenu)
 	   (java.io File)
-	   (core DefaultLasParser)
 	   (net.miginfocom.swing MigLayout)))
 
 (def file-list (agent []))

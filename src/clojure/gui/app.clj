@@ -27,7 +27,7 @@
 (def main-height 750)
 
 (defn run-main []
-(UIManager/setLookAndFeel "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel")
+;(UIManager/setLookAndFeel "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel")
   (doto main-panel
     (.setPreferredSize (new Dimension main-width main-height))
     (.add gui.files/file-panel "pushy, growy, width 25%")

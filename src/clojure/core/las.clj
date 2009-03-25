@@ -1,6 +1,6 @@
 (ns core.las
   (:use util)
-  (:import (core DefaultLasFile DefaultCurve DefaultLasWriter)
+  (:import (org.jlas ImmutableLasFile ImmutableCurve DefaultLasWriter)
 	   (java.util LinkedList)))
 
 (defn get-curve [name curves]
@@ -67,7 +67,7 @@
 	start-padding (repeat (start-offset pdata cidata srate) Double/NaN)
 	end-padding (repeat (end-offset pdata cidata srate) Double/NaN)]
     
-    (new DefaultCurve 
+    (new ImmutableCurve 
 	 (.getDescriptor curve)
 	 primary-index
 	 (new LinkedList (concat start-padding 
@@ -98,14 +98,14 @@
   (guard (= (count (.getLasData index)) (count (.getLasData (first curves))))
 	 "curve data length must equal index length")
   (let [prototype (first curves)]
-    (new DefaultCurve
+    (new ImmutableCurve
 	 (.getDescriptor prototype)
 	 index
 	 (merge-data index (map #(.getLasData %) curves))
 	 )))
 
 (defn clone-file [lasfile dirty-curves]
-  (new DefaultLasFile
+  (new ImmutableLasFile
        (.getName lasfile)
        (.getHeaders lasfile)
        (.getIndex lasfile)

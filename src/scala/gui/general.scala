@@ -1,7 +1,5 @@
 package gui
 
-import java.math.BigDecimal
-
 import java.awt._
 import java.awt.event.{MouseEvent}
 import java.awt.image.{BufferedImage}
@@ -18,8 +16,6 @@ import org.jfree.data.xy.{AbstractXYDataset, XYDataset,
 			  XYSeries, XYSeriesCollection}
 import org.jfree.ui.RectangleEdge
 
-import core._
-import core.Compat.{fun2Run,withReadLock,withWriteLock}
 import org.jdesktop.swingx.graphics.ShadowRenderer
 import java.util.concurrent.locks.{ReadWriteLock,ReentrantReadWriteLock}
 
@@ -52,20 +48,12 @@ extends ChartPanel(chart, false, false, false, false, false) {
 
   lazy val curveXRange = {
     val data = curve.getLasData
-    val cmax = data.reduceLeft(max)
-    val cmin = data.reduceLeft(min)
-    cmax.subtract(cmin)
+    val cmax = data.reduceLeft(Math.max)
+    val cmin = data.reduceLeft(Math.min)
+    cmax - cmin
   }
 
   def getCurve:Curve = curve
-
-  private def max(a:BigDecimal, b:BigDecimal) = {
-    if(a.compareTo(b) == 1) a else b
-  }
-
-  private def min(a:BigDecimal, b:BigDecimal) = {
-    if(a.compareTo(b) == -1) a else b
-  }
 
   override def mouseClicked(event:MouseEvent) {
     val insets = getInsets()
@@ -199,8 +187,8 @@ object ChartUtil {
     val idata = index.getLasData
     
     for(i <- 0 until idata.size){
-      series.add(idata.get(i), 
-		 cdata.get(i))
+      series.add(idata(i), 
+		 cdata(i))
     }
 
     ds.addSeries(series)

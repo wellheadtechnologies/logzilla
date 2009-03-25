@@ -9,20 +9,22 @@ gui = ARGV.any? {|a| a =~ /-g/}
 logscript = ARGV.any? {|a| a =~ /-s/}
 interactive = ARGV.any? {|a| a =~ /-i/}
 
-classpath = "CurveEditor.jar"
+classpath = "build/logzilla.jar"
 Find.find("lib") do |p|
   if p =~ /.jar$/
     classpath += ":#{p}"
   end
 end
 
+system("echo classpath = #{classpath}")
+
 if build
   system("ant jar") or fail
 end
 
 if refresh
-  system("cp -rv src/clojure/* build/") or fail
-  system("rm -v CurveEditor.jar") or fail
+  system("cp -rv src/clojure/* build/classes/") or fail
+  system("rm -v build/logzilla.jar") or fail
   system("ant just-jar") or fail
 end
 
@@ -48,7 +50,7 @@ end
 
 if script
   system("echo \"#{script}\"")
-  system("echo \"#{script}\" | java -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false -cp #{classpath} clojure.main -")
+  system("echo \"#{script}\" | java -cp #{classpath} clojure.main -")
 elsif interactive
   system("java -cp #{classpath} clojure.main")
 end

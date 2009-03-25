@@ -2,7 +2,7 @@
   (:use util gui.util core.las gui.widgets)
   (:import (java.awt BorderLayout Color)
 	   (org.slf4j Logger LoggerFactory)
-	   (core DefaultCurve)
+	   (org.jlas ImmutableCurve)
 	   (gui ChartUtil CustomChartPanel CustomJTable)
 	   (javax.swing BorderFactory JPanel JSlider JWindow JFrame
 			JTable JScrollPane JButton)
@@ -177,7 +177,7 @@
      (let [chart (get @curve-charts curve)]
        (let [series (first (.. chart (getPlot) (getDataset) (getSeries)))
 	     points (.getItems series)]
-	 (new DefaultCurve
+	 (new ImmutableCurve
 	      (.getDescriptor curve)
 	      (.getIndex curve)
 	      (map #(.getY %) points)))))))

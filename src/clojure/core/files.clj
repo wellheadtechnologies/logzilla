@@ -1,6 +1,6 @@
 (ns core.files
   (:use util gui.global)
-  (:import (core DefaultLasParser)
+  (:import (org.jlas DefaultLasParser)
 	   (java.io File)))
 
 (def add-las-file)

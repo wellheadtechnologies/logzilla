@@ -1,95 +1,65 @@
-<project name="curve-editor" default="run">
-  <property name="src" location="src" />
-  <property name="java-src" location="src/java" />
-  <property name="clj-src" location="src/clojure" />
-  <property name="build" location="build" />
-  <property name="lib" location="lib" />
+<project xmlns:ivy="antlib:org.apache.ivy.ant" name="logzilla" default="build">
+  <property name="src.dir" value="src" />
+  <property name="scala.src.dir" value="${src.dir}/scala" />
+  <property name="clojure.src.dir" value="${src.dir}/clojure" />
+  <property name="build.dir" value="build" />
+  <property name="classes.dir" value="${build.dir}/classes" />
+  <property name="jar.file" value="logzilla-1.0.jar" />
+  <property name="lib.dir" value="lib" />
+
+  <property name="ivy.settings.dir" value="../settings" />
+  <property file="${ivy.settings.dir}/ivysettings.properties" />
+
+  <ivy:settings file="${ivy.settings.dir}/ivysettings.xml" />
 
   <taskdef resource="scala/tools/ant/antlib.xml">
     <classpath>
-      <pathelement location="${lib}/scala-compiler.jar" />
-      <pathelement location="${lib}/scala-library.jar" />
+      <pathelement location="${lib.dir}/scala-compiler-2.7.3.jar" />
+      <pathelement location="${lib.dir}/scala-library-2.7.3.jar" />
     </classpath>
   </taskdef>
 
-  <target name="init">
-    <mkdir dir="${build}" />
+  <target name="resolve">
+    <ivy:retrieve/>
   </target>
   
-  <target name="clean">
-    <delete dir="${build}"/>
-    <delete file="CurveEditor.jar" />
+  <target name="init" depends="resolve">
+    <mkdir dir="${build.dir}"/>
+    <mkdir dir="${classes.dir}"/>
   </target>
-  
-  <target name="build" depends="clean,init">
-    <javac srcdir="${java-src}"  destdir="${build}">
-      <classpath>
-	<fileset dir="${lib}">
-	  <include name="*/*.jar" />
-	</fileset>
-      </classpath>
-      <include name="**/*.java" />
-    </javac>
 
-    <scalac srcdir="${src}/scala" destdir="${build}" force="changed">
+  <target name="clean">
+    <delete dir="${build.dir}"/>
+  </target>
+
+  <target name="build" depends="clean, init">
+    <echo>compiling scala sources</echo>
+    <scalac srcdir="${scala.src.dir}" destdir="${classes.dir}">
       <classpath>
-	<fileset dir="${lib}">
+	<fileset dir="${lib.dir}">
 	  <include name="**/*.jar" />
 	</fileset>
-	<fileset dir="${build}">
+	<fileset dir="${build.dir}">
 	  <include name="**/*.class" />
 	</fileset>
       </classpath>
-      <include name="**/*.scala" />
     </scalac>
-
-    <copy todir="build/gui">
-      <fileset dir="src/clojure/gui" />
-    </copy>
-    <copy todir="build">
-      <fileset dir="src/clojure">
-	<include name="*.clj" />
+    <echo>copying clojure to build directory</echo>
+    <copy todir="${classes.dir}">
+      <fileset dir="${clojure.src.dir}">
+	<include name="**/*.clj" />
       </fileset>
     </copy>
-    <copy todir="build/core">
-      <fileset dir="src/clojure/core">
-	<include name="*.clj" />
-      </fileset>
-    </copy>
-
   </target>
 
   <target name="jar" depends="build">
-    <jar destfile="CurveEditor.jar">
-      <fileset dir="${build}">
-	<include name="**/*.class" />
-	<include name="**/*.clj" />
-      </fileset>
+    <propertyfile file="${classes.dir}/version.properties">
+      <entry  key="version" type="int" operation="+" default="0" />
+    </propertyfile>
+    <property file="${classes.dir}/version.properties" />
+    <jar destfile="${build.dir}/${ant.project.name}.jar">
+      <fileset dir="${classes.dir}" />
     </jar>
   </target>
 
-  <target name="just-jar">
-    <jar destfile="CurveEditor.jar">
-      <fileset dir="${build}">
-	<include name="**/*.class" />
-	<include name="**/*.clj" />
-      </fileset>
-    </jar>
-  </target>
-
-  <target name="run" depends="jar">
-    <java classname="clojure.main" fork="true">
-      <classpath>
-	<path location="CurveEditor.jar" />
-	<fileset dir="${lib}">
-	  <include name="**/*.jar" />
-	</fileset>
-      </classpath>
-      <arg value="-e" />
-      <arg value="(use 'gui.app)" />
-    </java>
-  </target>
-	
 </project>
-
-  
