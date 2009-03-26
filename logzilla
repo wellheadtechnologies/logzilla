@@ -23,8 +23,8 @@ if build
 end
 
 if refresh
-  system("cp -rv src/clojure/* build/classes/") or fail
-  system("rm -v build/logzilla.jar") or fail
+  system("cp -rv src/clojure/* build/classes/") 
+  system("rm -v build/logzilla.jar")
   system("ant just-jar") or fail
 end
 
@@ -39,7 +39,7 @@ if tests
 '''
 elsif gui
   script = """
-(use 'gui.app)
+(use 'app.controller)
 (run-main)
 """
 elsif logscript

@@ -19,41 +19,9 @@ import org.jfree.ui.RectangleEdge
 import org.jdesktop.swingx.graphics.ShadowRenderer
 import java.util.concurrent.locks.{ReadWriteLock,ReentrantReadWriteLock}
 
-class CustomJTable extends JTable {
-  def showCell(row:Int, col:Int){
-    val rect = getCellRect(row, col, true)
-    scrollRectToVisible(rect)
-  }
-
-  def showAtPercentage(n:Double){
-    if(n > 1 || n < 0)
-      throw new RuntimeException("invalid n (must be from 0.0 to 1.0) : " + n) 
-    val rows = getRowCount - 1
-    val row = (n * rows).intValue
-    showCell(row, 0)
-  }
-}
-
-class CustomChartPanel(curve: Curve, chart:JFreeChart) 
+class CustomChartPanel(chart:JFreeChart) 
 extends ChartPanel(chart, false, false, false, false, false) {
   val chartMouseListeners = new LinkedList[ChartMouseListener]
-
-  def java2DToValue(x:Double) = {
-    val xaxis = chart.getPlot.asInstanceOf[XYPlot].getRangeAxis //reversed, remember?
-    val value = xaxis.java2DToValue(x, 
-				    getScreenDataArea,
-				    RectangleEdge.TOP) //dunno why this has to be top
-    value
-  }
-
-  lazy val curveXRange = {
-    val data = curve.getLasData
-    val cmax = data.reduceLeft(Math.max)
-    val cmin = data.reduceLeft(Math.min)
-    cmax - cmin
-  }
-
-  def getCurve:Curve = curve
 
   override def mouseClicked(event:MouseEvent) {
     val insets = getInsets()
@@ -150,84 +118,7 @@ class IconListCellRenderer extends JLabel with ListCellRenderer {
 }
 
 
-object ChartUtil {
-  def time[A](msg: String)(f: => A):A = {
-    val start = System.currentTimeMillis
-    val result = f
-    val end = System.currentTimeMillis
-    println(msg + " " + (end - start))
-    return result
-  }
-
-  def createChart(dataset:XYSeriesCollection, curve:Curve):JFreeChart = {
-    val cname = curve.getMnemonic
-    val iname = curve.getIndex.getMnemonic
-    val chart = ChartFactory.createXYLineChart(
-      cname + " Chart",
-      iname, cname,
-      dataset, PlotOrientation.HORIZONTAL,
-      false, false, false)
-    val plot = chart.getPlot.asInstanceOf[XYPlot]
-    val renderer = plot.getRenderer
-    renderer.setBasePaint(Color.blue)
-    renderer.setSeriesPaint(0, Color.blue)
-    plot.setBackgroundPaint(Color.white)
-    chart
-  }
-
-  def createChart(curve:Curve):JFreeChart = {
-    createChart(createDataset(curve), curve)
-  }
-
-  def createDataset(curve: Curve) = {
-    val series = new XYSeries("Series")
-    val ds = new XYSeriesCollection
-    val index = curve.getIndex
-    val cdata = curve.getLasData
-    val idata = index.getLasData
-    
-    for(i <- 0 until idata.size){
-      series.add(idata(i), 
-		 cdata(i))
-    }
-
-    ds.addSeries(series)
-    ds
-  }
-
-  def curveToImage(curve: Curve):BufferedImage = {
-    createChart(curve).createBufferedImage(400,700)
-  }
-
-  def curveToIcon(curve: Curve):JLabel = {
-    val chart = createChart(curve)
-    val image = new BufferedImage(400, 700, BufferedImage.TYPE_INT_ARGB)
-
-    var graphics = image.createGraphics
-    chart.draw(graphics, new Rectangle2D.Double(0,0,400,700), null, null)    
-    graphics.dispose()    
-
-    val finalImage = renderShadow(fastScale(image,64,64))
-
-    val icon = new ImageIcon(finalImage)
-    val name = curve.getMnemonic
-    new JLabel(name, icon, SwingConstants.LEFT)
-  }
-  
-  def renderShadow(image:BufferedImage) = {
-    val shadowRenderer = new ShadowRenderer()
-    val shadow = shadowRenderer.createShadow(image)
-    stackImages(image, shadow)
-  }
-
-  def stackImages(top:BufferedImage, bottom:BufferedImage) = {
-    val graphics = bottom.createGraphics
-    graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f))
-    graphics.drawImage(top, 0, 0, null)
-    graphics.dispose()
-    bottom
-  }
-
+object ImageUtil {
   def fastScale(img:BufferedImage, targetWidth: Int, targetHeight: Int) = {
     var itype:Int = BufferedImage.TYPE_INT_ARGB
 

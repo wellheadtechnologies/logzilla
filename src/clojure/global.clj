@@ -1,7 +1,6 @@
-(ns gui.global)
-
-(import '(java.util.concurrent Executors)
-	'(java.lang.management ManagementFactory OperatingSystemMXBean))
+(ns global
+  (:import (java.util.concurrent Executors)
+	   (java.lang.management ManagementFactory OperatingSystemMXBean)))
 
 (def copied-curves (agent []))
 
@@ -21,8 +20,4 @@
 
 (defmacro synchronous [& body]
   `(binding [gui.global/*synchronous* true]
-     ~@body))
-
-(defmacro gui-mode [& body]
-  `(binding [core.files/add-las-file gui.files/add-las-file]
      ~@body))
