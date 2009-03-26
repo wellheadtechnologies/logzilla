@@ -2,7 +2,7 @@
   (:load "view")
   (:use las.model global util gutil global curves.model))
 
-(def las-curves (agent {}))
+(def las-curves (agent {})) ;; lasfile -> [jlist curves]
 (def file-views (agent {}))
 (def current-file-view (agent (las.view/create-curve-panel)))
 

@@ -5,4 +5,5 @@
     (on-action 1)
     (context-menu 1)
     (on-click 1)
-    (button 1))
+    (button 1)
+    (with-connection 1))

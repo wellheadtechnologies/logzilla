@@ -1,7 +1,6 @@
 (ns app.controller
   (:use app.view app.model global util gutil files.controller))
 
-
 (defn run-main []
   (binding [main-width 500 
 	    main-height 700

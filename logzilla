@@ -8,6 +8,7 @@ tests = ARGV.any? {|a| a =~ /-t/}
 gui = ARGV.any? {|a| a =~ /-g/}
 logscript = ARGV.any? {|a| a =~ /-s/}
 interactive = ARGV.any? {|a| a =~ /-i/}
+database = ARGV.any? {|a| a =~ /-d/ }
 
 classpath = "build/logzilla.jar"
 Find.find("lib") do |p|
@@ -46,7 +47,13 @@ elsif logscript
   script = """
 (load-file \\\"#{ARGV.last}\\\")
 """
+elsif database
+  script = """
+(use 'database)
+"""
 end
+
+system("echo \"classpath =#{classpath}\"")
 
 if script
   system("echo \"#{script}\"")
