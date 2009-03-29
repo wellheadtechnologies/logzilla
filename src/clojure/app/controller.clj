@@ -1,13 +1,27 @@
 (ns app.controller
-  (:use app.view app.model global util gutil files.controller))
+  (:load "/lasfile/controller")
+  (:load "/global")
+  (:use app.view app.model))
+
+(defstruct AppConfig 
+  :width 
+  :height 
+  :frame 
+  :panel
+  :menu-bar
+  :lasfile-pane)
+
+(defn get-default-config []
+  (struct-map AppConfig
+    :width 500 
+    :height 700
+    :frame (create-main-frame)
+    :panel (create-main-panel)
+    :menu-bar (create-menu-bar)
+    :file-menu (lasfile.controller/init-file-menu)
+    :lasfile-pane (lasfile.controller/init-lasfile-pane)))
 
 (defn run-main []
-  (binding [main-width 500 
-	    main-height 700
-	    main-frame (create-main-frame)
-	    main-panel (create-main-panel)
-	    menu-bar (create-menu-bar)
-	    file-panel (init-file-panel)
-	    file-menu (init-file-menu)
-	    las-panel (init-las-panel)]
-    (create-main-window)))
+  (let [config (get-default-config)]
+    (send global/app-config (fn [_] config))
+    (create-main-window config)))
