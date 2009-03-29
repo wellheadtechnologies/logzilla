@@ -1,53 +1,56 @@
 (ns lasso
-  (:use util)
+  (:use util global)
   (:import (java.io PushbackReader BufferedReader InputStreamReader
-		    BufferedWriter OutputStreamWriter)))
+		    BufferedWriter OutputStreamWriter StringReader
+		    StringWriter)
+	   (com.wellhead.lasso LasFileParser ClojureWriter ClojureReader CurveUtil)))
+  
+;(let [proc (exec (str "./lasso " path " clojure://stdout"))]
+;(with-proc-reader proc
+;      (fn [reader]
+;	(let [lasfile (read reader)
+;	      curves (:curves lasfile)
+;	      index (first curves)]
+;	  (assoc lasfile :path path :index index
+;		 :curves (map #(assoc % :index index) curves)))))))
+;
+;(defn pad-curve [index curve]
+;  (let [proc (exec (str "./lasso pad --stream clojure"))]
+;    (long-task 
+;     (with-proc-writer proc 
+;       (fn [writer]
+;	 (doto writer
+;	   (.write (str index))
+;	   (.newLine)
+;	   (.write (str curve))
+;	   (.close)))))
+;    (with-proc-reader proc 
+;      (fn [reader]
+;	(let [padded-curve (read reader)]
+;	  (assoc padded-curve :index index))))))
 
-;(defstruct LasFile :name :path :headers :curves)
-;(defstruct Header :type :prefix :descriptors)
-;(defstruct Descriptor :mnemonic :unit :data :description)
-;(defstruct Curve :descriptor :data :index)
-
-(defn proc-writer [proc]
-  (new BufferedWriter (new OutputStreamWriter (.getOutputStream proc))))
-
-(defn proc-reader [proc]
-  (new PushbackReader (new BufferedReader (new InputStreamReader (.getInputStream proc)))))
-
-(defn with-proc-reader [proc fun]
-  (let [reader (proc-reader proc)]
-    (try 
-     (fun reader)
-     (finally 
-      (.close reader)))))
-
-(defn with-proc-writer [proc fun]
-  (let [writer (proc-writer proc)]
-    (try 
-     (fun writer)
-     (finally 
-      (.close writer)))))
 
 (defn load-lasfile [path]
-  (let [proc (exec (str "./lasso " path " clojure://stdout"))]
-    (with-proc-reader proc
-      (fn [reader]
-	(let [lasfile (read reader)
-	      curves (:curves lasfile)
-	      index (first curves)]
-	  (assoc lasfile :path path :index index
-		 :curves (map #(assoc % :index index) curves)))))))
+  (let [reader (new LasFileParser)
+	writer (new ClojureWriter)
+	lf (.readLasFile reader path)
+	lasfile	(read (new PushbackReader 
+			   (new BufferedReader 
+				(new StringReader
+				     (.writeLasFileToString writer lf)))))
+	curves (:curves lasfile)
+	index (first curves)]
+    (assoc lasfile :path path :index index
+	   :curves (map #(assoc % :index index) curves))))
 
 (defn pad-curve [index curve]
-  (let [proc (exec (str "./lasso pad --stream clojure"))]
-    (with-proc-writer proc 
-      (fn [writer]
-	(doto writer
-	  (.write index)
-	  (.newLine)
-	  (.write curve)
-	  (.close))))
-    (with-proc-reader proc 
-      (fn [reader]
-	(let [padded-curve (read reader)]
-	  (assoc padded-curve :index index))))))
+  (let [reader (new ClojureReader)
+	writer (new ClojureWriter)
+	whindex (.parseCurve reader index)
+	whcurve (.parseCurve reader curve)
+	adjusted (CurveUtil/adjustCurve whindex (doto whcurve (.setIndex whindex)))
+	curve (read (new PushbackReader
+			 (new BufferedReader
+			      (new StringReader
+				   (.writeCurveToString writer adjusted)))))]
+    (assoc curve :index index)))

@@ -1,8 +1,9 @@
 (ns lasfile.controller
   (:load "/global")
   (:load "/editor/controller")
-  (:use lasfile.view lasfile.model gutil util curves)
+  (:use lasfile.view lasfile.model gutil util curves global)
   (:import (javax.swing JFileChooser JLabel JList DefaultListModel)
+	   (java.awt.event MouseEvent)
 	   (gui IconListCellRenderer)))
 
 (defstruct LasfileList :pane :list)
@@ -42,13 +43,15 @@
   (map #(.getCurve %) (.getSelectedValues curve-list)))
 
 (defn curve-list-click-action [e]
-  (send lasfile-list 
-	(fn [{:keys [pane list] :as fl}]
-	  (let [selected-curves (get-selected-curves (.getSource e))
-		tab-index (.getSelectedIndex pane)
-		lasfile (nth list tab-index)]
-	    (editor.controller/open-curve-editor lasfile selected-curves))
-	  fl)))
+  (when (and (= (.getButton e) MouseEvent/BUTTON1)
+	     (= (.getClickCount e) 2))
+    (send lasfile-list 
+	  (fn [{:keys [pane list] :as fl}]
+	    (let [selected-curves (get-selected-curves (.getSource e))
+		  tab-index (.getSelectedIndex pane)
+		  lasfile (nth list tab-index)]
+	      (long-task (editor.controller/open-curve-editor lasfile selected-curves)))
+	    fl))))
 
 (defn init-curve-list [lasfile]
   (let [curve-list (create-curve-list curve-list-click-action)]

@@ -92,3 +92,7 @@
 (defmacro unless [cond & body]
   `(when (not cond)
      ~@body))
+
+(defn large-to-small [coll] (reverse (sort coll)))
+
+(defn small-to-large [coll] (sort coll))

@@ -67,14 +67,14 @@
 	 (.setBorder (BorderFactory/createEmptyBorder)))
        panel))
 
-(defn panel [& widget-layouts]
+(defn create-panel [& widget-layouts]
   (let [panel (new JPanel (new MigLayout))]
     (doseq [[widget layout] widget-layouts]
       (.add panel widget layout))
     panel))
 
-(defn panelS [width height & widget-layouts]
-  (let [p (apply panel widget-layouts)]
+(defn create-panelS [{:keys [width height]} & widget-layouts]
+  (let [p (apply create-panel widget-layouts)]
     (.setPreferredSize p (new Dimension width height))
     p))
 

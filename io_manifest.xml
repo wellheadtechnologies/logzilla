@@ -1,6 +1,7 @@
 <io-manifest>
   <readers>
     <reader class="com.wellhead.lasso.LasFileParser" />
+    <reader class="com.wellhead.lasso.ClojureReader" />
   </readers>
   <writers>
     <writer class="com.wellhead.lasso.LasFileWriter" />
