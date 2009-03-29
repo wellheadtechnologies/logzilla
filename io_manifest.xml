@@ -1,0 +1,10 @@
+<io-manifest>
+  <readers>
+    <reader class="com.wellhead.lasso.LasFileParser" />
+  </readers>
+  <writers>
+    <writer class="com.wellhead.lasso.LasFileWriter" />
+    <writer class="com.wellhead.lasso.SqliteWriter" />
+    <writer class="com.wellhead.lasso.ClojureWriter" />
+  </writers>
+</io-manifest>

@@ -19,9 +19,11 @@
 
 ;;file actions
 (defn open-action [e] 
-  (let [lasfiles (open-files (run-file-selection-dialog "."))]
-    (doseq [lasfile lasfiles]
-      (add-lasfile lasfile))))
+  (let [files (run-file-selection-dialog ".")]
+    (doseq [file files]
+      (global/long-task 
+       (add-lasfile (open-file file))))))
+
 (defn save-all-action [e] nil)
 (defn quit-action [e] (System/exit 0))
 
@@ -50,8 +52,9 @@
 
 (defn init-curve-list [lasfile]
   (let [curve-list (create-curve-list curve-list-click-action)]
-    (doseq [curve (:curves lasfile)]
-      (add-curve curve-list curve))
+    (global/long-task
+     (doseq [curve (:curves lasfile)]
+       (add-curve curve-list curve)))
     curve-list))
 
 (defn init-lasfile-view [lasfile]
@@ -63,8 +66,9 @@
 (defn add-lasfile [lasfile]
   (send lasfile-list
 	(fn [{:keys [pane list] :as fl}]
-	  (swing (.addTab pane (:name lasfile) (init-lasfile-view lasfile)))
-	  (assoc fl :list (conj list lasfile)))))
+	  (let [view (init-lasfile-view lasfile)]
+	    (swing (.addTab pane (:name lasfile) view))
+	    (assoc fl :list (conj list lasfile))))))
 
 (defn init-lasfile-pane []
   (let [pane (create-lasfile-pane)]

@@ -83,3 +83,12 @@
   (let [runtime (Runtime/getRuntime)
 	proc (.exec runtime command)]
     proc))
+
+(defn with-limit [limit x]
+  (if (> x limit)
+    limit
+    x))
+
+(defmacro unless [cond & body]
+  `(when (not cond)
+     ~@body))
