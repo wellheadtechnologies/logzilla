@@ -17,8 +17,6 @@ Find.find("lib") do |p|
   end
 end
 
-system("echo classpath = #{classpath}")
-
 if build
   system("ant jar") or fail
 end
@@ -52,8 +50,6 @@ elsif database
 (use 'database)
 """
 end
-
-system("echo \"classpath =#{classpath}\"")
 
 if script
   system("echo \"#{script}\"")
