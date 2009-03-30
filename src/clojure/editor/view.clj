@@ -10,14 +10,13 @@
 
 (defn create-table [editor-data]
   (let [{:keys [curves index]} editor-data
-	table (new JTable)
 	model (new DefaultTableModel)
+	table (new JTable model)
 	index-data (large-to-small (:data index))]    
     (.addColumn model (get-in index [:descriptor :mnemonic]) (into-array Object index-data))
     (doseq [curve curves]
       (.addColumn model (get-in curve [:descriptor :mnemonic]) (into-array Object (:data curve))))
-    (doto table
-      (.setModel model))))
+    table))
 
 (defn create-save-button [editor-data]
   (button "Save" (fn [e] nil)))

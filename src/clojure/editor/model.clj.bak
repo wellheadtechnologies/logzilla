@@ -86,7 +86,7 @@
 (defn java-2D-to-value [chart-panel x]
   (let [chart (.getChart chart-panel)
 	xaxis (.. chart (getPlot) (getRangeAxis))
-	value (.java2DToValue xaxis x (.getScreenDataArea chart-panel) RectangleEdge/TOP)]
+	value (.java2DToValue xaxis x (.getScreenDataArea chart-panel) (RectangleEdge/TOP))]
     value))
 
 (defn curve-xrange [curve]

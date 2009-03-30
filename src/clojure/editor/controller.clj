@@ -4,6 +4,7 @@
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane)
 	   (org.jfree.data Range)
+	   (org.jfree.chart ChartMouseListener)
 	   (gui CustomChartPanel)))
 
 (defstruct EditorState 
@@ -105,21 +106,38 @@
 				   (with-limit max-depth upper)))
 		      (table-show-percentage table (- 1 (/ value slider-notches))))))))
 
-;(defn change-dragged-plot [frame old-chart-state chart-event]
-;  (let [new-chart-state (assoc old-chart-state 
-;			  :dragged-entity (.getEntity chart-event))]
-;    (send entity-states
-;	  (fn [es]
-;	    (let [fs (get es frame)]
-;	      (assoc es frame
-;		     (assoc fs :chart-states (replace {old-chart-state new-chart-state} (:chart-states es)))))))))
-;
-;;(defn drag-plot [frame old-chart-state table chart-event])
-;
-;(defn init-chart-mouse-listener [chart-state table]
-;  (proxy [ChartMouseListener] []
-;    (chartMouseClicked [e] (change-dragged-plot chart-state e))
-;    (chartMouseMoved [e] (drag-plot chart-state table e))))
+(defn change-dragged-plot [frame chart-panel chart-event]
+  (send editor-states
+	(fn [es]
+	  (let [fs (get es frame)
+		chart-states (:chart-states fs)
+		old-chart-state (find-first #(= chart-panel (:chart-panel %)) chart-states)
+		new-chart-state (assoc old-chart-state :dragged-entity (.getEntity chart-event))]
+	    (assoc es frame
+		   (assoc fs :chart-states (replace {old-chart-state new-chart-state} chart-states)))))))
+
+(defn drag-plot [frame chart-panel table chart-event]
+  (send editor-states
+	(fn [es]
+	  (let [fs (get es frame)
+		chart-state (find-first #(= chart-panel (:chart-panel %)) (:chart-states fs))
+		dragged-entity (:dragged-entity chart-state)]	    
+	    (when dragged-entity
+	      (let [mouse-event (.getTrigger chart-event)
+		    series (first (.. dragged-entity (getDataset) (getSeries)))
+		    index (.getItem dragged-entity)
+		    new-value (java-2D-to-value chart-panel (.getX mouse-event))]
+		(swing 
+		 (when (not (or (.isNaN new-value) (.isInfinite new-value)))
+		   (.updateByIndex series index new-value)
+		   (sync-table-with-chart frame chart-state index)
+		   (.repaint chart-panel))))))
+	  es)))
+
+(defn init-chart-mouse-listener [frame chart-panel table]
+  (proxy [ChartMouseListener] []
+    (chartMouseClicked [e] (change-dragged-plot frame chart-panel e))
+    (chartMouseMoved [e] (drag-plot frame chart-panel table e))))
 
 (defn init-frame []
   (let [frame (new JFrame (str "Editor"))]
@@ -134,14 +152,22 @@
 	  (.setAutoRange false)
 	  (.setRange (new Range min-depth (+ min-depth scale))))))))
 
+(defn init-chart-panel [curve]
+  (let [chart (create-chart curve)
+	chart-panel (new CustomChartPanel chart)]
+    (doto chart-panel
+      (.setDomainZoomable false)
+      (.setMouseZoomable false))))
+
 (defn get-chart-states [curves]
   (for [i (range 0 (count curves))]
     (let [curve (nth curves i)
-	  chart (create-chart curve)]
+	  chart-panel (init-chart-panel curve)
+	  tcolumn (inc i)]
       (struct-map ChartState
 	:curve curve
-	:chart-panel (new CustomChartPanel chart)
-	:table-column (inc i)))))
+	:chart-panel chart-panel
+	:table-column tcolumn))))
 
 (defn open-curve-editor [lasfile curves]   
   (let [frame (init-frame)
@@ -181,12 +207,19 @@
 			 :main-panel main-panel)]
     (configure-xaxes editor-data)
     (doseq [state chart-states]
-      (.add main-panel (:chart-panel state) "pushx, pushy, growx, growy"))
+      (let [chart-panel (:chart-panel state)]
+	(.addChartMouseListener chart-panel (init-chart-mouse-listener frame chart-panel table))
+	(.add main-panel chart-panel "pushx, pushy, growx, growy")))
+
     (.addChangeListener depth-slider (init-slider-listener editor-data editor-widgets))
 
     (table-show-percentage table 1)
-    (doto frame
-      (.add main-panel)
-      (.pack)
-      (.setVisible true))
+    (send editor-states assoc frame {:widgets editor-widgets
+				     :data editor-data
+				     :chart-states chart-states})
+    (swing
+     (doto frame
+       (.add main-panel)
+       (.pack)
+       (.setVisible true)))
     ))

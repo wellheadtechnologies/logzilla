@@ -1,5 +1,6 @@
 (ns editor.model
-  (:load "/lasso"))
+  (:load "/lasso")
+  (:import (org.jfree.ui RectangleEdge)))
 
 (defn largest-index [curves]
   (:index 
@@ -29,3 +30,8 @@
 	ratio (/ slider-notches scale-notches)]
     (* (/ value ratio) scale)))
 
+(defn java-2D-to-value [chart-panel x]
+  (let [chart (.getChart chart-panel)
+	xaxis (.. chart (getPlot) (getRangeAxis))
+	value (.java2DToValue xaxis x (.getScreenDataArea chart-panel) RectangleEdge/TOP)]
+    value))
