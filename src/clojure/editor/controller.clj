@@ -193,9 +193,9 @@
 	saveb (create-save-button editor-data)
 	tool-panel (create-panel 
 		    [depth-slider "pushy, growy"]
-		    [table-pane "pushy, growy, wrap"]
-		    [saveb ""]
-		    [mergeb ""])
+		    [table-pane "pushy, growy, spanx 2, wrap"]
+		    [saveb "cell 1 1"]
+		    [mergeb "cell 2 1"])
 	main-panel (create-panelS
 		    {:width (* 600 (count curves))
 		     :height 700}
@@ -209,6 +209,7 @@
     (doseq [state chart-states]
       (let [chart-panel (:chart-panel state)]
 	(.addChartMouseListener chart-panel (init-chart-mouse-listener frame chart-panel table))
+	(.addTableModelListener (.getModel table) (init-table-model-listener frame state))
 	(.add main-panel chart-panel "pushx, pushy, growx, growy")))
 
     (.addChangeListener depth-slider (init-slider-listener editor-data editor-widgets))
