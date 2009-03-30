@@ -7,11 +7,6 @@
   <property name="jar.file" value="logzilla-1.0.jar" />
   <property name="lib.dir" value="lib" />
 
-  <property name="ivy.settings.dir" value="../settings" />
-  <property file="${ivy.settings.dir}/ivysettings.properties" />
-
-  <ivy:settings file="${ivy.settings.dir}/ivysettings.xml" />
-
   <taskdef resource="scala/tools/ant/antlib.xml">
     <classpath>
       <pathelement location="${lib.dir}/scala-compiler-2.7.3.jar" />

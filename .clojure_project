@@ -6,4 +6,7 @@
     (context-menu 1)
     (on-click 1)
     (button 1)
-    (with-connection 1))
+    (with-connection 1)
+    (with-proc-reader 1)
+    (with-proc-writer 1)
+    (unless 1))

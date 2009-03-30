@@ -8,9 +8,9 @@
     <dependency org="ch.qos.logback" name="logback-core" rev="0.9.15" />
     <dependency org="ch.qos.logback" name="logback-classic" rev="0.9.15" />
     <dependency org="org.scala-tools.testing" name="scalatest" rev="0.9.5" />
-    <dependency org="com.miglayout" name="miglayout" rev="3.7" />
     <dependency org="org.swinglabs" name="swingx" rev="0.9.5-2" />
     <dependency org="commons-io" name="commons-io" rev="1.4" />
     <dependency org="org.xerial" name="sqlite-jdbc" rev="3.6.11" />
+    <dependency org="com.wellhead" name="lasso" rev="latest.integration" changing="true"/>
   </dependencies>
 </ivy-module>
