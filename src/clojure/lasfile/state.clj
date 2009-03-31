@@ -1,14 +1,15 @@
 (ns lasfile.state)
 
-(defstruct LasfileList :pane :view-data) ;pane = [], view-data = [LasViewData]
-(defstruct LasViewData :las-file :curve-list)
+(defstruct LasfileList :pane :view-data-list) ;pane = [], view-data = [LasViewData]
+(defstruct LasViewData :lasfile :curve-list)
 
 (def lasfile-list (agent nil)) ; FileList
 (def file-menu-config (agent {})) ;FileMenuConfig
+(def copied-curves (agent []))
 
 (defn get-current-view-data []
-  (let [{:keys [pane view-data]} @lasfile-list]
-    (nth view-data (.getSelectedIndex pane))))
+  (let [{:keys [pane view-data-list]} @lasfile-list]
+    (nth view-data-list (.getSelectedIndex pane))))
 
 (defn current-curve-list []
   (let [data (get-current-view-data)]

@@ -6,23 +6,19 @@
 	   (gui IconListCellRenderer)
 	   (net.miginfocom.swing MigLayout)))
 
-(defn create-curve-panel []
-  (let [panel (new JPanel (new MigLayout))]
-    (doto panel
-      (.setBorder (BorderFactory/createEtchedBorder)))))
-
 (defn create-curve-list []
   (let [jlist (new JList (new DefaultListModel))]
     (doto jlist
+      (.setBorder (BorderFactory/createEmptyBorder))
       (.setFixedCellHeight 80)
       (.setCellRenderer (new IconListCellRenderer))
       (.setBackground (.getBackground (new JPanel)))
       (.setOpaque false))))
 
-(defn create-lasfile-view [{:keys [las-file curve-list]}]
-  (let [inner-panel (create-inner-panel)
+(defn create-lasfile-view [{:keys [lasfile curve-list]}]
+  (let [inner-panel (new JPanel (new MigLayout))
 	pane (new JScrollPane inner-panel)
-	outer-panel (create-curve-panel)]
+	outer-panel (new JPanel (new MigLayout))]
     (doto inner-panel
       (.add curve-list "pushx, growx, pushy, growy, wrap"))
     (doto outer-panel

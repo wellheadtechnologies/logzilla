@@ -2,8 +2,6 @@
   (:import (java.util.concurrent Executors)
 	   (java.lang.management ManagementFactory OperatingSystemMXBean)))
 
-(def copied-curves (agent []))
-
 (def osbean (ManagementFactory/getOperatingSystemMXBean))
 
 (def fixed-executor-service (Executors/newFixedThreadPool (.getAvailableProcessors osbean)))
