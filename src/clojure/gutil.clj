@@ -43,6 +43,9 @@
 		     (proxy [MouseAdapter] []
 		       (mouseClicked [e] (fun e)))))
 
+(defn click-listener [fun]
+  (proxy [MouseAdapter] [] (mouseClicked [e] (fun e))))
+
 (defn create-titled-panel [title]
   (let [title-panel (new JPanel)
 	outer-panel (new JPanel (new MigLayout))]

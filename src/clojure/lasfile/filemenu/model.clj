@@ -1,4 +1,5 @@
-(ns lasfile.filemenu.model)
+(ns lasfile.filemenu.model
+  (:require lasso))
 
 (defn open-file [file]
   (lasso/load-lasfile (.getPath file)))

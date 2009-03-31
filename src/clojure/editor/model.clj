@@ -1,5 +1,5 @@
 (ns editor.model
-  (:load "/lasso")
+  (:require lasso)
   (:import (org.jfree.ui RectangleEdge)))
 
 (defn largest-index [curves]
@@ -10,7 +10,6 @@
 	     (count (get-in y [:index :data])))
 	x y))
     curves)))
-
 
 (defn index-to-row [index table]
   (- (dec (.getRowCount table)) index))

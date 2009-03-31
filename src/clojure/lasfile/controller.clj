@@ -1,60 +1,51 @@
 (ns lasfile.controller
   (:require editor.controller
 	    [lasfile.contextmenu.controller :as cmc]
-	    [lasfile.filemenu.controller :as fmc])
+	    [lasfile.filemenu.controller :as fmc]
+	    [lasfile.state :as state])
   (:use lasfile.view lasfile.model gutil util curves global)
   (:import (javax.swing JFileChooser JLabel JList DefaultListModel)
 	   (java.awt.event MouseEvent MouseAdapter)
+	   (javax.swing.event ChangeListener)
 	   (gui IconListCellRenderer)))
-
-(defstruct LasfileList :pane :list)
-(defstruct LasViewConfig :las-file :curve-list)
-
-(def lasfile-list (agent (struct LasfileList nil []))) ; FileList
 
 (defn add-curve [curve-list curve]
   (let [icon (curve-to-icon curve)]
     (swing (.addElement (.getModel curve-list) icon))))
 
-(defn get-selected-curves [curve-list]
-  (map #(.getCurve %) (.getSelectedValues curve-list)))
-
-(defn curve-list-click-action [e]
+(defn open-curve-editor-action [e]
   (when (and (= (.getButton e) MouseEvent/BUTTON1)
 	     (= (.getClickCount e) 2))
-    (send lasfile-list 
-	  (fn [{:keys [pane list] :as fl}]
-	    (let [selected-curves (get-selected-curves (.getSource e))
-		  tab-index (.getSelectedIndex pane)
-		  lasfile (nth list tab-index)]
-	      (long-task (editor.controller/open-curve-editor lasfile selected-curves)))
-	    fl))))
+    (let [{:keys [las-file curve-list]} (state/get-current-view-data)
+	  selected-curves (state/get-selected-curves curve-list)]
+      (long-task (editor.controller/open-curve-editor las-file selected-curves)))))
 
 (defn init-curve-list [lasfile]
-  (let [curve-list (create-curve-list curve-list-click-action)]
+  (let [curve-list (create-curve-list)]
     (global/long-task
      (doseq [curve (:curves lasfile)]
        (add-curve curve-list curve)))
     (doto curve-list
-      (.addMouseListener (cmc/init-default-listener curve-list)))
-    ))
+      (.addMouseListener (click-listener open-curve-editor-action))
+      (.addMouseListener (cmc/init-default-listener curve-list)))))
 
 (defn init-lasfile-view [lasfile]
-  (create-lasfile-view
-   (struct-map LasViewConfig
-     :las-file lasfile
-     :curve-list (init-curve-list lasfile))))
+  (let [data (struct-map state/LasViewData
+	       :las-file lasfile
+	       :curve-list (init-curve-list lasfile))]
+    [(create-lasfile-view data) 
+     data]))
 
 (defn add-lasfile [lasfile]
-  (send lasfile-list
-	(fn [{:keys [pane list] :as fl}]
-	  (let [view (init-lasfile-view lasfile)]
+  (send state/lasfile-list
+	(fn [{:keys [pane view-data] :as fl}]
+	  (let [[view data] (init-lasfile-view lasfile)]
 	    (swing (.addTab pane (:name lasfile) view))
-	    (assoc fl :list (conj list lasfile))))))
+	    (assoc fl :view-data (conj view-data data))))))
 
 (defn init-lasfile-pane []
   (let [pane (create-lasfile-pane)]
-    (send lasfile-list assoc :pane pane)
+    (send state/lasfile-list (fn [_] (struct-map state/LasfileList :pane pane :view-data [])))
     pane))
 
 (defn init-file-menu [] (fmc/init-default-menu add-lasfile))

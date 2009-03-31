@@ -11,9 +11,8 @@
     (doto panel
       (.setBorder (BorderFactory/createEtchedBorder)))))
 
-(defn create-curve-list [click-action]
+(defn create-curve-list []
   (let [jlist (new JList (new DefaultListModel))]
-    (on-click jlist click-action)
     (doto jlist
       (.setFixedCellHeight 80)
       (.setCellRenderer (new IconListCellRenderer))

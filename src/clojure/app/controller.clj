@@ -1,6 +1,5 @@
 (ns app.controller
-  (:load "/lasfile/controller")
-  (:load "/global")
+  (:require lasfile.controller global)
   (:use app.view app.model))
 
 (defstruct AppConfig 

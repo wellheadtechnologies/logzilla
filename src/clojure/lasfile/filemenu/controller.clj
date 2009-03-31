@@ -8,7 +8,6 @@
 	   (net.miginfocom.swing MigLayout)))
 
 (defstruct FileMenuConfig :open-action :save-all-action :quit-action)
-(def file-menu-config (agent {})) ;FileMenuConfig
 
 (defn run-file-selection-dialog [cwd]
   (let [frame (:frame @global/app-config)

@@ -1,5 +1,5 @@
 (ns editor.controller
-  (:load "/lasso")
+  (:require lasso)
   (:use editor.model editor.view util global gutil curves)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane)
