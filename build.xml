@@ -48,10 +48,6 @@
   </target>
 
   <target name="jar" depends="build">
-    <propertyfile file="${classes.dir}/version.properties">
-      <entry  key="version" type="int" operation="+" default="0" />
-    </propertyfile>
-    <property file="${classes.dir}/version.properties" />
     <jar destfile="${build.dir}/${ant.project.name}.jar">
       <fileset dir="${classes.dir}" />
     </jar>
