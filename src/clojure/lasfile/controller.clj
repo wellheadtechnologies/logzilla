@@ -9,6 +9,20 @@
 	   (javax.swing.event ChangeListener)
 	   (gui IconListCellRenderer)))
 
+(defn tab-right []
+  (swing 
+    (let [pane (state/get-current-pane)
+	  index (.getSelectedIndex pane)
+	  total (.getTabCount pane)]
+      (.setSelectedIndex pane (mod (inc index) total)))))
+
+(defn tab-left []
+  (swing 
+    (let [pane (state/get-current-pane)
+	  index (.getSelectedIndex pane)
+	  total (.getTabCount pane)]
+      (.setSelectedIndex pane (mod (dec index) total)))))
+
 (defn add-curve [curve-list curve]
   (let [icon (curve-to-icon curve)]
     (swing 

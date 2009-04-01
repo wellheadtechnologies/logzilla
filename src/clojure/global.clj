@@ -19,5 +19,3 @@
 (defmacro synchronous [& body]
   `(binding [gui.global/*synchronous* true]
      ~@body))
-
-(def app-config (agent {})) ;app.controller/AppConfig

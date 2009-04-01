@@ -13,10 +13,11 @@
     (.add lasfile-pane "pushy, growy, pushx, growx"))
   (.add menu-bar file-menu)
   (swing 
-   (doto frame
-     (.add panel)
-     (.setJMenuBar menu-bar)
-     (.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)
-     (.pack)
-     (.setResizable false)
-     (.setVisible true))))
+    (doseq [wl (:window-listeners config)]
+      (.addWindowListener frame wl))
+    (doto frame
+      (.add panel)
+      (.setJMenuBar menu-bar)
+      (.pack)
+      (.setResizable false)
+      (.setVisible true))))

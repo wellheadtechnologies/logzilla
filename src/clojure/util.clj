@@ -108,3 +108,8 @@
     (if (>= m 0.5)
       (inc rounded)
       rounded)))
+
+(defmacro suppress [& body]
+  `(do
+     ~@body
+     nil))

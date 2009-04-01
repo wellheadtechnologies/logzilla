@@ -17,8 +17,8 @@
       (.addColumn model (get-in curve [:descriptor :mnemonic]) (into-array Object (reverse (:data curve)))))
     table))
 
-(defn create-save-button [editor-data]
-  (button "Save" (fn [e] nil)))
+(defn create-save-button [save-action]
+  (button "Save" save-action))
 
-(defn create-merge-button [editor-data]
-  (button "Merge" (fn [e] nil)))
+(defn create-merge-button [merge-action]
+  (button "Merge" merge-action))

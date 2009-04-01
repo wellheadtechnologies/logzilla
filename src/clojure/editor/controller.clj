@@ -140,7 +140,7 @@
     (chartMouseMoved [e] (drag-plot frame chart-panel table e))))
 
 (defn init-frame [lasfile curves]
-  (let [name (apply str (map #(str "|" (get-in % [:descriptor :mnemonic])) curves))
+  (let [name (apply str (map #(str " | " (get-in % [:descriptor :mnemonic])) curves))
 	frame (new JFrame (str (:name lasfile) " " name))]
     (send editor-states assoc frame (struct EditorState))
     frame))
@@ -159,6 +159,12 @@
     (doto chart-panel
       (.setDomainZoomable false)
       (.setMouseZoomable false))))
+
+(defn init-merge-button [frame]
+  (button "merge" (fn [e] nil)))
+
+(defn init-save-button [frame]
+  (button "save" (fn [e] nil)))
 
 (defn get-chart-states [curves]
   (for [i (range 0 (count curves))]
@@ -189,8 +195,8 @@
 	depth-slider (create-depth-slider editor-data)
 	table (create-table editor-data)
 	table-pane (new JScrollPane table)
-	mergeb (create-merge-button editor-data)
-	saveb (create-save-button editor-data)
+	saveb (init-save-button frame)
+	mergeb (init-merge-button frame)
 	tool-panel (create-panel 
 		    [depth-slider "pushy, growy"]
 		    [table-pane "pushy, growy, spanx 2, wrap"]
