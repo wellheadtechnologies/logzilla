@@ -11,7 +11,10 @@
 
 (defn add-curve [curve-list curve]
   (let [icon (curve-to-icon curve)]
-    (swing (.addElement (.getModel curve-list) icon))))
+    (swing 
+     (.addElement (.getModel curve-list) icon)
+     (.invalidate curve-list)
+     (.repaint curve-list))))
 
 (defn open-curve-editor-action [e]
   (when (and (= (.getButton e) MouseEvent/BUTTON1)

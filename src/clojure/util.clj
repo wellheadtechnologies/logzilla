@@ -96,3 +96,15 @@
 (defn large-to-small [coll] (reverse (sort coll)))
 
 (defn small-to-large [coll] (sort coll))
+
+(defn abs [x]
+  (if (< x 0)
+    (* -1 x)
+    x))
+
+(defn round [x]
+  (let [m (mod x 1)
+	rounded (- x m)]
+    (if (>= m 0.5)
+      (inc rounded)
+      rounded)))

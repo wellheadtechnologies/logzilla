@@ -9,8 +9,8 @@
 (defn create-curve-list []
   (let [jlist (new JList (new DefaultListModel))]
     (doto jlist
+      (.setVisibleRowCount 0)
       (.setBorder (BorderFactory/createEmptyBorder))
-      (.setFixedCellHeight 80)
       (.setCellRenderer (new IconListCellRenderer))
       (.setBackground (.getBackground (new JPanel)))
       (.setOpaque false))))

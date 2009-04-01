@@ -11,15 +11,10 @@
 (defn create-table [editor-data]
   (let [{:keys [curves index]} editor-data
 	model (new DefaultTableModel)
-	table (new JTable model)
-	index-data (large-to-small (:data index))
-	do-reverse (not= (first index-data) (first (:data index)))]    
-    (.addColumn model (get-in index [:descriptor :mnemonic]) (into-array Object index-data))
+	table (new JTable model)]    
+    (.addColumn model "x" (into-array Object (reverse (:data index))))
     (doseq [curve curves]
-      (.addColumn model (get-in curve [:descriptor :mnemonic])
-		  (if do-reverse 
-		    (into-array Object (reverse (:data curve)))
-		    (into-array Object (:data curve)))))
+      (.addColumn model (get-in curve [:descriptor :mnemonic]) (into-array Object (reverse (:data curve)))))
     table))
 
 (defn create-save-button [editor-data]

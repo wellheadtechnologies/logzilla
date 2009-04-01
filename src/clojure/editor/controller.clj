@@ -139,8 +139,9 @@
     (chartMouseClicked [e] (change-dragged-plot frame chart-panel e))
     (chartMouseMoved [e] (drag-plot frame chart-panel table e))))
 
-(defn init-frame []
-  (let [frame (new JFrame (str "Editor"))]
+(defn init-frame [lasfile curves]
+  (let [name (apply str (map #(str "|" (get-in % [:descriptor :mnemonic])) curves))
+	frame (new JFrame (str (:name lasfile) " " name))]
     (send editor-states assoc frame (struct EditorState))
     frame))
 
@@ -170,17 +171,16 @@
 	:table-column tcolumn))))
 
 (defn open-curve-editor [lasfile curves]   
-  (let [frame (init-frame)
-	index (largest-index curves)
-	padded-curves (map #(lasso/pad-curve index %) curves)
-	chart-states (get-chart-states padded-curves)
+  (let [frame (init-frame lasfile curves)
+	[aggregate-index adjusted-curves] (lasso/adjust-curves curves)
+	chart-states (get-chart-states adjusted-curves)
 	plots (map #(.getPlot (.getChart (:chart-panel %))) chart-states)
 	xaxes (map #(.getDomainAxis %) plots)
-	depth-data (:data index)
+	depth-data (:data aggregate-index)
 	editor-data (struct-map EditorData
 		      :lasfile lasfile
-		      :curves padded-curves
-		      :index index
+		      :curves adjusted-curves
+		      :index aggregate-index
 		      :min-depth (reduce min depth-data)
 		      :max-depth (reduce max depth-data)
 		      :slider-notches 200
