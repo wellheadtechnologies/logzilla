@@ -13,7 +13,7 @@
 
 (def exit-on-close 
   (proxy [WindowAdapter] []
-    (windowClosed [e] (System/exit 0))))
+    (windowClosing [e] (System/exit 0))))
 
 (defn get-default-config []
   (struct-map AppConfig

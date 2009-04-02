@@ -7,151 +7,124 @@
 	   (org.jfree.chart ChartMouseListener)
 	   (gui CustomChartPanel)))
 
-(defstruct EditorState 
-  :chart-states ; [ChartState]
-  :data ; EditorData
-  :widgets ; EditorWidgets
-  )
-
-(defstruct EditorWidgets 
-  :table
-  :chart-panels
-  :depth-slider
-  :main-panel)
-
-(defstruct EditorData
-  :lasfile
-  :curves
-  :index
-  :min-depth
-  :max-depth
-  :scale-notches
-  :slider-notches
-  :xaxes)
-
-(defstruct ChartState
-  :curve
-  :chart-panel
-  :table-column
-  :dragged-entity)
-
-(def editor-states (agent {})) ;; frame -> editor-state
-
-(defn retrieve-series [chart-panel]
-  (first (.. chart-panel (getChart) (getPlot) (getDataset) (getSeries))))
-
 (defn not-dragging-anything [frame]
-  (let [chart-states (get-in @editor-states [frame :chart-states])]
-    (not-any? #(not (nil? (:dragged-entity %))) chart-states)))
+  (let [charts (vals (get @frame-charts frame))]
+    (not-any? #(not (nil? (:dragged-entity %))) charts)))
 
-(defn sync-chart-with-table [frame chart-state row]
-  (let [{:keys [chart-panel table-column]} chart-state
-	table (get-in @editor-states [frame :widgets :table])
-	model (.getModel table)
-	series (retrieve-series chart-panel)
-	index (row-to-index row table)
-	value (.getValueAt model row table-column)]
-    (swing 
-     (.updateByIndex series index
-		     (if (string? value)
-		       (Double/valueOf value)
-		       (double value)))
-     (.repaint chart-panel))))
+(defn sync-chart-with-table [frame curve row]
+  (dosync 
+   (let [table (get-in @frame-widgets [frame :table])
+	 chart (get-in @frame-charts [frame curve])
+	 {:keys [chart-panel table-column]} chart]
+     (swing 
+      (let [model (.getModel table)
+	    value (.getValueAt model row table-column)
+	    series (retrieve-series chart-panel)
+	    index (row-to-index row table)]
+	(.updateByIndex series index
+			(if (string? value)
+			  (Double/valueOf value)
+			  (double value)))
+	(.repaint chart-panel))))))
 
-(defn sync-table-with-chart [frame chart-state index]
-  (let [{:keys [chart-panel table-column]} chart-state
-	table (get-in @editor-states [frame :widgets :table])
-	model (.getModel table)
-	chart (.getChart chart-panel)
-	series (first (.. chart (getPlot) (getDataset) (getSeries)))
-	row (index-to-row index table)
-	item (.getDataItem series index)
-	new-value (.getY item)]
-    (swing 
-     (.setValueAt model new-value row table-column)
-     (.repaint table))))
+(defn sync-table-with-chart [frame curve index]
+  (dosync 
+   (let [chart (get-in @frame-charts [frame curve])
+	 table (get-in @frame-widgets [frame :table])
+	 {:keys [chart-panel table-column]} chart]
+     (swing 
+      (let [model (.getModel table)
+	    chart (.getChart chart-panel)
+	    series (first (.. chart (getPlot) (getDataset) (getSeries)))
+	    row (index-to-row index table)
+	    item (.getDataItem series index)
+	    new-value (.getY item)]
+	(.setValueAt model new-value row table-column)
+	(.repaint table))))))
 
 (defn table-show-cell [table row col]
-  (let [rect (.getCellRect table row col true)]
-    (.scrollRectToVisible table rect)))
+  (swing 
+   (let [rect (.getCellRect table row col true)]
+     (.scrollRectToVisible table rect))))
 
 (defn table-show-percentage [table n]
-  (guard (not (or (> n 1) (< n 0)))
-	 (str "invalid n must be from 0.0 to 1.0: " n))
-  (let [rows (dec (.getRowCount table))
-	row (* n rows)]
-    (table-show-cell table row 0)))
+  (swing   
+   (guard (not (or (> n 1) (< n 0)))
+	  (str "invalid n must be from 0.0 to 1.0: " n))
+   (let [rows (dec (.getRowCount table))
+	 row (* n rows)]
+     (table-show-cell table row 0))))
 
-(defn init-table-model-listener [frame chart-state]
+(defn init-table-model-listener [frame curve]
   (proxy [TableModelListener] []
     (tableChanged [e]
 		  (guard (= (.getFirstRow e) (.getLastRow e))
 			 "first row must equal last row")
 		  (when (not-dragging-anything frame)
-		    (sync-chart-with-table frame chart-state (.getFirstRow e))))))
+		    (sync-chart-with-table frame curve (.getFirstRow e))))))
 
-(defn init-slider-listener [editor-data editor-widgets]
-  (let [{:keys [table depth-slider]} editor-widgets
-	{:keys [min-depth max-depth xaxes slider-notches]} editor-data]
-    (proxy [ChangeListener] []
-      (stateChanged [event]
-		    (let [scale (get-scale editor-data)
-			  value (.getValue depth-slider)
-			  scaled (scale-value editor-data value)
-			  lower (+ scaled min-depth)
-			  upper (+ lower scale)]
-		      (doseq [xaxis xaxes]
-			(.setRange xaxis
-				   (with-limit (- max-depth scale) lower)
-				   (with-limit max-depth upper)))
-		      (table-show-percentage table (- 1 (/ value slider-notches))))))))
+(defn init-slider-listener [frame]
+  (proxy [ChangeListener] []
+    (stateChanged 
+     [event]
+     (dosync 
+      (let [{:keys [table depth-slider]} (get @frame-widgets frame)
+	    {:keys [min-depth max-depth xaxes slider-notches] :as data} (get @frame-data frame)
+	    scale (get-scale data)]
+	(swing 
+	 (let [value (.getValue depth-slider)
+	       scaled (scale-value data value)
+	       lower (+ scaled min-depth)
+	       upper (+ lower scale)]
+	   (doseq [xaxis xaxes]
+	     (.setRange xaxis
+			(with-limit (- max-depth scale) lower)
+			(with-limit max-depth upper)))
+	   (table-show-percentage table (- 1 (/ value slider-notches))))))))))
 
-(defn change-dragged-plot [frame chart-panel chart-event]
-  (send editor-states
-	(fn [es]
-	  (let [fs (get es frame)
-		chart-states (:chart-states fs)
-		old-chart-state (find-first #(= chart-panel (:chart-panel %)) chart-states)
-		new-chart-state (assoc old-chart-state :dragged-entity (.getEntity chart-event))]
-	    (assoc es frame
-		   (assoc fs :chart-states (replace {old-chart-state new-chart-state} chart-states)))))))
+(defn change-dragged-plot [frame curve chart-event]
+  (swing
+   (dosync 
+    (let [old-chart (get-in @frame-charts [frame curve])
+	  new-chart (assoc old-chart :dragged-entity (.getEntity chart-event))]
+      (alter frame-charts assoc-in [frame curve] new-chart)))))
 
-(defn drag-plot [frame chart-panel table chart-event]
-  (send editor-states
-	(fn [es]
-	  (let [fs (get es frame)
-		chart-state (find-first #(= chart-panel (:chart-panel %)) (:chart-states fs))
-		dragged-entity (:dragged-entity chart-state)]	    
-	    (when dragged-entity
-	      (let [mouse-event (.getTrigger chart-event)
-		    series (first (.. dragged-entity (getDataset) (getSeries)))
-		    index (.getItem dragged-entity)
-		    new-value (java-2D-to-value chart-panel (.getX mouse-event))]
-		(swing 
-		 (when (not (or (.isNaN new-value) (.isInfinite new-value)))
-		   (.updateByIndex series index new-value)
-		   (sync-table-with-chart frame chart-state index)
-		   (.repaint chart-panel))))))
-	  es)))
+(defn drag-plot [frame curve chart-event]
+  (dosync 
+   (let [chart (get-in @frame-charts [frame curve])
+	 table (get-in @frame-widgets [frame :table])
+	 dragged-entity (:dragged-entity chart)
+	 chart-panel (:chart-panel chart)]	    
+     (when dragged-entity
+       (swing
+	(let [mouse-event (.getTrigger chart-event)
+	      series (retrieve-series chart-panel)
+	      index (.getItem dragged-entity)
+	      new-value (java-2D-to-value chart-panel (.getX mouse-event))]
+	  (when (not (or (.isNaN new-value) (.isInfinite new-value)))
+	    (.updateByIndex series index new-value)
+	    (sync-table-with-chart frame curve index)
+	    (.repaint chart-panel))))))))
 
-(defn init-chart-mouse-listener [frame chart-panel table]
+(defn init-chart-mouse-listener [frame curve]
   (proxy [ChartMouseListener] []
-    (chartMouseClicked [e] (change-dragged-plot frame chart-panel e))
-    (chartMouseMoved [e] (drag-plot frame chart-panel table e))))
+    (chartMouseClicked [e] (change-dragged-plot frame curve e))
+    (chartMouseMoved [e] (drag-plot frame curve e))))
 
 (defn init-frame [lasfile curves]
   (let [name (apply str (map #(str " | " (get-in % [:descriptor :mnemonic])) curves))
 	frame (new JFrame (str (:name lasfile) " " name))]
-    (send editor-states assoc frame (struct EditorState))
     frame))
 
-(defn configure-xaxes [editor-data]
-  (let [{:keys [xaxes max-depth min-depth]} editor-data]
-    (doseq [xaxis xaxes]
-      (let [scale (get-scale editor-data)]
-	(doto xaxis
-	  (.setAutoRange false)
-	  (.setRange (new Range min-depth (+ min-depth scale))))))))
+(defn reset-xaxes [frame]
+  (let [data (get @frame-data frame)
+	{:keys [xaxes max-depth min-depth]} data
+	scale (get-scale data)]
+    (swing 
+     (doseq [xaxis xaxes]
+       (doto xaxis
+	 (.setAutoRange false)
+	 (.setRange (new Range min-depth (+ min-depth scale))))))))
 
 (defn init-chart-panel [curve]
   (let [chart (create-chart curve)
@@ -166,34 +139,36 @@
 (defn init-save-button [frame]
   (button "save" (fn [e] nil)))
 
-(defn get-chart-states [curves]
-  (for [i (range 0 (count curves))]
-    (let [curve (nth curves i)
-	  chart-panel (init-chart-panel curve)
-	  tcolumn (inc i)]
-      (struct-map ChartState
-	:curve curve
-	:chart-panel chart-panel
-	:table-column tcolumn))))
+(defn get-charts [curves]
+  (apply merge 
+   (for [i (range 0 (count curves))]
+     (let [curve (nth curves i)
+	   chart-panel (init-chart-panel curve)
+	   tcolumn (inc i)]
+       {curve
+	(struct-map Chart
+	  :chart-panel chart-panel
+	  :table-column tcolumn)}))))
 
 (defn open-curve-editor [lasfile curves]   
   (let [frame (init-frame lasfile curves)
 	[aggregate-index adjusted-curves] (lasso/adjust-curves curves)
-	chart-states (get-chart-states adjusted-curves)
-	plots (map #(.getPlot (.getChart (:chart-panel %))) chart-states)
+	curve-charts (get-charts adjusted-curves)
+	plots (map #(.. (:chart-panel %)  (getChart) (getPlot)) (vals curve-charts))
 	xaxes (map #(.getDomainAxis %) plots)
 	depth-data (:data aggregate-index)
-	editor-data (struct-map EditorData
+	data (struct-map FrameData
 		      :lasfile lasfile
-		      :curves adjusted-curves
 		      :index aggregate-index
 		      :min-depth (reduce min depth-data)
 		      :max-depth (reduce max depth-data)
 		      :slider-notches 200
 		      :scale-notches 10
-		      :xaxes xaxes)
-	depth-slider (create-depth-slider editor-data)
-	table (create-table editor-data)
+		      :xaxes xaxes
+		      :width (* 600 (count curves))
+		      :height 700)
+	depth-slider (create-depth-slider (:slider-notches data))
+	table (create-table aggregate-index adjusted-curves)
 	table-pane (new JScrollPane table)
 	saveb (init-save-button frame)
 	mergeb (init-merge-button frame)
@@ -203,27 +178,27 @@
 		    [saveb "cell 1 1"]
 		    [mergeb "cell 2 1"])
 	main-panel (create-panelS
-		    {:width (* 600 (count curves))
-		     :height 700}
+		    {:width (:width data)
+		     :height (:height data)}
 		    [tool-panel "pushy, growy"])
-	editor-widgets (struct-map EditorWidgets
-			 :table table
-			 :chart-panels (map :chart-panel chart-states)
-			 :depth-slider depth-slider
-			 :main-panel main-panel)]
-    (configure-xaxes editor-data)
-    (doseq [state chart-states]
-      (let [chart-panel (:chart-panel state)]
-	(.addChartMouseListener chart-panel (init-chart-mouse-listener frame chart-panel table))
-	(.addTableModelListener (.getModel table) (init-table-model-listener frame state))
-	(.add main-panel chart-panel "pushx, pushy, growx, growy")))
-
-    (.addChangeListener depth-slider (init-slider-listener editor-data editor-widgets))
+	widgets (struct-map FrameWidgets
+		  :table table
+		  :depth-slider depth-slider
+		  :main-panel main-panel)]
+    (dosync 
+     (alter frame-charts assoc frame curve-charts)
+     (alter frame-data assoc frame data)
+     (alter frame-widgets assoc frame widgets))
+    (reset-xaxes frame)
+    (swing 
+     (.addChangeListener depth-slider (init-slider-listener frame))
+     (doseq [[curve chart] curve-charts]
+       (let [chart-panel (:chart-panel chart)]
+	 (.addChartMouseListener chart-panel (init-chart-mouse-listener frame curve))
+	 (.addTableModelListener (.getModel table) (init-table-model-listener frame curve))
+	 (.add main-panel chart-panel "pushx, pushy, growx, growy"))))
 
     (table-show-percentage table 1)
-    (send editor-states assoc frame {:widgets editor-widgets
-				     :data editor-data
-				     :chart-states chart-states})
     (swing
      (doto frame
        (.add main-panel)

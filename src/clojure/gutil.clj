@@ -32,11 +32,14 @@
 		       (proxy [ActionListener] []
 			 (actionPerformed [e#] ~@body))))
 					    
+(def swing-agent (agent nil))
 		       
 (defmacro swing [& body]
-  `(if (javax.swing.SwingUtilities/isEventDispatchThread)
-     (do ~@body)
-     (javax.swing.SwingUtilities/invokeLater (fn [] ~@body))))
+  `(send swing-agent 
+	 (fn [_#]
+	   (if (javax.swing.SwingUtilities/isEventDispatchThread)
+	     (do ~@body)
+	     (javax.swing.SwingUtilities/invokeLater (fn [] ~@body))))))
 
 (defn on-click [widget fun]
   (.addMouseListener widget

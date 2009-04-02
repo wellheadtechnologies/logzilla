@@ -63,16 +63,13 @@
 	lasfile (insert-nulls lasfile)
 	lasfile (assoc lasfile :curves 
 		       (if (:do-reverse lasfile)
-			 (do 
-			   (println "reversing")
-			   (for [curve (:curves lasfile)]
-			     (assoc curve :data (reverse (:data curve)))))
+			 (for [curve (:curves lasfile)]
+			   (assoc curve :data (reverse (:data curve))))
 			 (:curves lasfile)))
 	lasfile (dissoc lasfile :index)]
     (let [reader (new ClojureReader)
 	  writer (new LasFileWriter)
 	  whlf (.parseLasFile reader lasfile)]
-      (println "curves = " (map #(get-in % [:descriptor :mnemonic]) (:curves lasfile)))
       (.writeLasFile writer whlf (str (:path lasfile) ".saved")))))
 
 (defn aggregate [indices srate]

@@ -3,14 +3,13 @@
   (:import (javax.swing JSlider JTable)
 	   (javax.swing.table DefaultTableModel)))
 
-(defn create-depth-slider [editor-data]
-  (let [slider (new JSlider 0 (:slider-notches editor-data) 0)]
+(defn create-depth-slider [slider-notches]
+  (let [slider (new JSlider 0 slider-notches 0)]
     (doto slider
       (.setOrientation JSlider/VERTICAL))))
 
-(defn create-table [editor-data]
-  (let [{:keys [curves index]} editor-data
-	model (new DefaultTableModel)
+(defn create-table [index curves]
+  (let [model (new DefaultTableModel)
 	table (new JTable model)]    
     (.addColumn model "x" (into-array Object (reverse (:data index))))
     (doseq [curve curves]
