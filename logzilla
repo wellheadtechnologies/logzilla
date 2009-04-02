@@ -30,12 +30,10 @@ end
 script = false
   
 if tests 
-  script = '''
-(load \"tparser\")
-(tparser/run-tests)
-(load \"tlas\")
-(tlas/run-tests)
-'''
+  script = """
+(require 'tests.tgui)
+(tests.tgui/run-tests)
+"""
 elsif gui
   script = """
 (use 'app.controller)

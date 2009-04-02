@@ -1,6 +1,6 @@
 (ns lasfile.filemenu.controller
-  (:require global app.state)
-  (:use lasfile.filemenu.view lasfile.filemenu.model)
+  (:require app.state)
+  (:use lasfile.filemenu.view lasfile.filemenu.model global)
   (:import (javax.swing JMenu JFileChooser JPanel 
 			JScrollPane JList DefaultListModel
 			BorderFactory JTabbedPane)
@@ -19,7 +19,7 @@
   (fn  [e] 
     (let [files (run-file-selection-dialog ".")]
       (doseq [file files]
-	(global/long-task 
+	(long-task 
 	 (add-lasfile (open-file file)))))))
 
 (defn default-save-all-action [e] nil)

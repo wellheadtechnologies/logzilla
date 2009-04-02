@@ -8,6 +8,8 @@
 	   (javax.swing.event ChangeListener)
 	   (gui IconListCellRenderer)))
 
+(def add-lasfile)
+
 (defn tab-right []
   (swing 
     (let [pane @lasfile-pane
@@ -54,17 +56,6 @@
 (defn init-lasfile-view [lasfile curve-list]
   (create-lasfile-view lasfile curve-list))
 
-(defn add-lasfile [lasfile]
-  (dosync 
-   (let [curve-list (init-curve-list lasfile)
-	 view (init-lasfile-view lasfile curve-list)
-	 pane @lasfile-pane]
-     (alter lasfile-list conj lasfile)
-     (alter curve-lists assoc lasfile curve-list)
-     (swing (.addTab pane (:name lasfile) view)))))
-
-(defn init-file-menu [] (fmc/init-default-menu add-lasfile))
-
 (defn init-pane-change-listener []
   (proxy [ChangeListener] []
     (stateChanged [e]
@@ -78,3 +69,15 @@
     (.addChangeListener pane (init-pane-change-listener))
     (dosync (ref-set lasfile-pane pane))
     pane))
+
+(defn init-file-menu [] (fmc/init-default-menu add-lasfile))
+
+(defn add-lasfile [lasfile]
+  (dosync 
+   (let [curve-list (init-curve-list lasfile)
+	 view (init-lasfile-view lasfile curve-list)
+	 pane @lasfile-pane]
+     (alter lasfile-list conj lasfile)
+     (alter curve-lists assoc lasfile curve-list)
+     (swing (.addTab pane (:name lasfile) view)))))
+

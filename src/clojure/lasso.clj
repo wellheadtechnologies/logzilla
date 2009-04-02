@@ -52,10 +52,10 @@
       (for [curve curves]
 	(assoc curve 
 	  :index sorted-index
-	  :data (replace-null-with-nan 
-		 (if do-reverse
-		   (reverse (:data curve))
-		   (:data curve))))))))
+	  :data (apply vector (replace-null-with-nan 
+			       (if do-reverse
+				 (reverse (:data curve))
+				 (:data curve)))))))))
 
 (defn save-lasfile [lasfile]
   (let [lasfile (assoc lasfile :curves (concat [(:index lasfile)] (:curves lasfile)))
@@ -106,9 +106,9 @@
 		 start-padding (/ (abs (- _cmin _imin)) srate)
 		 end-padding (/ (abs (- _cmax _imax)) srate)]
 	     (let [new-curve (assoc curve
-			       :data (concat (repeat start-padding Double/NaN)
-					     cdata
-					     (repeat end-padding Double/NaN))
+			       :data (apply vector (concat (repeat start-padding Double/NaN)
+							   cdata
+							   (repeat end-padding Double/NaN)))
 			       :index aggregate-index)
 		   new-curve-size (count (:data new-curve))
 		   aggregate-size (count (:data aggregate-index))]

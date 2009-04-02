@@ -17,30 +17,52 @@
 	 chart (get-in @frame-charts [frame curve])
 	 {:keys [chart-panel table-column]} chart]
      (swing 
-      (let [model (.getModel table)
-	    value (.getValueAt model row table-column)
-	    series (retrieve-series chart-panel)
-	    index (row-to-index row table)]
-	(.updateByIndex series index
-			(if (string? value)
-			  (Double/valueOf value)
-			  (double value)))
-	(.repaint chart-panel))))))
+       (let [model (.getModel table)
+	     value (.getValueAt model row table-column)
+	     series (retrieve-series chart-panel)
+	     index (row-to-index row table)]
+	 (.updateByIndex series index
+			 (if (string? value)
+			   (Double/valueOf value)
+			   (double value)))
+	 (.repaint chart-panel))))))
 
 (defn sync-table-with-chart [frame curve index]
   (dosync 
    (let [chart (get-in @frame-charts [frame curve])
 	 table (get-in @frame-widgets [frame :table])
 	 {:keys [chart-panel table-column]} chart]
-     (swing 
-      (let [model (.getModel table)
-	    chart (.getChart chart-panel)
-	    series (first (.. chart (getPlot) (getDataset) (getSeries)))
-	    row (index-to-row index table)
-	    item (.getDataItem series index)
-	    new-value (.getY item)]
-	(.setValueAt model new-value row table-column)
-	(.repaint table))))))
+     (swing
+       (let [model (.getModel table)
+	     chart (.getChart chart-panel)
+	     series (first (.. chart (getPlot) (getDataset) (getSeries)))
+	     row (index-to-row index table)
+	     item (.getDataItem series index)
+	     new-value (.getY item)]
+	 (.setValueAt model new-value row table-column)
+	 (.repaint table))))))
+
+(defn sync-curve-with-chart [frame curve index]
+  (swing-sync
+   (let [chart (get-in @frame-charts [frame curve])
+	 chart-panel (:chart-panel chart)
+	 series (retrieve-series chart-panel)
+	 item (.getDataItem series index)
+	 new-value (.getY item)
+	 dirty-curve (:dirty-curve chart)]
+     (ref-set frame-charts 
+	      (assoc-in @frame-charts [frame curve :dirty-curve :data index] new-value)))))
+
+(defn sync-curve-with-table [frame curve row]
+  (swing-sync  
+   (let [table (get-in @frame-widgets [frame :table])
+	 table-column (get-in @frame-charts [frame curve :table-column])
+	 model (.getModel table)
+	 new-value (.getValueAt model row table-column)
+	 index (row-to-index row table)
+	 dirty-curve (get-in @frame-charts [frame curve :dirty-curve])]
+     (ref-set frame-charts
+	      (assoc-in @frame-charts [frame curve :dirty-curve :data index] new-value)))))
 
 (defn table-show-cell [table row col]
   (swing 
@@ -61,7 +83,8 @@
 		  (guard (= (.getFirstRow e) (.getLastRow e))
 			 "first row must equal last row")
 		  (when (not-dragging-anything frame)
-		    (sync-chart-with-table frame curve (.getFirstRow e))))))
+		    (sync-chart-with-table frame curve (.getFirstRow e))
+		    (sync-curve-with-table frame curve (.getFirstRow e))))))
 
 (defn init-slider-listener [frame]
   (proxy [ChangeListener] []
@@ -104,6 +127,7 @@
 	  (when (not (or (.isNaN new-value) (.isInfinite new-value)))
 	    (.updateByIndex series index new-value)
 	    (sync-table-with-chart frame curve index)
+	    (sync-curve-with-chart frame curve index)
 	    (.repaint chart-panel))))))))
 
 (defn init-chart-mouse-listener [frame curve]
@@ -133,27 +157,30 @@
       (.setDomainZoomable false)
       (.setMouseZoomable false))))
 
+
 (defn init-merge-button [frame]
   (button "merge" (fn [e] nil)))
 
 (defn init-save-button [frame]
   (button "save" (fn [e] nil)))
 
-(defn get-charts [curves]
+(defn get-charts [curves dirty-curves]
   (apply merge 
    (for [i (range 0 (count curves))]
      (let [curve (nth curves i)
-	   chart-panel (init-chart-panel curve)
+	   dirty-curve (nth dirty-curves i)
+	   chart-panel (init-chart-panel dirty-curve)
 	   tcolumn (inc i)]
        {curve
 	(struct-map Chart
+	  :dirty-curve dirty-curve
 	  :chart-panel chart-panel
 	  :table-column tcolumn)}))))
 
 (defn open-curve-editor [lasfile curves]   
   (let [frame (init-frame lasfile curves)
-	[aggregate-index adjusted-curves] (lasso/adjust-curves curves)
-	curve-charts (get-charts adjusted-curves)
+	[aggregate-index dirty-curves] (lasso/adjust-curves curves)
+	curve-charts (get-charts curves dirty-curves)
 	plots (map #(.. (:chart-panel %)  (getChart) (getPlot)) (vals curve-charts))
 	xaxes (map #(.getDomainAxis %) plots)
 	depth-data (:data aggregate-index)
@@ -168,7 +195,7 @@
 	       :width (* 600 (count curves))
 	       :height 700)
 	depth-slider (create-depth-slider (:slider-notches data))
-	table (create-table aggregate-index adjusted-curves)
+	table (create-table aggregate-index dirty-curves)
 	table-pane (new JScrollPane table)
 	saveb (init-save-button frame)
 	mergeb (init-merge-button frame)
@@ -204,4 +231,4 @@
 	(.add main-panel)
 	(.pack)
 	(.setVisible true)))
-    ))
+    frame))

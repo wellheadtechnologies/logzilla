@@ -19,6 +19,7 @@
   :height)
 
 (defstruct Chart
+  :dirty-curve
   :chart-panel
   :table-column
   :dragged-entity)

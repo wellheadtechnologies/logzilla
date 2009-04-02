@@ -1,9 +1,11 @@
-(ns global)
+(ns global
+  (:import (java.util.concurrent Executors)))
 
 (def task-executor (agent nil))
 
-(defmacro short-task [& body]
-  `(send task-executor (fn [_#] ~@body)))
+(def cached-executor (Executors/newCachedThreadPool))
 
 (defmacro long-task [& body]
-  `(send-off task-executor (fn [_#] ~@body)))
+  `(send task-executor 
+	 (fn [_#]
+	   (.execute cached-executor (fn [] ~@body)))))

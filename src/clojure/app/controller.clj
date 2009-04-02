@@ -1,6 +1,6 @@
 (ns app.controller
-  (:require lasfile.controller global [app.state :as state])
-  (:use app.view app.model)
+  (:require lasfile.controller [app.state :as state])
+  (:use app.view app.model gutil global util)
   (:import (java.awt.event WindowAdapter)))
 
 (defstruct AppConfig 
@@ -36,3 +36,11 @@
 	config (assoc config :window-listeners [])]
     (send state/app-config (fn [_] config))
     (create-main-window config)))
+
+(defn async-open-main []
+  (global/long-task (open-main)))
+
+(defn close-main []
+  (let [frame (:frame @state/app-config)]
+    (swing (doto frame (.hide) (.dispose)))))
+

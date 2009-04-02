@@ -56,5 +56,3 @@
      :copy-action default-copy-action
      :paste-action (default-paste-action add-curve)
      :remove-action default-remove-action)))
-
-
