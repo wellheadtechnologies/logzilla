@@ -1,7 +1,6 @@
 (ns lasfile.contextmenu.controller
-  (:require editor.controller 
-	    [lasfile.state :as state] ) 
-  (:use util gutil global lasfile.contextmenu.view)
+  (:require editor.controller) 
+  (:use util gutil global lasfile.contextmenu.view lasfile.model)
   (:import (java.awt.event MouseEvent MouseAdapter)))
 
 (defstruct ContextMenuConfig
@@ -11,31 +10,35 @@
   :paste-action
   :remove-action)
 
-(defn default-edit-action [e] 
-  (let [{:keys [lasfile curve-list]} (state/get-current-view-data)
-	selected-curves (state/get-selected-curves curve-list)]
-    (when (< 0 (count selected-curves))
-      (editor.controller/open-curve-editor lasfile selected-curves))))
+(defn edit []
+  (swing-sync
+   (let [selected-curves (get-selected-curves)]
+     (when (< 0 (count selected-curves))
+       (long-task 
+	 (editor.controller/open-curve-editor
+	  @selected-lasfile selected-curves))))))
 
-(defn default-copy-action [e] 
-  (send state/copied-curves (fn [_] (state/get-selected-curves))))
+(defn copy []
+  (swing-sync
+   (let [selected-curves (get-selected-curves)]
+     (ref-set copied-curves selected-curves))))
 
-(defn default-paste-action [add-curve]
-  (fn [e] 
-    (let [ccurves @state/copied-curves]
-      (send state/lasfile-list
-	    (fn [{:keys [pane view-data-list] :as lfl}]
-	      (let [{:keys [lasfile curve-list] :as old-view-data} (nth view-data-list (.getSelectedIndex pane))
-		    old-curves (:curves lasfile)
-		    new-curves (concat old-curves ccurves)
-		    new-lasfile (assoc lasfile :curves new-curves)
-		    new-view-data (assoc old-view-data :lasfile new-lasfile)
-		    new-data-list (replace {old-view-data new-view-data} view-data-list)]
-		(swing 
-		 (doseq [curve ccurves]
-		   (add-curve curve-list curve)))
-		(assoc lfl :view-data-list new-data-list)))))))
+(defn paste [add-curve]
+  (swing-sync 
+   (let [ccurves @copied-curves]
+     (let [old-lasfile @selected-lasfile
+	   curve-list (get @curve-lists old-lasfile)
+	   old-curves (:curves old-lasfile)
+	   new-curves (concat old-curves ccurves)
+	   new-lasfile (assoc old-lasfile :curves new-curves)]
+       (long-task 
+	 (doseq [curve ccurves]
+	   (add-curve curve-list curve)))
+       (ref-set lasfile-list (replace {old-lasfile new-lasfile} @lasfile-list))))))
 
+(defn default-edit-action [e] (edit))
+(defn default-copy-action [e] (copy))
+(defn default-paste-action [add-curve] (fn [e] (paste add-curve)))
 (defn default-remove-action [e] nil)
 
 (defn init-listener [config]

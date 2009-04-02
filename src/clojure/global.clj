@@ -1,21 +1,9 @@
-(ns global
-  (:import (java.util.concurrent Executors)
-	   (java.lang.management ManagementFactory OperatingSystemMXBean)))
+(ns global)
 
-(def osbean (ManagementFactory/getOperatingSystemMXBean))
-
-(def fixed-executor-service (Executors/newFixedThreadPool (.getAvailableProcessors osbean)))
-
-(def cached-executor-service (Executors/newCachedThreadPool))
+(def task-executor (agent nil))
 
 (defmacro short-task [& body]
-  `(.execute fixed-executor-service (fn [] ~@body)))
+  `(send task-executor (fn [_#] ~@body)))
 
 (defmacro long-task [& body]
-  `(.execute cached-executor-service (fn [] ~@body)))
-
-(def *synchronous* false)
-
-(defmacro synchronous [& body]
-  `(binding [gui.global/*synchronous* true]
-     ~@body))
+  `(send-off task-executor (fn [_#] ~@body)))

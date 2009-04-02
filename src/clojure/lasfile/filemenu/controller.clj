@@ -7,8 +7,6 @@
 	   (gui IconListCellRenderer)
 	   (net.miginfocom.swing MigLayout)))
 
-(defstruct FileMenuConfig :open-action :save-all-action :quit-action)
-
 (defn run-file-selection-dialog [cwd]
   (let [frame (:frame @app.state/app-config)
 	dialog (create-file-selection-dialog cwd)

@@ -158,15 +158,15 @@
 	xaxes (map #(.getDomainAxis %) plots)
 	depth-data (:data aggregate-index)
 	data (struct-map FrameData
-		      :lasfile lasfile
-		      :index aggregate-index
-		      :min-depth (reduce min depth-data)
-		      :max-depth (reduce max depth-data)
-		      :slider-notches 200
-		      :scale-notches 10
-		      :xaxes xaxes
-		      :width (* 600 (count curves))
-		      :height 700)
+	       :lasfile lasfile
+	       :index aggregate-index
+	       :min-depth (reduce min depth-data)
+	       :max-depth (reduce max depth-data)
+	       :slider-notches 200
+	       :scale-notches 10
+	       :xaxes xaxes
+	       :width (* 600 (count curves))
+	       :height 700)
 	depth-slider (create-depth-slider (:slider-notches data))
 	table (create-table aggregate-index adjusted-curves)
 	table-pane (new JScrollPane table)
@@ -190,18 +190,18 @@
      (alter frame-data assoc frame data)
      (alter frame-widgets assoc frame widgets))
     (reset-xaxes frame)
-    (swing 
-     (.addChangeListener depth-slider (init-slider-listener frame))
-     (doseq [[curve chart] curve-charts]
-       (let [chart-panel (:chart-panel chart)]
-	 (.addChartMouseListener chart-panel (init-chart-mouse-listener frame curve))
-	 (.addTableModelListener (.getModel table) (init-table-model-listener frame curve))
-	 (.add main-panel chart-panel "pushx, pushy, growx, growy"))))
 
+    (.addChangeListener depth-slider (init-slider-listener frame))
+    (doseq [[curve chart] curve-charts]
+      (let [chart-panel (:chart-panel chart)]
+	(.addChartMouseListener chart-panel (init-chart-mouse-listener frame curve))
+	(.addTableModelListener (.getModel table) (init-table-model-listener frame curve))
+	(swing (.add main-panel chart-panel "pushx, pushy, growx, growy"))))
     (table-show-percentage table 1)
+
     (swing
-     (doto frame
-       (.add main-panel)
-       (.pack)
-       (.setVisible true)))
+      (doto frame
+	(.add main-panel)
+	(.pack)
+	(.setVisible true)))
     ))

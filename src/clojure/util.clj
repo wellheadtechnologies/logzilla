@@ -113,3 +113,6 @@
   `(do
      ~@body
      nil))
+
+(defmacro standard-imports []
+  `(use ~(quote app.controller)))
