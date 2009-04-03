@@ -25,8 +25,8 @@
       (.setSelectedIndex pane (mod (dec index) total)))))
 
 (defn add-curve [curve-list curve-id]
-  (let [curve (lookup curve-id)
-	icon (curve-to-icon curve)]
+  (let [curve (lasso/reconstruct-curve (lookup curve-id))
+	icon (curve-to-icon curve-id curve)]
     (swing 
      (.addElement (.getModel curve-list) icon)
      (.invalidate curve-list)

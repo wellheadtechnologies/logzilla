@@ -50,7 +50,7 @@
 			  :headers stored-headers))]
     stored-lasfile))
 
-(defn- reconstruct-curve [curve]
+(defn reconstruct-curve [curve]
   (assoc curve 
     :index (storage/lookup (:index curve))))
 

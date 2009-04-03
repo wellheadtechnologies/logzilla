@@ -81,7 +81,7 @@ extends ChartPanel(chart, false, false, false, false, false) {
 }
 
 class CurveLabel(curve: Object, name:String, icon:ImageIcon, orientation:Int) extends JLabel(name, icon, orientation){
-  def getCurve:Object = curve
+  def getCurveID:Object = curve
 }
 
 class IconListCellRenderer extends JLabel with ListCellRenderer {

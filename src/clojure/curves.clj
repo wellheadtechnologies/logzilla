@@ -53,7 +53,7 @@
 
 (defn fast-scale [image x y] (ImageUtil/fastScale image x y))
 
-(defn curve-to-icon [curve]
+(defn curve-to-icon [id curve]
   (let [chart (create-chart curve)
 	image (new BufferedImage 400 700 BufferedImage/TYPE_INT_ARGB)
 	graphics (.createGraphics image)]
@@ -62,5 +62,5 @@
     (let [final-image (render-shadow (fast-scale image 64 64))
 	  icon (new ImageIcon final-image)
 	  name (get-in curve [:descriptor :mnemonic])]
-      (new CurveLabel curve name icon SwingConstants/LEFT))))
+      (new CurveLabel id name icon SwingConstants/LEFT))))
 
