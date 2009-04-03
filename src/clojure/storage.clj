@@ -49,13 +49,19 @@
   (doseq [hook (get @update-hooks id [])]
     (hook)))
 
-(defn store [object]
-  (dosync 
-   (let [id @next-id]
-     (alter objects assoc id object)
-     (alter next-id inc)
-     (long-task (run-store-hooks id))
-     id)))
+(defn store
+  ([object]
+     (dosync 
+      (let [id @next-id]
+	(alter objects assoc id object)
+	(alter next-id inc)
+	(long-task (run-store-hooks id))
+	id)))
+  ([id object]
+     (dosync 
+      (alter objects assoc id object)
+      (long-task (run-store-hooks id))
+      id)))
 
 (defn unstore [id]
   (dosync 
@@ -69,3 +75,9 @@
 
 (defn lookup [id]
   (get @objects id))
+
+(defn invoke [id & args]
+  (apply (lookup id) args))
+
+(defmacro defstore [id args & body]
+  `(storage/store ~id (fn [~@args] ~@body)))

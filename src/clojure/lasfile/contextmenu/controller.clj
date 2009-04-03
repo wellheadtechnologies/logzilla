@@ -11,12 +11,7 @@
   :remove-action)
 
 (defn edit []
-  (swing-sync
-   (let [selected-curve-ids (get-selected-curve-ids)]
-     (when (< 0 (count selected-curve-ids))
-       (long-task 
-	 (editor.controller/open-curve-editor
-	  @selected-lasfile-id selected-curve-ids))))))
+  (invoke :open-curve-editor))
 
 (defn copy []
   (swing-sync

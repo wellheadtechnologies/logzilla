@@ -34,10 +34,8 @@
 	 {:keys [chart-panel table-column]} chart]
      (swing
        (let [model (.getModel table)
-	     chart (.getChart chart-panel)
-	     series (first (.. chart (getPlot) (getDataset) (getSeries)))
+	     item (get-item chart-panel index)
 	     row (index-to-row index table)
-	     item (.getDataItem series index)
 	     new-value (.getY item)]
 	 (.setValueAt model new-value row table-column)
 	 (.repaint table))))))
@@ -46,12 +44,10 @@
   (swing-sync
    (let [chart (get-in @frame-charts [frame curve])
 	 chart-panel (:chart-panel chart)
-	 series (retrieve-series chart-panel)
-	 item (.getDataItem series index)
+	 item (get-item chart-panel index)
 	 new-value (.getY item)
 	 dirty-curve (:dirty-curve chart)]
-     (ref-set frame-charts 
-	      (assoc-in @frame-charts [frame curve :dirty-curve :data index] new-value)))))
+     (update-dirty-curve frame curve index new-value))))
 
 (defn sync-curve-with-table [frame curve row]
   (swing-sync  
@@ -61,8 +57,7 @@
 	 new-value (.getValueAt model row table-column)
 	 index (row-to-index row table)
 	 dirty-curve (get-in @frame-charts [frame curve :dirty-curve])]
-     (ref-set frame-charts
-	      (assoc-in @frame-charts [frame curve :dirty-curve :data index] new-value)))))
+     (update-dirty-curve frame curve index new-value))))
 
 (defn table-show-cell [table row col]
   (swing 
@@ -157,12 +152,20 @@
       (.setDomainZoomable false)
       (.setMouseZoomable false))))
 
+(defn save [frame]
+  (dosync 
+   (let [{:keys [index-id lasfile-id]} (get @frame-data frame)]
+     (doseq [[curve-id chart] (get @frame-charts frame)]
+       (let [dirty-curve (:dirty-curve chart)]
+	 (update curve-id 
+		 (assoc dirty-curve
+		   :index index-id)))))))
 
 (defn init-merge-button [frame]
   (button "merge" (fn [e] nil)))
 
 (defn init-save-button [frame]
-  (button "save" (fn [e] nil)))
+  (button "save" (fn [e] (save frame))))
 
 (defn get-charts [curve-ids dirty-curves]
   (apply merge 
@@ -178,19 +181,18 @@
 	  :table-column tcolumn)}))))
 
 (defn open-curve-editor [lasfile-id curve-ids]   
-  (println "lasfile id = " lasfile-id)
-  (println "curve ids = " curve-ids)
   (let [lasfile (lookup lasfile-id)
 	curves (doall (map lookup curve-ids))
 	frame (init-frame lasfile curves)
 	[aggregate-index dirty-curves] (lasso/adjust-curves curves)
+	index-id (store aggregate-index)
 	curve-charts (get-charts curve-ids dirty-curves)
 	plots (map #(.. (:chart-panel %)  (getChart) (getPlot)) (vals curve-charts))
 	xaxes (map #(.getDomainAxis %) plots)
 	depth-data (:data aggregate-index)
 	data (struct-map FrameData
 	       :lasfile-id lasfile-id
-	       :index aggregate-index
+	       :index-id index-id
 	       :min-depth (reduce min depth-data)
 	       :max-depth (reduce max depth-data)
 	       :slider-notches 200

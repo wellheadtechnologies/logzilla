@@ -61,3 +61,10 @@
 (defn row-to-index [row table]
   (- (dec (.getRowCount table)) row))
 
+;requires transaction
+(defn update-dirty-curve [frame curve index value]
+  (ref-set frame-charts 
+	   (assoc-in @frame-charts [frame curve :dirty-curve :data index] value)))
+
+(defn get-item [chart-panel index]
+  (.getDataItem (retrieve-series chart-panel) index))
