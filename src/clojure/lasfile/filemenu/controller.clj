@@ -1,11 +1,13 @@
 (ns lasfile.filemenu.controller
   (:require app.state)
-  (:use lasfile.filemenu.view lasfile.filemenu.model global)
+  (:use lasfile.filemenu.view lasfile.filemenu.model global storage)
   (:import (javax.swing JMenu JFileChooser JPanel 
 			JScrollPane JList DefaultListModel
 			BorderFactory JTabbedPane)
 	   (gui IconListCellRenderer)
 	   (net.miginfocom.swing MigLayout)))
+
+(def add-lasfile (partial invoke :add-lasfile))
 
 (defn run-file-selection-dialog [cwd]
   (let [frame (:frame @app.state/app-config)
@@ -15,20 +17,19 @@
       (.getSelectedFiles dialog)
       [])))
 
-(defn default-open-action [add-lasfile]
-  (fn  [e] 
-    (let [files (run-file-selection-dialog ".")]
-      (doseq [file files]
-	(long-task 
-	 (add-lasfile (open-file file)))))))
+(defn open [e]
+  (let [files (run-file-selection-dialog ".")]
+    (doseq [file files] 
+      (long-task (add-lasfile (open-file file))))))
 
-(defn default-save-all-action [e] nil)
+(defn save-all [e] nil)
 
-(defn default-quit-action [e] (System/exit 0))
+(defn quit [e] (System/exit 0))
 
-(defn init-default-menu [add-lasfile]
-  (create-file-menu 
-   (struct-map FileMenuConfig
-     :open-action (default-open-action add-lasfile)
-     :save-all-action default-save-all-action
-     :quit-action default-quit-action)))
+(store :file-menu-config
+       {:open open
+	:save-all save-all
+	:quit quit})
+
+(defn init-default-menu []
+  (create-file-menu))

@@ -35,7 +35,7 @@
 (defn test-add-lasfile []
   (app.controller/async-open-main)
   (let [dollie (lasso/load-lasfile "las_files/dollie.las")]
-    (lasfile.controller/add-lasfile dollie)
+    (invoke :add-lasfile dollie)
     (wait-for [10000 100 "added all curves"]
       (swing-probe 
        (= (count (:curves dollie)) 
@@ -46,15 +46,12 @@
   (app.controller/async-open-main)
   (let [dollie-id (lasso/load-lasfile "las_files/dollie.las")
 	dollie (lookup dollie-id)
-	frame (editor.controller/open-curve-editor dollie 
-						   (do 
-						     (take 2 (:curves dollie))))]
+	frame (editor.controller/open-curve-editor dollie-id (take 2 (:curves dollie)))]
     (wait-for [10000 100 "curve editor contains frame and curves"]
       (swing-probe 
-       (and (contains? @editor.model/frame-data frame)
-	    (contains? (get @editor.model/frame-charts frame) (first (:curves dollie)))
-	    (contains? (get @editor.model/frame-charts frame) (nth (:curves dollie) 1))
-	    (not (contains? (get @editor.model/frame-charts frame) (nth (:curves dollie) 2))))))))
+       (and (contains? (lookup [frame :charts]) (first (:curves dollie)))
+	    (contains? (lookup [frame :charts]) (nth (:curves dollie) 1))
+	    (not (contains? (lookup [frame :charts]) (nth (:curves dollie) 2))))))))
 
 (defn test-sync-curve-with-table []
   (app.controller/async-open-main)
@@ -63,17 +60,25 @@
 	frame (editor.controller/open-curve-editor test1-id (take 2 (:curves test1)))
 	index 0]
     (swing
-      (let [table (get-in @editor.model/frame-widgets [frame :table])]
+      (let [table (lookup-in [frame :widgets] :table)]
 	(.setValueAt (.getModel table) 10 (editor.model/index-to-row 0 table) 1)))
     (wait-for [10000 100 "dirty-curve(0) == 10 after syncing with table"]
       (swing-probe
        (let [curve-id (first (:curves test1))
-	     dirty-curve (get-in @editor.model/frame-charts [frame curve-id :dirty-curve])]
+	     dirty-curve (lookup-in [frame :charts] curve-id :dirty-curve)]
 	 (= (nth (:data dirty-curve) 0) 10))))))
 
+(defn test-storage []
+  (try 
+   (store :foo 1)
+   (store :foo 2)
+   (fail)
+   (catch java.lang.RuntimeException e 
+     (println "success : storage prevented adding of duplicate ids"))))
 
 (defn run-tests []
   (test-add-lasfile)
   (test-open-editor)
   (test-sync-curve-with-table)
+  (test-storage)
   (System/exit 0))

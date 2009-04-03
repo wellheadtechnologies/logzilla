@@ -11,17 +11,18 @@
 (declare init-curve-list init-lasfile-view)
 
 ;;BEGIN FUNCTIONS
-(defn add-lasfile [lasfile-id]
+(defstore add-lasfile [lasfile-id]
   (dosync 
    (let [lasfile (lookup lasfile-id)
 	 curve-list (init-curve-list lasfile)
-	 view (init-lasfile-view lasfile curve-list)
+	 view (init-lasfile-view curve-list)
 	 pane @lasfile-pane]
+     (println "lasfile = " lasfile)
      (alter lasfile-ids conj lasfile-id)
      (alter curve-lists assoc lasfile-id curve-list)
      (swing (.addTab pane (:name lasfile) view)))))
 
-(defn add-curve [curve-list curve-id]
+(defstore add-curve [curve-list curve-id]
   (let [curve (lasso/reconstruct-curve (lookup curve-id))
 	icon (curve-to-icon curve-id curve)]
     (swing 
@@ -29,7 +30,7 @@
      (.invalidate curve-list)
      (.repaint curve-list))))
 
-(defstore :open-curve-editor []
+(defstore open-curve-editor []
   (swing-sync
    (let [selected-curve-ids (get-selected-curve-ids)]
      (long-task (editor.controller/open-curve-editor 
@@ -63,13 +64,13 @@
   (let [curve-list (create-curve-list)]
     (long-task
       (doseq [curve (:curves lasfile)]
-	(add-curve curve-list curve)))
+	(invoke :add-curve curve-list curve)))
     (doto curve-list
       (.addMouseListener (click-listener open-curve-editor-action))
-      (.addMouseListener (cmc/init-default-listener curve-list add-curve)))))
+      (.addMouseListener (cmc/init-listener curve-list)))))
 
-(defn init-lasfile-view [lasfile curve-list]
-  (create-lasfile-view lasfile curve-list))
+(defn init-lasfile-view [curve-list]
+  (create-lasfile-view curve-list))
 
 (defn init-pane-change-listener []
   (proxy [ChangeListener] []
@@ -85,5 +86,5 @@
     (dosync (ref-set lasfile-pane pane))
     pane))
 
-(defn init-file-menu [] (fmc/init-default-menu add-lasfile))
+(defn init-file-menu [] (fmc/init-default-menu))
 ;;END INITIALIZERS

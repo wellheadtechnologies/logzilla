@@ -15,7 +15,7 @@
       (.setBackground (.getBackground (new JPanel)))
       (.setOpaque false))))
 
-(defn create-lasfile-view [lasfile curve-list]
+(defn create-lasfile-view [curve-list]
   (let [inner-panel (new JPanel (new MigLayout))
 	pane (new JScrollPane inner-panel)
 	outer-panel (new JPanel (new MigLayout))]

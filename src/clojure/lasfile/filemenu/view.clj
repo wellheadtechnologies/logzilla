@@ -1,17 +1,17 @@
 (ns lasfile.filemenu.view
-  (:use gutil util global)
+  (:use gutil util global storage)
   (:import (javax.swing JMenu JFileChooser JPanel 
 			JScrollPane JList DefaultListModel
 			BorderFactory JTabbedPane)
 	   (gui IconListCellRenderer)
 	   (net.miginfocom.swing MigLayout)))
 
-(defn create-file-menu [{:keys [open-action save-all-action quit-action] :as file-menu-config}]
+(defn create-file-menu []
   (let [menu (new JMenu "Las")]
     (actions menu
-      ["Open" open-action]
-      ["Save All" save-all-action]
-      ["Quit" quit-action])
+      ["Open" (:open (lookup :file-menu-config))]
+      ["Save All" (:save-all (lookup :file-menu-config))]
+      ["Quit" (:quit-action (lookup :file-menu-config))])
     menu))
 
 (defn create-file-selection-dialog [cwd]

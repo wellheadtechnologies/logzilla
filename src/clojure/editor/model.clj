@@ -1,4 +1,5 @@
 (ns editor.model
+  (:use storage)
   (:require lasso)
   (:import (org.jfree.ui RectangleEdge)))
 
@@ -24,9 +25,9 @@
   :table-column
   :dragged-entity)
 
-(def frame-charts (ref {})) ;; frame -> {curve-id -> Chart}
-(def frame-data (ref {})) ;; frame -> FrameData
-(def frame-widgets (ref {})) ;; frame -> FrameWidgets
+;(def frame-charts (ref {})) ;; frame -> {curve-id -> Chart}
+;(def frame-data (ref {})) ;; frame -> FrameData
+;(def frame-widgets (ref {})) ;; frame -> FrameWidgets
 
 ;pure
 (defn get-scale [data]
@@ -62,9 +63,8 @@
   (- (dec (.getRowCount table)) row))
 
 ;requires transaction
-(defn update-dirty-curve [frame curve index value]
-  (ref-set frame-charts 
-	   (assoc-in @frame-charts [frame curve :dirty-curve :data index] value)))
+(defn update-dirty-curve [frame curve-id index value]
+  (revise-in [frame :charts] [curve-id :dirty-curve :data index] value))
 
 (defn get-item [chart-panel index]
   (.getDataItem (retrieve-series chart-panel) index))

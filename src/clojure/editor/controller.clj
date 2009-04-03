@@ -8,13 +8,13 @@
 	   (gui CustomChartPanel)))
 
 (defn not-dragging-anything [frame]
-  (let [charts (vals (get @frame-charts frame))]
+  (let [charts (vals (lookup [frame :charts]))]
     (not-any? #(not (nil? (:dragged-entity %))) charts)))
 
-(defn sync-chart-with-table [frame curve row]
+(defn sync-chart-with-table [frame curve-id row]
   (dosync 
-   (let [table (get-in @frame-widgets [frame :table])
-	 chart (get-in @frame-charts [frame curve])
+   (let [table (lookup-in [frame :widgets] :table)
+	 chart (lookup-in [frame :charts] curve-id)
 	 {:keys [chart-panel table-column]} chart]
      (swing 
        (let [model (.getModel table)
@@ -27,37 +27,37 @@
 			   (double value)))
 	 (.repaint chart-panel))))))
 
-(defn sync-table-with-chart [frame curve index]
+(defn sync-table-with-chart [frame curve-id index]
   (dosync 
-   (let [chart (get-in @frame-charts [frame curve])
-	 table (get-in @frame-widgets [frame :table])
+   (let [table (lookup-in [frame :widgets] :table)
+	 chart (lookup-in [frame :charts] curve-id)
 	 {:keys [chart-panel table-column]} chart]
      (swing
-       (let [model (.getModel table)
-	     item (get-item chart-panel index)
-	     row (index-to-row index table)
-	     new-value (.getY item)]
-	 (.setValueAt model new-value row table-column)
-	 (.repaint table))))))
+      (let [model (.getModel table)
+	    item (get-item chart-panel index)
+	    row (index-to-row index table)
+	    new-value (.getY item)]
+	(.setValueAt model new-value row table-column)
+	(.repaint table))))))
 
-(defn sync-curve-with-chart [frame curve index]
+(defn sync-curve-with-chart [frame curve-id index]
   (swing-sync
-   (let [chart (get-in @frame-charts [frame curve])
-	 chart-panel (:chart-panel chart)
+   (let [chart-panel (lookup-in [frame :charts] curve-id :chart-panel)
 	 item (get-item chart-panel index)
-	 new-value (.getY item)
-	 dirty-curve (:dirty-curve chart)]
-     (update-dirty-curve frame curve index new-value))))
+	 new-value (.getY item)]
+     (update-dirty-curve frame curve-id index new-value))))
 
 (defn sync-curve-with-table [frame curve row]
   (swing-sync  
-   (let [table (get-in @frame-widgets [frame :table])
-	 table-column (get-in @frame-charts [frame curve :table-column])
+   (let [table (lookup-in [frame :widgets] :table)
+	 table-column (lookup-in [frame :charts] curve :table-column)
 	 model (.getModel table)
 	 new-value (.getValueAt model row table-column)
-	 index (row-to-index row table)
-	 dirty-curve (get-in @frame-charts [frame curve :dirty-curve])]
-     (update-dirty-curve frame curve index new-value))))
+	 index (row-to-index row table)]
+     (update-dirty-curve frame curve index 
+			 (if (string? new-value)
+			   (Double/valueOf new-value)
+			   (double new-value))))))
 
 (defn table-show-cell [table row col]
   (swing 
@@ -72,22 +72,22 @@
 	 row (* n rows)]
      (table-show-cell table row 0))))
 
-(defn init-table-model-listener [frame curve]
+(defn init-table-model-listener [frame curve-id]
   (proxy [TableModelListener] []
     (tableChanged [e]
 		  (guard (= (.getFirstRow e) (.getLastRow e))
 			 "first row must equal last row")
 		  (when (not-dragging-anything frame)
-		    (sync-chart-with-table frame curve (.getFirstRow e))
-		    (sync-curve-with-table frame curve (.getFirstRow e))))))
+		    (sync-chart-with-table frame curve-id (.getFirstRow e))
+		    (sync-curve-with-table frame curve-id (.getFirstRow e))))))
 
 (defn init-slider-listener [frame]
   (proxy [ChangeListener] []
     (stateChanged 
      [event]
      (dosync 
-      (let [{:keys [table depth-slider]} (get @frame-widgets frame)
-	    {:keys [min-depth max-depth xaxes slider-notches] :as data} (get @frame-data frame)
+      (let [{:keys [table depth-slider]} (lookup [frame :widgets])
+	    {:keys [min-depth max-depth xaxes slider-notches] :as data} (lookup [frame :data])
 	    scale (get-scale data)]
 	(swing 
 	 (let [value (.getValue depth-slider)
@@ -100,19 +100,14 @@
 			(with-limit max-depth upper)))
 	   (table-show-percentage table (- 1 (/ value slider-notches))))))))))
 
-(defn change-dragged-plot [frame curve chart-event]
+(defn change-dragged-plot [frame curve-id chart-event]
   (swing
-   (dosync 
-    (let [old-chart (get-in @frame-charts [frame curve])
-	  new-chart (assoc old-chart :dragged-entity (.getEntity chart-event))]
-      (alter frame-charts assoc-in [frame curve] new-chart)))))
+   (revise-in [frame :charts] [curve-id :dragged-entity] (.getEntity chart-event))))
 
-(defn drag-plot [frame curve chart-event]
+(defn drag-plot [frame curve-id chart-event]
   (dosync 
-   (let [chart (get-in @frame-charts [frame curve])
-	 table (get-in @frame-widgets [frame :table])
-	 dragged-entity (:dragged-entity chart)
-	 chart-panel (:chart-panel chart)]	    
+   (let [{:keys [chart-panel dragged-entity]} (lookup-in [frame :charts] curve-id)
+	 table (lookup-in [frame :widgets] :table)]	    
      (when dragged-entity
        (swing
 	(let [mouse-event (.getTrigger chart-event)
@@ -121,14 +116,14 @@
 	      new-value (java-2D-to-value chart-panel (.getX mouse-event))]
 	  (when (not (or (.isNaN new-value) (.isInfinite new-value)))
 	    (.updateByIndex series index new-value)
-	    (sync-table-with-chart frame curve index)
-	    (sync-curve-with-chart frame curve index)
+	    (sync-table-with-chart frame curve-id index)
+	    (sync-curve-with-chart frame curve-id index)
 	    (.repaint chart-panel))))))))
 
-(defn init-chart-mouse-listener [frame curve]
+(defn init-chart-mouse-listener [frame curve-id]
   (proxy [ChartMouseListener] []
-    (chartMouseClicked [e] (change-dragged-plot frame curve e))
-    (chartMouseMoved [e] (drag-plot frame curve e))))
+    (chartMouseClicked [e] (change-dragged-plot frame curve-id e))
+    (chartMouseMoved [e] (drag-plot frame curve-id e))))
 
 (defn init-frame [lasfile curves]
   (let [name (apply str (map #(str " | " (get-in % [:descriptor :mnemonic])) curves))
@@ -136,7 +131,7 @@
     frame))
 
 (defn reset-xaxes [frame]
-  (let [data (get @frame-data frame)
+  (let [data (lookup [frame :data])
 	{:keys [xaxes max-depth min-depth]} data
 	scale (get-scale data)]
     (swing 
@@ -154,10 +149,10 @@
 
 (defn save [frame]
   (dosync 
-   (let [{:keys [index-id lasfile-id]} (get @frame-data frame)]
-     (doseq [[curve-id chart] (get @frame-charts frame)]
+   (let [{:keys [index-id lasfile-id]} (lookup [frame :data])]
+     (doseq [[curve-id chart] (lookup [frame :charts])]
        (let [dirty-curve (:dirty-curve chart)]
-	 (update curve-id 
+	 (revise curve-id 
 		 (assoc dirty-curve
 		   :index index-id)))))))
 
@@ -169,16 +164,16 @@
 
 (defn get-charts [curve-ids dirty-curves]
   (apply merge 
-   (for [i (range 0 (count curve-ids))]
-     (let [curve-id (nth curve-ids i)
-	   dirty-curve (nth dirty-curves i)
-	   chart-panel (init-chart-panel dirty-curve)
-	   tcolumn (inc i)]
-       {curve-id
-	(struct-map Chart
-	  :dirty-curve dirty-curve
-	  :chart-panel chart-panel
-	  :table-column tcolumn)}))))
+	 (for [i (range 0 (count curve-ids))]
+	   (let [curve-id (nth curve-ids i)
+		 dirty-curve (nth dirty-curves i)
+		 chart-panel (init-chart-panel dirty-curve)
+		 tcolumn (inc i)]
+	     {curve-id
+	      (struct-map Chart
+		:dirty-curve dirty-curve
+		:chart-panel chart-panel
+		:table-column tcolumn)}))))
 
 (defn open-curve-editor [lasfile-id curve-ids]   
   (let [lasfile (lookup lasfile-id)
@@ -219,9 +214,9 @@
 		  :depth-slider depth-slider
 		  :main-panel main-panel)]
     (dosync 
-     (alter frame-charts assoc frame curve-charts)
-     (alter frame-data assoc frame data)
-     (alter frame-widgets assoc frame widgets))
+     (store [frame :data] data)
+     (store [frame :charts] curve-charts)
+     (store [frame :widgets] widgets))
     (reset-xaxes frame)
 
     (.addChangeListener depth-slider (init-slider-listener frame))

@@ -1,5 +1,5 @@
 (ns storage
-  (:use global))
+  (:use global util))
 
 (def objects (ref {})) ; id -> object
 (def next-id (ref 0)) ; auto-increment 
@@ -59,6 +59,8 @@
 	id)))
   ([id object]
      (dosync 
+      (guard (not (contains? @objects id))
+	     "may not store the same id twice!!")
       (alter objects assoc id object)
       (long-task (run-store-hooks id))
       id)))
@@ -68,16 +70,37 @@
    (alter objects dissoc id)
    (long-task (run-unstore-hooks id))))
 
-(defn update [id new-object]
+(defn revise [id new-object]
   (dosync 
+   (guard (contains? @objects id)
+	  "id does not exist!")
    (alter objects assoc id new-object)
    (long-task (run-update-hooks id))))
 
+(defn revise-in [id ks val]
+  (dosync 
+   (guard (contains? @objects id)
+	  "id does not exist!")
+   (alter objects assoc-in (concat [id] ks) val)
+   (long-task (run-update-hooks id))))
+
 (defn lookup [id]
-  (get @objects id))
+  (dosync 
+   (guard (contains? @objects id)
+	  (str  "lookup failed for | " id))
+   (get @objects id)))
+
+(defn lookup-in [id & ks]
+  (let [obj (lookup id)]
+    (get-in obj ks)))
 
 (defn invoke [id & args]
   (apply (lookup id) args))
 
+(defn invoke-in [[id & ks] & args]
+  (let [method (lookup id)]))
+
 (defmacro defstore [id args & body]
-  `(storage/store ~id (fn [~@args] ~@body)))
+  (let [method `(fn [~@args] ~@body)]
+    (storage/store (keyword (str id)) (eval method))
+    nil))
