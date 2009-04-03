@@ -1,6 +1,6 @@
 (ns editor.controller
   (:require lasso)
-  (:use editor.model editor.view util global gutil curves)
+  (:use editor.model editor.view util global gutil curves storage)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane)
 	   (org.jfree.data Range)
@@ -164,28 +164,32 @@
 (defn init-save-button [frame]
   (button "save" (fn [e] nil)))
 
-(defn get-charts [curves dirty-curves]
+(defn get-charts [curve-ids dirty-curves]
   (apply merge 
-   (for [i (range 0 (count curves))]
-     (let [curve (nth curves i)
+   (for [i (range 0 (count curve-ids))]
+     (let [curve-id (nth curve-ids i)
 	   dirty-curve (nth dirty-curves i)
 	   chart-panel (init-chart-panel dirty-curve)
 	   tcolumn (inc i)]
-       {curve
+       {curve-id
 	(struct-map Chart
 	  :dirty-curve dirty-curve
 	  :chart-panel chart-panel
 	  :table-column tcolumn)}))))
 
-(defn open-curve-editor [lasfile curves]   
-  (let [frame (init-frame lasfile curves)
+(defn open-curve-editor [lasfile-id curve-ids]   
+  (println "lasfile id = " lasfile-id)
+  (println "curve ids = " curve-ids)
+  (let [lasfile (lookup lasfile-id)
+	curves (doall (map lookup curve-ids))
+	frame (init-frame lasfile curves)
 	[aggregate-index dirty-curves] (lasso/adjust-curves curves)
-	curve-charts (get-charts curves dirty-curves)
+	curve-charts (get-charts curve-ids dirty-curves)
 	plots (map #(.. (:chart-panel %)  (getChart) (getPlot)) (vals curve-charts))
 	xaxes (map #(.getDomainAxis %) plots)
 	depth-data (:data aggregate-index)
 	data (struct-map FrameData
-	       :lasfile lasfile
+	       :lasfile-id lasfile-id
 	       :index aggregate-index
 	       :min-depth (reduce min depth-data)
 	       :max-depth (reduce max depth-data)

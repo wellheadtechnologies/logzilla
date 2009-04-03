@@ -8,7 +8,7 @@
   :main-panel)
 
 (defstruct FrameData
-  :lasfile
+  :lasfile-id
   :index
   :min-depth
   :max-depth
@@ -24,7 +24,7 @@
   :table-column
   :dragged-entity)
 
-(def frame-charts (ref {})) ;; frame -> {curve -> Chart}
+(def frame-charts (ref {})) ;; frame -> {curve-id -> Chart}
 (def frame-data (ref {})) ;; frame -> FrameData
 (def frame-widgets (ref {})) ;; frame -> FrameWidgets
 

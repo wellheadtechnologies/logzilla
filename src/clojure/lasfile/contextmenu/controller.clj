@@ -1,6 +1,6 @@
 (ns lasfile.contextmenu.controller
   (:require editor.controller) 
-  (:use util gutil global lasfile.contextmenu.view lasfile.model)
+  (:use util gutil global lasfile.contextmenu.view lasfile.model storage)
   (:import (java.awt.event MouseEvent MouseAdapter)))
 
 (defstruct ContextMenuConfig
@@ -12,29 +12,30 @@
 
 (defn edit []
   (swing-sync
-   (let [selected-curves (get-selected-curves)]
-     (when (< 0 (count selected-curves))
+   (let [selected-curve-ids (get-selected-curve-ids)]
+     (when (< 0 (count selected-curve-ids))
        (long-task 
 	 (editor.controller/open-curve-editor
-	  @selected-lasfile selected-curves))))))
+	  @selected-lasfile-id selected-curve-ids))))))
 
 (defn copy []
   (swing-sync
-   (let [selected-curves (get-selected-curves)]
-     (ref-set copied-curves selected-curves))))
+   (let [selected-curve-ids (get-selected-curve-ids)]
+     (ref-set copied-curve-ids selected-curve-ids))))
 
 (defn paste [add-curve]
   (swing-sync 
-   (let [ccurves @copied-curves]
-     (let [old-lasfile @selected-lasfile
-	   curve-list (get @curve-lists old-lasfile)
+   (let [ccurves @copied-curve-ids]
+     (let [lasfile-id @selected-lasfile-id
+	   old-lasfile (lookup lasfile-id)
 	   old-curves (:curves old-lasfile)
 	   new-curves (concat old-curves ccurves)
-	   new-lasfile (assoc old-lasfile :curves new-curves)]
+	   new-lasfile (assoc old-lasfile :curves new-curves)
+	   curve-list (get @curve-lists lasfile-id)]
+       (update lasfile-id new-lasfile)
        (long-task 
 	 (doseq [curve ccurves]
-	   (add-curve curve-list curve)))
-       (ref-set lasfile-list (replace {old-lasfile new-lasfile} @lasfile-list))))))
+	   (add-curve curve-list curve)))))))
 
 (defn default-edit-action [e] (edit))
 (defn default-copy-action [e] (copy))

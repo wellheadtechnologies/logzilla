@@ -2,7 +2,7 @@
   (:require editor.controller
 	    [lasfile.contextmenu.controller :as cmc]
 	    [lasfile.filemenu.controller :as fmc])
-  (:use lasfile.view lasfile.model gutil util curves global)
+  (:use lasfile.view lasfile.model gutil util curves global storage)
   (:import (javax.swing JFileChooser JLabel JList DefaultListModel)
 	   (java.awt.event MouseEvent MouseAdapter)
 	   (javax.swing.event ChangeListener)
@@ -24,8 +24,9 @@
 	  total (.getTabCount pane)]
       (.setSelectedIndex pane (mod (dec index) total)))))
 
-(defn add-curve [curve-list curve]
-  (let [icon (curve-to-icon curve)]
+(defn add-curve [curve-list curve-id]
+  (let [curve (lookup curve-id)
+	icon (curve-to-icon curve)]
     (swing 
      (.addElement (.getModel curve-list) icon)
      (.invalidate curve-list)
@@ -34,10 +35,10 @@
 (defn open-curve-editor []
   (swing 
     (dosync 
-     (let [lasfile @selected-lasfile
-	   curve-list (get @curve-lists lasfile)
-	   selected-curves (map #(.getCurve %) (.getSelectedValues curve-list))]
-       (long-task (editor.controller/open-curve-editor lasfile selected-curves))))))
+     (let [lasfile-id @selected-lasfile-id
+	   curve-list (get @curve-lists lasfile-id)
+	   selected-curve-ids (map #(.getCurveID %) (.getSelectedValues curve-list))]
+       (long-task (editor.controller/open-curve-editor lasfile-id selected-curve-ids))))))
 
 (defn open-curve-editor-action [e]
   (when (and (= (.getButton e) MouseEvent/BUTTON1)
@@ -61,8 +62,8 @@
     (stateChanged [e]
 		  (dosync 
 		   (let [index (.getSelectedIndex @lasfile-pane)
-			 lasfile (nth @lasfile-list index)]
-		     (ref-set selected-lasfile lasfile))))))
+			 lasfile-id (nth @lasfile-ids index)]
+		     (ref-set selected-lasfile-id lasfile-id))))))
 
 (defn init-lasfile-pane []
   (let [pane (create-lasfile-pane)]
@@ -72,12 +73,13 @@
 
 (defn init-file-menu [] (fmc/init-default-menu add-lasfile))
 
-(defn add-lasfile [lasfile]
+(defn add-lasfile [lasfile-id]
   (dosync 
-   (let [curve-list (init-curve-list lasfile)
+   (let [lasfile (lookup lasfile-id)
+	 curve-list (init-curve-list lasfile)
 	 view (init-lasfile-view lasfile curve-list)
 	 pane @lasfile-pane]
-     (alter lasfile-list conj lasfile)
-     (alter curve-lists assoc lasfile curve-list)
+     (alter lasfile-ids conj lasfile-id)
+     (alter curve-lists assoc lasfile-id curve-list)
      (swing (.addTab pane (:name lasfile) view)))))
 

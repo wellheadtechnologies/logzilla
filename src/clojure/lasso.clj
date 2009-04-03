@@ -1,5 +1,6 @@
 (ns lasso
   (:use util global)
+  (:require storage)
   (:import (java.io PushbackReader BufferedReader InputStreamReader
 		    BufferedWriter OutputStreamWriter StringReader
 		    StringWriter)
@@ -34,28 +35,48 @@
 	(assoc curve 
 	  :data (replace-nan-with-null (:data curve)))))))
 
-(defn load-lasfile [path]
-  (let [reader (new LasFileParser)
-	writer (new ClojureWriter)
-	lf (.readLasFile reader path)
-	lasfile (read-string (.writeLasFileToString writer lf))
+(defn- deconstruct-and-store-lasfile [lasfile]
+  (let [index (:index lasfile)
 	curves (:curves lasfile)
-	index (first curves)
-	sorted-index (assoc index :data (sort (:data index)))
-	do-reverse (not= (first (:data index)) (first (:data sorted-index)))
-	curves (rest curves)]
-    (assoc lasfile 
-      :path path
-      :index sorted-index
-      :do-reverse do-reverse
-      :curves 
-      (for [curve curves]
-	(assoc curve 
-	  :index sorted-index
-	  :data (apply vector (replace-null-with-nan 
-			       (if do-reverse
-				 (reverse (:data curve))
-				 (:data curve)))))))))
+	headers (:headers lasfile)
+	stored-index (storage/store index)
+	curves (map #(assoc % :index stored-index) curves)
+	stored-curves (doall (map storage/store curves))
+	stored-headers (doall (map storage/store headers))
+	stored-lasfile (storage/store 
+			(assoc lasfile 
+			  :index stored-index
+			  :curves stored-curves
+			  :headers stored-headers))]
+    stored-lasfile))
+
+(defn- reconstruct-curve [curve]
+  (assoc curve 
+    :index (storage/lookup (:index curve))))
+
+(defn load-lasfile [path]
+  (deconstruct-and-store-lasfile 
+   (let [reader (new LasFileParser)
+	 writer (new ClojureWriter)
+	 lf (.readLasFile reader path)
+	 lasfile (read-string (.writeLasFileToString writer lf))
+	 curves (:curves lasfile)
+	 index (first curves)
+	 sorted-index (assoc index :data (sort (:data index)))
+	 do-reverse (not= (first (:data index)) (first (:data sorted-index)))
+	 curves (rest curves)]
+     (assoc lasfile 
+       :path path
+       :index sorted-index
+       :do-reverse do-reverse
+       :curves 
+       (for [curve curves]
+	 (assoc curve 
+	   :index sorted-index
+	   :data (apply vector (replace-null-with-nan 
+				(if do-reverse
+				  (reverse (:data curve))
+				  (:data curve))))))))))
 
 (defn save-lasfile [lasfile]
   (let [lasfile (assoc lasfile :curves (concat [(:index lasfile)] (:curves lasfile)))
@@ -90,29 +111,30 @@
     (abs (- (nth index-data 0) (nth index-data 1)))))
 
 (defn adjust-curves [curves]
-  (let [sample-rates (map sample-rate curves)]
-    (guard (all-samef sample-rates)
-	   "sample rates must all be the same")
-    (let [indices (map :index curves)
-	  srate (first sample-rates)
-	  aggregate-index (aggregate indices srate)]
-      [aggregate-index
-       (let [_imin (round (first (:data aggregate-index)))
-	     _imax (round (last (:data aggregate-index)))]
-	 (for [curve curves]
-	   (let [_cmin (round (reduce min (get-in curve [:index :data])))
-		 _cmax (round (reduce max (get-in curve [:index :data])))
-		 cdata (:data curve)
-		 start-padding (/ (abs (- _cmin _imin)) srate)
-		 end-padding (/ (abs (- _cmax _imax)) srate)]
-	     (let [new-curve (assoc curve
-			       :data (apply vector (concat (repeat start-padding Double/NaN)
-							   cdata
-							   (repeat end-padding Double/NaN)))
-			       :index aggregate-index)
-		   new-curve-size (count (:data new-curve))
-		   aggregate-size (count (:data aggregate-index))]
-	       (guard (= new-curve-size aggregate-size)
-		      (str "new-curve and aggregate index should be same size : " new-curve-size " vs " aggregate-size))
-	       new-curve))))
-       ])))
+  (let [curves (doall (map reconstruct-curve curves))]
+    (let [sample-rates (map sample-rate curves)]
+      (guard (all-samef sample-rates)
+	     "sample rates must all be the same")
+      (let [indices (map :index curves)
+	    srate (first sample-rates)
+	    aggregate-index (aggregate indices srate)]
+	[aggregate-index
+	 (let [_imin (round (first (:data aggregate-index)))
+	       _imax (round (last (:data aggregate-index)))]
+	   (for [curve curves]
+	     (let [_cmin (round (reduce min (get-in curve [:index :data])))
+		   _cmax (round (reduce max (get-in curve [:index :data])))
+		   cdata (:data curve)
+		   start-padding (/ (abs (- _cmin _imin)) srate)
+		   end-padding (/ (abs (- _cmax _imax)) srate)]
+	       (let [new-curve (assoc curve
+				 :data (apply vector (concat (repeat start-padding Double/NaN)
+							     cdata
+							     (repeat end-padding Double/NaN)))
+				 :index aggregate-index)
+		     new-curve-size (count (:data new-curve))
+		     aggregate-size (count (:data aggregate-index))]
+		 (guard (= new-curve-size aggregate-size)
+			(str "new-curve and aggregate index should be same size : " new-curve-size " vs " aggregate-size))
+		 new-curve))))
+	 ]))))

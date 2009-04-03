@@ -2,19 +2,19 @@
   (:use gutil))
 
 (def lasfile-pane (ref nil)) ;JTabbedPane
-(def lasfile-list (ref [])) ; [lasfile]
-(def curve-lists (ref {})) ; lasfile -> JList
-(def selected-lasfile (ref nil))
-(def copied-curves (ref []))
+(def lasfile-ids (ref [])) ; [lasfile-ids]
+(def curve-lists (ref {})) ; id -> JList
+(def selected-lasfile-id (ref nil))
+(def copied-curve-ids (ref []))
 
 ;must occur in swing/dosync
 (defn get-selected-curve-list []
-  (let [lasfile @selected-lasfile
-	curve-list (get @curve-lists lasfile)]
+  (let [lasfile-id @selected-lasfile-id
+	curve-list (get @curve-lists lasfile-id)]
     curve-list))
 
 ;must occur in swing/dosync
-(defn get-selected-curves []
+(defn get-selected-curve-ids []
   (let [curve-list (get-selected-curve-list)
-	selected-curves (map #(.getCurve %) (.getSelectedValues curve-list))]
-    selected-curves))
+	selected-curve-ids (map #(.getCurveID %) (.getSelectedValues curve-list))]
+    selected-curve-ids))

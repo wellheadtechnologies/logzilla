@@ -3,7 +3,7 @@
 	    lasfile.controller lasfile.model
 	    editor.controller editor.model
 	    lasso)
-  (:use util gutil global))
+  (:use util gutil global storage))
 
 (defn fail [] (assert false))
 
@@ -44,8 +44,11 @@
 
 (defn test-open-editor []
   (app.controller/async-open-main)
-  (let [dollie (lasso/load-lasfile "las_files/dollie.las")
-	frame (editor.controller/open-curve-editor dollie (take 2 (:curves dollie)))]
+  (let [dollie-id (lasso/load-lasfile "las_files/dollie.las")
+	dollie (lookup dollie-id)
+	frame (editor.controller/open-curve-editor dollie 
+						   (do 
+						     (take 2 (:curves dollie))))]
     (wait-for [10000 100 "curve editor contains frame and curves"]
       (swing-probe 
        (and (contains? @editor.model/frame-data frame)
@@ -55,16 +58,17 @@
 
 (defn test-sync-curve-with-table []
   (app.controller/async-open-main)
-  (let [test1 (lasso/load-lasfile "las_files/test.las")
-	frame (editor.controller/open-curve-editor test1 (take 2 (:curves test1)))
+  (let [test1-id (lasso/load-lasfile "las_files/test.las")
+	test1 (storage/lookup test1-id)
+	frame (editor.controller/open-curve-editor test1-id (take 2 (:curves test1)))
 	index 0]
     (swing
       (let [table (get-in @editor.model/frame-widgets [frame :table])]
 	(.setValueAt (.getModel table) 10 (editor.model/index-to-row 0 table) 1)))
     (wait-for [10000 100 "dirty-curve(0) == 10 after syncing with table"]
       (swing-probe
-       (let [curve (first (:curves test1))
-	     dirty-curve (get-in @editor.model/frame-charts [frame curve :dirty-curve])]
+       (let [curve-id (first (:curves test1))
+	     dirty-curve (get-in @editor.model/frame-charts [frame curve-id :dirty-curve])]
 	 (= (nth (:data dirty-curve) 0) 10))))))
 
 
