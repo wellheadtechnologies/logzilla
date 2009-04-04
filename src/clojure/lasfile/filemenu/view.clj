@@ -7,7 +7,7 @@
 	   (net.miginfocom.swing MigLayout)))
 
 (defn create-file-menu []
-  (let [menu (new JMenu "Las")]
+  (let [menu (new JMenu "File")]
     (actions menu
       ["Open" (:open (lookup :file-menu-config))]
       ["Save All" (:save-all (lookup :file-menu-config))]

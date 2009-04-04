@@ -51,7 +51,8 @@
       (swing-probe 
        (and (contains? (lookup [frame :charts]) (first (:curves dollie)))
 	    (contains? (lookup [frame :charts]) (nth (:curves dollie) 1))
-	    (not (contains? (lookup [frame :charts]) (nth (:curves dollie) 2))))))))
+	    (not (contains? (lookup [frame :charts]) (nth (:curves dollie) 2))))))
+    (app.controller/close-main)))
 
 (defn test-sync-curve-with-table []
   (app.controller/async-open-main)
@@ -66,7 +67,8 @@
       (swing-probe
        (let [curve-id (first (:curves test1))
 	     dirty-curve (lookup-in [frame :charts] curve-id :dirty-curve)]
-	 (= (nth (:data dirty-curve) 0) 10))))))
+	 (= (nth (:data dirty-curve) 0) 10))))
+    (app.controller/close-main)))
 
 (defn test-storage []
   (try 

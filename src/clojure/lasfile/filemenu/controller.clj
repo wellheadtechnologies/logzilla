@@ -1,5 +1,4 @@
 (ns lasfile.filemenu.controller
-  (:require app.state)
   (:use lasfile.filemenu.view lasfile.filemenu.model global storage)
   (:import (javax.swing JMenu JFileChooser JPanel 
 			JScrollPane JList DefaultListModel
@@ -10,7 +9,7 @@
 (def add-lasfile (partial invoke :add-lasfile))
 
 (defn run-file-selection-dialog [cwd]
-  (let [frame (:frame @app.state/app-config)
+  (let [frame (lookup-in :app :frame)
 	dialog (create-file-selection-dialog cwd)
 	result (.showOpenDialog dialog frame)]
     (if (= JFileChooser/APPROVE_OPTION result)

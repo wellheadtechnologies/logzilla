@@ -10,19 +10,17 @@
 
 (declare init-curve-list init-lasfile-view)
 
-;;BEGIN FUNCTIONS
-(defstore add-lasfile [lasfile-id]
+(defaction add-lasfile [lasfile-id]
   (dosync 
    (let [lasfile (lookup lasfile-id)
 	 curve-list (init-curve-list lasfile)
 	 view (init-lasfile-view curve-list)
 	 pane @lasfile-pane]
-     (println "lasfile = " lasfile)
      (alter lasfile-ids conj lasfile-id)
      (alter curve-lists assoc lasfile-id curve-list)
      (swing (.addTab pane (:name lasfile) view)))))
 
-(defstore add-curve [curve-list curve-id]
+(defaction add-curve [curve-list curve-id]
   (let [curve (lasso/reconstruct-curve (lookup curve-id))
 	icon (curve-to-icon curve-id curve)]
     (swing 
@@ -30,7 +28,7 @@
      (.invalidate curve-list)
      (.repaint curve-list))))
 
-(defstore open-curve-editor []
+(defaction open-curve-editor []
   (swing-sync
    (let [selected-curve-ids (get-selected-curve-ids)]
      (long-task (editor.controller/open-curve-editor 
@@ -49,17 +47,12 @@
 	  index (.getSelectedIndex pane)
 	  total (.getTabCount pane)]
       (.setSelectedIndex pane (mod (dec index) total)))))
-;;END FUNCTIONS
 
-;;BEGIN ACTIONS
 (defn open-curve-editor-action [e]
   (when (and (= (.getButton e) MouseEvent/BUTTON1)
 	     (= (.getClickCount e) 2))
     (invoke :open-curve-editor)))
-;;END ACTIONS
 
-
-;;BEGIN INTIALIZERS 
 (defn init-curve-list [lasfile]
   (let [curve-list (create-curve-list)]
     (long-task
@@ -87,4 +80,3 @@
     pane))
 
 (defn init-file-menu [] (fmc/init-default-menu))
-;;END INITIALIZERS

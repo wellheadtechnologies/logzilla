@@ -157,10 +157,10 @@
 		   :index index-id)))))))
 
 (defn init-merge-button [frame]
-  (button "merge" (fn [e] nil)))
+  (create-merge-button (fn [e] nil)))
 
 (defn init-save-button [frame]
-  (button "save" (fn [e] (save frame))))
+  (create-save-button (fn [e] (save frame))))
 
 (defn get-charts [curve-ids dirty-curves]
   (apply merge 
