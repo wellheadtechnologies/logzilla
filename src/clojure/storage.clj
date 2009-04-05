@@ -18,8 +18,9 @@
      (alter store-hooks assoc id (remove #(identical? hook %) hooks)))))
 
 (defn- run-store-hooks [id]
-  (doseq [hook (get @store-hooks id [])]
-    (hook)))
+  (io! 
+   (doseq [hook (get @store-hooks id [])]
+     (hook))))
 
 (defn add-unstore-hook [id hook]
   (dosync 
@@ -32,8 +33,9 @@
      (alter unstore-hooks assoc id (remove #(identical? hook %) hooks)))))
 
 (defn- run-unstore-hooks [id]
-  (doseq [hook (get @unstore-hooks id [])]
-    (hook)))
+  (io! 
+   (doseq [hook (get @unstore-hooks id [])]
+     (hook))))
 
 (defn add-revise-hook [id ks hook]
   (dosync 
@@ -50,8 +52,9 @@
    (alter revise-hooks dissoc [id ks])))
 
 (defn- run-revise-hooks [id ks]
-  (doseq [hook (get @revise-hooks [id ks] [])]
-    (hook)))
+  (io! 
+   (doseq [hook (get @revise-hooks [id ks] [])]
+     (hook))))
 
 (defn store
   ([object]
@@ -102,24 +105,26 @@
   (apply (lookup id) args))
 
 (defn invoke-in [[id & ks] & args]
-  (let [method (lookup id)]))
-
-(defmacro defaction [id args & body]
-  (let [method `(fn [~@args] ~@body)]
-    (storage/store (keyword (str id)) (eval method))
-    nil))
+  (let [method (apply lookup-in id ks)]
+    (apply invoke method args)))
 
 (defmacro def-revise-hook [id ks & body]
   `(storage/add-revise-hook ~id ~ks (fn [] ~@body)))
 
-(defmacro defproperties [& properties]
+(defn instance-properties [& properties]
   (let [keys (map first properties)
 	values (map second properties)
 	meta-data (map #(drop 2 %) properties)
-	properties (apply merge (for [[k v] (tuplize keys values)] {k v}))
-	meta-data (apply merge (for [[k v] (tuplize keys meta-data)] {k (apply hash-map v)}))
-	result (assoc properties :meta-data meta-data)]
-    (list 'def 'properties result)))
+	properties (apply merge 
+			  (for [[k v] (tuplize keys values)]
+			    {k v}))
+	meta-data (apply merge 
+			 (for [[k v] (tuplize keys meta-data)]
+			   {k (apply hash-map v)}))]
+    (assoc properties :meta-data meta-data)))
+
+(defmacro defproperties [name & properties]
+  (list 'def name (apply instance-properties properties)))
 
 (defn store-properties [root properties]
   (let [meta-data (:meta-data properties)]

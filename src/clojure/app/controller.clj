@@ -20,7 +20,7 @@
       (.setSize frame width height)
       (.repaint frame)))))
 
-(defproperties
+(defproperties app-props
   [:width 500 
    :on-revise resize]
   [:height 700
@@ -42,17 +42,14 @@
   [:window-listeners [exit-on-close]])
 
 (defn run-main []
-  (let [iprops (init-properties properties)
+  (let [iprops (init-properties app-props)
 	props (store-properties :app iprops)]
     (create-main-window props)))
 
 (defn open-main []
-  (let [iprops (init-properties (assoc properties :window-listeners []))
+  (let [iprops (init-properties (assoc app-props :window-listeners []))
 	props (store-properties :app iprops)]
     (create-main-window props)))
-
-(defn async-open-main []
-  (global/long-task (open-main)))
 
 (defn close-main []
   (dosync 

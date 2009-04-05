@@ -64,3 +64,10 @@
 	  name (get-in curve [:descriptor :mnemonic])]
       (new CurveLabel id name icon SwingConstants/LEFT))))
 
+(defn min-depth [curve]
+  (let [index-data (get-in curve [:index :data])]
+    (reduce min index-data)))
+
+(defn max-depth [curve]
+  (let [index-data (get-in curve [:index :data])]
+    (reduce max index-data)))

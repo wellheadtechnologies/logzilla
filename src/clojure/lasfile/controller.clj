@@ -10,7 +10,7 @@
 
 (declare init-curve-list init-lasfile-view)
 
-(defaction add-lasfile [lasfile-id]
+(defn add-lasfile [lasfile-id]
   (dosync 
    (let [lasfile (lookup lasfile-id)
 	 curve-list (init-curve-list lasfile)
@@ -20,7 +20,7 @@
      (alter curve-lists assoc lasfile-id curve-list)
      (swing (.addTab pane (:name lasfile) view)))))
 
-(defaction add-curve [curve-list curve-id]
+(defn add-curve [curve-list curve-id]
   (let [curve (lasso/reconstruct-curve (lookup curve-id))
 	icon (curve-to-icon curve-id curve)]
     (swing 
@@ -28,11 +28,15 @@
      (.invalidate curve-list)
      (.repaint curve-list))))
 
-(defaction open-curve-editor []
+(defn open-curve-editor []
   (swing-sync
    (let [selected-curve-ids (get-selected-curve-ids)]
      (long-task (editor.controller/open-curve-editor 
 		 @selected-lasfile-id selected-curve-ids)))))
+
+(store :add-lasfile add-lasfile)
+(store :add-curve add-curve)
+(store :open-curve-editor open-curve-editor)
 
 (defn tab-right []
   (swing 

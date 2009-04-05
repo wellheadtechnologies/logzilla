@@ -42,6 +42,12 @@
 (defmacro swing-sync [& body]
   `(swing (dosync ~@body)))
 
+(defmacro swing-io! [& body]
+  `(if (not (javax.swing.SwingUtilities/isEventDispatchThread))
+     (throw (RuntimeException. "Not in swing event dispatch thread!!!"))
+     (io! 
+      ~@body)))
+
 (defn on-click [widget fun]
   (.addMouseListener widget
 		     (proxy [MouseAdapter] []

@@ -33,7 +33,7 @@
 	  (ref-set probe# true))))))
 
 (defn test-add-lasfile []
-  (app.controller/async-open-main)
+  (app.controller/open-main)
   (let [dollie (lasso/load-lasfile "las_files/dollie.las")]
     (invoke :add-lasfile dollie)
     (wait-for [10000 100 "added all curves"]
@@ -43,7 +43,7 @@
   (app.controller/close-main))
 
 (defn test-open-editor []
-  (app.controller/async-open-main)
+  (app.controller/open-main)
   (let [dollie-id (lasso/load-lasfile "las_files/dollie.las")
 	dollie (lookup dollie-id)
 	frame (editor.controller/open-curve-editor dollie-id (take 2 (:curves dollie)))]
@@ -55,7 +55,7 @@
     (app.controller/close-main)))
 
 (defn test-sync-curve-with-table []
-  (app.controller/async-open-main)
+  (app.controller/open-main)
   (let [test1-id (lasso/load-lasfile "las_files/test.las")
 	test1 (storage/lookup test1-id)
 	frame (editor.controller/open-curve-editor test1-id (take 2 (:curves test1)))
