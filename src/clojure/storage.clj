@@ -106,7 +106,7 @@
 
 (defn invoke-in [[id & ks] & args]
   (let [method (apply lookup-in id ks)]
-    (apply invoke method args)))
+    (apply method args)))
 
 (defmacro def-revise-hook [id ks & body]
   `(storage/add-revise-hook ~id ~ks (fn [] ~@body)))
@@ -133,6 +133,7 @@
      (doseq [[k v] meta-data]
        (let [hook (:on-revise v)]
 	 (when hook
+	   (print-task "add-revise-hook for " k)
 	   (add-revise-hook root [k] hook)))))
     properties))
 

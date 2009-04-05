@@ -53,7 +53,7 @@
        (.add panel (:chart-panel chart) "pushx, pushy, growx, growy")))
     panel))
 
-(defn receive-depth-changed [value]
+(defn receive-depth-changed [editor-id]
   (throw (RuntimeException. "Haven't implemented this yet")))
 
 (defn receive-curve-changed [dirty-curve changed-index]
