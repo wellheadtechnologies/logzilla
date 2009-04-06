@@ -11,20 +11,27 @@
   (proxy [WindowAdapter] []
     (windowClosing [e] (System/exit 0))))
 
-(defn resize []
+(defn change-width [width]
   (dosync 
    (let [frame (lookup-in :app :frame)
-	 width (lookup-in :app :width)
 	 height (lookup-in :app :height)]
      (swing 
       (.setSize frame width height)
       (.repaint frame)))))
 
+(defn change-height [height]
+  (dosync 
+   (let [frame (lookup-in :app :frame)
+	 width (lookup-in :app :width)]
+     (swing 
+       (.setSize frame width height)
+       (.repaint frame)))))
+
 (defproperties app-props
   [:width 500 
-   :on-revise resize]
+   :on-change change-width]
   [:height 700
-   :on-revise resize]
+   :on-change change-height]
   [:frame nil
    :init create-main-frame]
   [:panel nil

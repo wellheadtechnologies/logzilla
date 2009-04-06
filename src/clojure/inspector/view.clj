@@ -19,12 +19,12 @@
 		 (fn [field]
 		   (swing 
 		    (let [value (Integer/valueOf (.getText field))]
-		      (revise-in :app [:width] value)))))
+		      (change-in :app [:width] value)))))
       (add-field "Height" (lookup-in :app :height)
 		 (fn [field] 
 		   (swing 
 		    (let [value (Integer/valueOf (.getText field))]
-		      (revise-in :app [:height] value))))))))
+		      (change-in :app [:height] value))))))))
 
 (defn create-inspector-window [properties]
   (let [frame (new JFrame "Inspector")

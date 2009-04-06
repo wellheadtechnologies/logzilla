@@ -5,7 +5,8 @@
 (def next-id (ref 0)) ; auto-increment 
 (def store-hooks (ref {})) ; id -> [hook]
 (def unstore-hooks (ref {})) ; id -> [hook]
-(def revise-hooks (ref {})) ; [id ks] -> [hook]
+(def change-hooks (ref {})) ; [id ks] -> [hook]
+(def filters (ref {})) ; [id ks] -> [hook]
 
 (defn add-store-hook [id hook]
   (dosync 
@@ -37,24 +38,41 @@
    (doseq [hook (get @unstore-hooks id [])]
      (hook))))
 
-(defn add-revise-hook [id ks hook]
+(defn add-change-hook [id ks hook]
   (dosync 
-   (let [hooks (get @revise-hooks [id ks] [])]
-     (alter revise-hooks assoc [id ks] (conj hooks hook)))))
+   (let [hooks (get @change-hooks [id ks] [])]
+     (alter change-hooks assoc [id ks] (conj hooks hook)))))
 
-(defn remove-revise-hook [id ks hook]
+(defn remove-change-hook [id ks hook]
   (dosync
-   (let [hooks (get @revise-hooks [id ks] [])]
-     (alter revise-hooks assoc [id ks] (remove #(identical? hook %) hooks)))))
+   (let [hooks (get @change-hooks [id ks] [])]
+     (alter change-hooks assoc [id ks] (remove #(identical? hook %) hooks)))))
 
-(defn remove-all-revise-hooks [id ks]
+(defn remove-all-change-hooks [id ks]
   (dosync 
-   (alter revise-hooks dissoc [id ks])))
+   (alter change-hooks dissoc [id ks])))
 
-(defn- run-revise-hooks [id ks]
+(defn- run-change-hooks [id ks value]
   (io! 
-   (doseq [hook (get @revise-hooks [id ks] [])]
-     (hook))))
+    (doseq [hook (get @change-hooks [id ks] [])]
+      (hook value))))
+
+(defn add-filter [id ks f]
+  (dosync 
+   (let [fs (get @filters [id ks] [])]
+     (alter filters assoc [id ks] (conj fs f)))))
+
+(defn remove-filter [id ks f]
+  (dosync
+   (let [fs (get @filters [id ks] [])]
+     (alter filters assoc [id ks] (remove #(identical? f %) fs)))))
+
+(defn- run-filters [id ks value]
+  (loop [fs (get @filters [id ks]), value value]
+    (let [f (first fs)]
+      (if f
+	(recur (rest fs) (f value))
+	value))))
 
 (defn store
   ([object]
@@ -77,19 +95,21 @@
    (alter objects dissoc id)
    (long-task (run-unstore-hooks id))))
 
-(defn revise [id new-object]
+(defn change [id new-object]
   (dosync 
    (guard (contains? @objects id)
 	  "id does not exist!")
-   (alter objects assoc id new-object)
-   (long-task (run-revise-hooks id []))))
+   (let [fvalue (run-filters id [] new-object)]
+     (alter objects assoc id fvalue)
+     (long-task (run-change-hooks id [] fvalue)))))
 
-(defn revise-in [id ks val]
+(defn change-in [id ks val]
   (dosync 
    (guard (contains? @objects id)
 	  "id does not exist!")
-   (alter objects assoc-in (concat [id] ks) val)
-   (long-task (run-revise-hooks id ks))))
+   (let [fvalue (run-filters id ks val)]
+     (alter objects assoc-in (concat [id] ks) fvalue)
+     (long-task (run-change-hooks id ks fvalue)))))
 
 (defn lookup [id]
   (dosync 
@@ -108,8 +128,8 @@
   (let [method (apply lookup-in id ks)]
     (apply method args)))
 
-(defmacro def-revise-hook [id ks & body]
-  `(storage/add-revise-hook ~id ~ks (fn [] ~@body)))
+(defmacro def-change-hook [id ks & body]
+  `(storage/add-change-hook ~id ~ks (fn [] ~@body)))
 
 (defn instance-properties [& properties]
   (let [keys (map first properties)
@@ -131,10 +151,12 @@
     (dosync 
      (store root properties)
      (doseq [[k v] meta-data]
-       (let [hook (:on-revise v)]
+       (let [hook (:on-change v)
+	     filter (:filter v)]
 	 (when hook
-	   (print-task "add-revise-hook for " k)
-	   (add-revise-hook root [k] hook)))))
+	   (add-change-hook root [k] hook))
+	 (when filter
+	   (add-filter root [k] filter)))))
     properties))
 
 (defn unstore-properties [root]
@@ -142,7 +164,7 @@
    (let [properties (lookup root)
 	 meta-data (:meta-data properties)]
      (doseq [k (keys (dissoc properties :meta-data))]
-       (remove-all-revise-hooks root [k])))
+       (remove-all-change-hooks root [k])))
    (unstore root)))
 
 (defn init-properties [properties]
@@ -158,3 +180,4 @@
 					{k (init)}
 					{k v}))))]
      (assoc inited-properties :meta-data meta-data))))
+

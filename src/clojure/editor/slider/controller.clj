@@ -12,21 +12,14 @@
     (stateChanged [event]
 		  (swing 
 		   (let [value (.getValue slider)]
-		     (println "revising value = " value)
-		     (revise-in slider [:value] value))))))
-
-(defn push-to-editor [editor-id slider]
-  (println "push-to-editor " editor-id ", " slider)
-  (dosync 
-   (let [value (lookup-in slider :value)]
-     (invoke-in [editor-id :receive-depth-changed] value))))
+		     (change-in slider [:value] value))))))
 
 (defn get-instance-properties [editor slider notches]
   (instance-properties 
    [:editor editor]
    [:slider slider]
-   [:value 0, :on-revise (partial push-to-editor editor slider)]
-   [:notches notches, :on-revise reset-notches]))
+   [:value 0, :filter #(/ % notches)]
+   [:notches notches]))
 
 (defn init-slider [editor notches] 
   (let [slider (create-depth-slider notches)

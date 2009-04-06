@@ -9,12 +9,13 @@
      (.scrollRectToVisible table rect))))
 
 (defn show-percentage [table n]
-  (swing   
-   (guard (not (or (> n 1) (< n 0)))
-	  (str "invalid n must be from 0.0 to 1.0: " n))
-   (let [rows (dec (.getRowCount table))
-	 row (* n rows)]
-     (show-cell table row 0))))
+  (let [n (abs (- 1 n))]
+    (swing-io!   
+      (guard (not (or (> n 1) (< n 0)))
+	     (str "invalid n must be from 0.0 to 1.0: " n))
+      (let [rows (dec (.getRowCount table))
+	    row (* n rows)]
+	(show-cell table row 0)))))
 
 (defn push-to-curve [table curve-id] nil)
 

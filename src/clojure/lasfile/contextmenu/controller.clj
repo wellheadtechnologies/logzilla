@@ -20,7 +20,7 @@
 	   new-curves (concat old-curves ccurves)
 	   new-lasfile (assoc old-lasfile :curves new-curves)
 	   curve-list (get @curve-lists lasfile-id)]
-       (revise lasfile-id new-lasfile)
+       (change lasfile-id new-lasfile)
        (long-task 
 	 (doseq [curve ccurves]
 	   (invoke :add-curve curve-list curve)))))))

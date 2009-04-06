@@ -6,18 +6,28 @@
 	   (org.jfree.chart ChartMouseListener)
 	   (org.jfree.data Range)))
 
+(defn show-percentage [chart-ids percentage]
+  (doseq [chart-id chart-ids]
+    (dosync 
+     (let [chart (lookup chart-id)
+	   xaxis (.. (:chart-panel chart) (getChart) (getPlot) (getDomainAxis))
+	   dirty-curve (:dirty-curve chart)
+	   mind (min-depth dirty-curve)
+	   maxd (max-depth dirty-curve)
+	   range (abs (- maxd mind))
+	   notches (:scale-notches chart)
+	   unit (/ range notches)
+	   extent (+ mind (* percentage range))]
+       (swing 
+	 (.setRange xaxis (Range. extent (+ extent unit)))
+	 (.repaint (:chart-panel chart)))))))
+
 (defn init-chart-panel [curve]
   (let [chart (create-chart curve)
 	chart-panel (new CustomChartPanel chart)]
     (doto chart-panel
       (.setDomainZoomable false)
       (.setMouseZoomable false))))
-
-(defn push-to-editor [editor-id chart-id]
-  (dosync 
-   (let [dirty-curve (lookup-in chart-id :dirty-curve)
-	 changed-index (lookup-in chart-id :changed-index)]
-     (invoke [editor-id :receive-curve-changed] dirty-curve changed-index))))
 
 (defn reset-xaxis [chart-panel min-depth scale]
   (swing 
@@ -26,7 +36,7 @@
      (.setRange (Range. min-depth (+ min-depth scale))))))
 
 (defn change-dragged-plot [chart-id chart-event]
-  (revise-in chart-id [:dragged-entity] (.getEntity chart-event)))
+  (change-in chart-id [:dragged-entity] (.getEntity chart-event)))
 
 (defn drag-plot [chart-id chart-event]
   (dosync 
@@ -42,8 +52,8 @@
 	    (.updateByIndex series index new-value)
 	    (.repaint chart-panel)
 	    (dosync 
-	     (revise-in chart-id [:dirty-curve :data index] new-value)
-	     (revise-in chart-id [:changed-index] index)))))))))
+	     (change-in chart-id [:dirty-curve :data index] new-value)
+	     (change-in chart-id [:changed-index] index)))))))))
 
 (defn init-chart-mouse-listener [chart-id curve-id]
   (proxy [ChartMouseListener] []
@@ -55,8 +65,8 @@
   (instance-properties
    [:editor-id editor-id]
    [:chart-panel chart-panel]
-   [:curve-id curve-id, :constant true]
-   [:dirty-curve dirty-curve, :on-revise (partial push-to-editor editor-id chart-panel)]
+   [:curve-id curve-id]
+   [:dirty-curve dirty-curve]
    [:scale-notches scale-notches]
    [:changed-index nil]
    [:dragged-entity nil]))

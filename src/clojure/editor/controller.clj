@@ -27,7 +27,7 @@
 	   index-id (lookup-in editor-id :index-id)]
      (let [dirty-curve (lookup-in chart-id :dirty-curve)
 	   curve-id (lookup-in chart-id :curve-id)]
-       (revise curve-id 
+       (change curve-id 
 	       (assoc dirty-curve
 		 :index index-id))))))
 
@@ -53,12 +53,6 @@
        (.add panel (:chart-panel chart) "pushx, pushy, growx, growy")))
     panel))
 
-(defn receive-depth-changed [editor-id]
-  (throw (RuntimeException. "Haven't implemented this yet")))
-
-(defn receive-curve-changed [dirty-curve changed-index]
-  (throw (RuntimeException. "Haven't implemented this yet")))
-
 (defn get-instance-properties [editor-id lf-id index-id dslider table chart-ids width height]
   (instance-properties 
    [:lasfile-id lf-id]
@@ -68,8 +62,6 @@
    [:chart-ids chart-ids]
    [:width width]
    [:height height]
-   [:receive-depth-changed receive-depth-changed]
-   [:receive-curve-changed receive-curve-changed]
    [:not-dragging-anything (partial not-dragging-anything editor-id)]))
 
 (defn open-curve-editor [lasfile-id curve-ids]   
@@ -94,10 +86,13 @@
 	mergeb (init-merge-button frame)
 	tool-panel (init-tool-panel depth-slider table saveb mergeb)
 	main-panel (init-main-panel charts tool-panel width height)]
-    (store-properties frame props)
+    (dosync 
+     (store-properties frame props)
+     (add-change-hook depth-slider [:value] #(swing (table-controller/show-percentage table %)))
+     (add-change-hook depth-slider [:value] #(swing (chart-controller/show-percentage chart-ids %))))
     (swing
-      (doto frame
-	(.add main-panel)
-	(.pack)
-	(.setVisible true)))
+     (doto frame
+       (.add main-panel)
+       (.pack)
+       (.setVisible true)))
     frame))
