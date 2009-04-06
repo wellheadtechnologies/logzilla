@@ -17,22 +17,26 @@
 	    row (* n rows)]
 	(show-cell table row 0)))))
 
-(defn push-to-curve [table curve-id] nil)
-
-(defn pull-from-curve [table curve-id] nil)
-
-(defn init-listener [editor-id curve-id table]
+(defn init-listener [table-id]
   (proxy [TableModelListener] []
     (tableChanged [e]
 		  (guard (= (.getFirstRow e) (.getLastRow e))
 			 "first row must equal last row")
-		  (when (invoke [editor-id :not-dragging-anything])
-		    (push-to-curve table curve-id)))))
+		  (let [row (.getFirstRow e)
+			col (.getColumn e)]
+		    (dosync 
+		     (change-in table-id [:altered] [row col]))))))
 
-(defn init-table [editor-id curve-ids aggregate-index dirty-curves]
+(defn get-instance-properties [table]
+  (instance-properties
+   [:altered []]))
+
+(defn init-table [aggregate-index dirty-curves]
   (let [table (create-table aggregate-index dirty-curves)
-	model (.getModel table)]
-    (doseq [curve-id curve-ids]
-      (.addTableModelListener model (init-listener editor-id curve-id table)))
-    table))
+	table-id table
+	model (.getModel table)
+	props (get-instance-properties table)]
+    (store-properties table props)
+    (.addTableModelListener model (init-listener table-id))
+    table-id))
 

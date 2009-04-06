@@ -79,7 +79,7 @@
 	width (* 600 (count curves))
 	height 700
 	depth-slider (slider-controller/init-slider frame slider-notches)
-	table (table-controller/init-table frame curve-ids aggregate-index dirty-curves)
+	table (table-controller/init-table aggregate-index dirty-curves)
 	props (get-instance-properties frame lasfile-id index-id depth-slider table
 				       chart-ids width height)
 	saveb (init-save-button frame)
@@ -88,8 +88,8 @@
 	main-panel (init-main-panel charts tool-panel width height)]
     (dosync 
      (store-properties frame props)
-     (add-change-hook depth-slider [:value] #(swing (table-controller/show-percentage table %)))
-     (add-change-hook depth-slider [:value] #(swing (chart-controller/show-percentage chart-ids %))))
+     (on-change depth-slider [:value] #(swing (table-controller/show-percentage table %)))
+     (on-change depth-slider [:value] #(swing (chart-controller/show-percentage chart-ids %))))
     (swing
      (doto frame
        (.add main-panel)

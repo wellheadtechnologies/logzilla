@@ -181,3 +181,4 @@
 					{k v}))))]
      (assoc inited-properties :meta-data meta-data))))
 
+(def on-change add-change-hook)
