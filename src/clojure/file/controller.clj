@@ -1,6 +1,7 @@
 (ns file.controller
   (:require [file.filemenu.controller :as fmc]
-	    [file.contextmenu.controller :as cmc])
+	    [file.contextmenu.controller :as cmc]
+	    editor.controller)
   (:use file.view file.model gutil util curves global)
   (:import (javax.swing JFileChooser JLabel JList DefaultListModel)
 	   (java.awt.event MouseEvent MouseAdapter)
@@ -44,11 +45,11 @@
 (defn open-curve-editor [file-manager]
   (swing 
    (let [file @(get-selected-file file-manager)
-	 selected-curve-ids (get-selected-curves (:curve-list file))
-	 selected-lasfile (:lasfile file)]
-     (long-task nil
-;(editor.controller/open-curve-editor selected-lasfile selected-curves)
-		))))
+	 curves (get-selected-curves (:curve-list file))
+	 lasfile (:lasfile file)]
+     (long-task
+      (editor.controller/open-curve-editor lasfile curves)))))
+
 
 (defn tab-right [file-manager]
   (swing 

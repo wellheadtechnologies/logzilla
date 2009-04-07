@@ -2,14 +2,14 @@
   (:import (javax.swing JTable JScrollPane)
 	   (javax.swing.table DefaultTableModel)))
 
-(defn create-table [index curves]
+(defn create-table-widget [index curves]
   (let [model (DefaultTableModel.)
-	table (JTable. model)]    
+	widget (JTable. model)]    
     (.addColumn model "x" (into-array Object (reverse (:data index))))
     (doseq [curve curves]
       (.addColumn model 
 		  (get-in curve [:descriptor :mnemonic])
 		  (into-array Object (reverse (:data curve)))))
-    table))
+    widget))
 
 (defn create-table-pane [table] (JScrollPane. table))

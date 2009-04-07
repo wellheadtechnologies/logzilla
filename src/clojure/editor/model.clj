@@ -1,5 +1,4 @@
 (ns editor.model
-  (:use storage)
   (:require lasso)
   (:import (org.jfree.ui RectangleEdge)))
 
@@ -11,3 +10,15 @@
 (defn row-to-index [row table]
   (- (dec (.getRowCount table)) row))
 
+(defstruct Editor
+  :frame 
+  :lasfile
+  :index
+  :slider
+  :table
+  :charts
+  :width
+  :height)
+
+(defstruct EditorGlobalMethods
+  :not-dragging-anything)

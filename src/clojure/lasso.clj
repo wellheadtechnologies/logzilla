@@ -109,30 +109,29 @@
     (abs (- (nth index-data 0) (nth index-data 1)))))
 
 (defn adjust-curves [curves]
-  (let [curves (doall (map deref-curve curves))]
-    (let [sample-rates (map sample-rate curves)]
-      (guard (all-samef sample-rates)
-	     "sample rates must all be the same")
-      (let [indices (map :index curves)
-	    srate (first sample-rates)
-	    aggregate-index (aggregate indices srate)]
-	[aggregate-index
-	 (let [_imin (round (first (:data aggregate-index)))
-	       _imax (round (last (:data aggregate-index)))]
-	   (for [curve curves]
-	     (let [_cmin (round (reduce min (get-in curve [:index :data])))
-		   _cmax (round (reduce max (get-in curve [:index :data])))
-		   cdata (:data curve)
-		   start-padding (/ (abs (- _cmin _imin)) srate)
-		   end-padding (/ (abs (- _cmax _imax)) srate)]
-	       (let [new-curve (assoc curve
-				 :data (apply vector (concat (repeat start-padding Double/NaN)
-							     cdata
-							     (repeat end-padding Double/NaN)))
-				 :index aggregate-index)
-		     new-curve-size (count (:data new-curve))
-		     aggregate-size (count (:data aggregate-index))]
-		 (guard (= new-curve-size aggregate-size)
-			(str "new-curve and aggregate index should be same size : " new-curve-size " vs " aggregate-size))
-		 new-curve))))
-	 ]))))
+  (let [sample-rates (map sample-rate curves)]
+    (guard (all-samef sample-rates)
+	   "sample rates must all be the same")
+    (let [indices (map :index curves)
+	  srate (first sample-rates)
+	  aggregate-index (aggregate indices srate)]
+      [aggregate-index
+       (let [_imin (round (first (:data aggregate-index)))
+	     _imax (round (last (:data aggregate-index)))]
+	 (for [curve curves]
+	   (let [_cmin (round (reduce min (get-in curve [:index :data])))
+		 _cmax (round (reduce max (get-in curve [:index :data])))
+		 cdata (:data curve)
+		 start-padding (/ (abs (- _cmin _imin)) srate)
+		 end-padding (/ (abs (- _cmax _imax)) srate)]
+	     (let [new-curve (assoc curve
+			       :data (apply vector (concat (repeat start-padding Double/NaN)
+							   cdata
+							   (repeat end-padding Double/NaN)))
+			       :index aggregate-index)
+		   new-curve-size (count (:data new-curve))
+		   aggregate-size (count (:data aggregate-index))]
+	       (guard (= new-curve-size aggregate-size)
+		      (str "new-curve and aggregate index should be same size : " new-curve-size " vs " aggregate-size))
+	       new-curve))))
+       ])))

@@ -21,3 +21,12 @@
 (defn scale-value [slider-notches scale-notches scale value]
   (let [ratio (/ slider-notches scale-notches)]
     (* (/ value ratio) scale)))
+
+(defstruct Chart
+  :editor
+  :chart-panel
+  :curve
+  :dirty-curve
+  :scale-notches
+  :changed-index
+  :dragged-entity)

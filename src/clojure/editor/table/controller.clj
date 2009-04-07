@@ -1,23 +1,24 @@
 (ns editor.table.controller
-  (:use util gutil storage global
-	editor.table.view)
-  (:import (javax.swing.event TableModelListener)))
+  (:use util gutil global
+	editor.table.view editor.table.model)
+  (:import (javax.swing.event TableModelListener)
+	   (javax.swing JScrollPane)))
 
-(defn show-cell [table row col]
+(defn show-cell [widget row col]
   (swing-io!
-   (let [rect (.getCellRect table row col true)]
-     (.scrollRectToVisible table rect))))
+   (let [rect (.getCellRect widget row col true)]
+     (.scrollRectToVisible widget rect))))
 
-(defn show-percentage [table n]
+(defn show-percentage [widget n]
   (let [n (abs (- 1 n))]
     (swing-io!   
       (guard (not (or (> n 1) (< n 0)))
 	     (str "invalid n must be from 0.0 to 1.0: " n))
-      (let [rows (dec (.getRowCount table))
+      (let [rows (dec (.getRowCount widget))
 	    row (* n rows)]
-	(show-cell table row 0)))))
+	(show-cell widget row 0)))))
 
-(defn init-listener [table-id]
+(defn init-listener [table]
   (proxy [TableModelListener] []
     (tableChanged [e]
 		  (guard (= (.getFirstRow e) (.getLastRow e))
@@ -25,18 +26,15 @@
 		  (let [row (.getFirstRow e)
 			col (.getColumn e)]
 		    (dosync 
-		     (change-in table-id [:altered] [row col]))))))
-
-(defn get-instance-properties [table]
-  (instance-properties
-   [:altered []]))
+		     (alter table assoc :altered [row col]))))))
 
 (defn init-table [aggregate-index dirty-curves]
-  (let [table (create-table aggregate-index dirty-curves)
-	table-id table
-	model (.getModel table)
-	props (get-instance-properties table)]
-    (store-properties table props)
-    (.addTableModelListener model (init-listener table-id))
-    table-id))
+  (let [widget (create-table-widget aggregate-index dirty-curves)
+	pane (JScrollPane. widget)
+	model (.getModel widget)
+	table (ref (struct-map Table
+		     :pane pane
+		     :widget widget))]
+    (.addTableModelListener model (init-listener table))
+    table))
 
