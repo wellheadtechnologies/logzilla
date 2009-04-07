@@ -1,7 +1,8 @@
 (ns app.controller
-  (:require file.controller)
+  (:require file.controller inspector.controller)
   (:use app.view app.model gutil global util)
   (:import (java.awt.event WindowAdapter)
+	   (java.awt Dimension)
 	   (javax.swing UIManager)))
 
 ;(System/setProperty "apple.laf.useScreenMenuBar" "true")
@@ -31,6 +32,20 @@
   :lasfile-pane
   :window-listeners)
 
+(def size-watcher (agent []))
+
+(defn resize [[old-width old-height] app]
+  (dosync 
+   (let [{:keys [width height frame]} @app]
+     (when (or (not= width old-width)
+	       (not= height old-height))
+       (swing 
+	(.setSize frame (Dimension. width height))
+	(.repaint frame)))
+     [width height])))
+
+(add-watcher app :send size-watcher resize)
+
 (defn init-app []
   (let [width 500
 	height 700
@@ -39,7 +54,7 @@
 	panel (create-main-panel)
 	menu-bar (create-menu-bar)
 	file-menu  (file.controller/init-file-menu file-manager)
-	window-menu (create-window-menu (fn [e] nil))
+	window-menu (create-window-menu (fn [e] (inspector.controller/open-inspector)))
 	lasfile-pane (:pane @file-manager)
 	window-listeners [exit-on-close]]
     (struct App width height frame panel menu-bar file-menu window-menu lasfile-pane window-listeners)))

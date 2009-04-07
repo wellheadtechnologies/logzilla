@@ -134,6 +134,7 @@
       (add-watcher chart :send chart-watcher (partial sync-table-with-chart editor col)))
 
     (swing
+     (table-controller/show-percentage (:widget @table) 0)
      (doto frame
        (.add main-panel)
        (.pack)

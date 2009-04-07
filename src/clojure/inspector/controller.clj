@@ -1,10 +1,8 @@
 (ns inspector.controller
-  (:use util gutil storage inspector.view))
+  (:use util gutil inspector.view))
 
-(store :inspector-window-properties
-       {:width 200
-	:height 400
-	:app-tab {:title "App"}})
+(defn init-inspector []
+  (create-inspector-window 200 400))
 
 (defn open-inspector []
-  (create-inspector-window (lookup :inspector-window-properties)))
+  (init-inspector))

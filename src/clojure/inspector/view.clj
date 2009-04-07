@@ -1,38 +1,38 @@
 (ns inspector.view
-  (:use storage gutil)
+  (:use global gutil)
   (:import (javax.swing JFrame JPanel JLabel JTextField) 
 	   (java.awt Dimension)
 	   (net.miginfocom.swing MigLayout)))
 
 (defn add-field [panel ltext value method]
-  (let [label (new JLabel ltext)
-	field (new JTextField (str value))]
+  (let [label (JLabel. ltext)
+	field (JTextField. (str value))]
     (on-action field (method field))
     (doto panel
       (.add label)
       (.add field "pushx, growx, wrap"))))
 
-(defn create-app-tab [properties]
+(defn create-app-tab []
   (let [panel (JPanel. (MigLayout.))]
     (doto panel
-      (add-field "Width" (lookup-in :app :width)
+      (add-field "Width" (:width @app)
 		 (fn [field]
 		   (swing 
 		    (let [value (Integer/valueOf (.getText field))]
-		      (change-in :app [:width] value)))))
-      (add-field "Height" (lookup-in :app :height)
+		      (dosync (alter app assoc :width value))))))
+      (add-field "Height" (:height @app)
 		 (fn [field] 
 		   (swing 
 		    (let [value (Integer/valueOf (.getText field))]
-		      (change-in :app [:height] value))))))))
+		      (dosync (alter app assoc :height value)))))))))
 
-(defn create-inspector-window [properties]
-  (let [frame (new JFrame "Inspector")
+(defn create-inspector-window [width height]
+  (let [frame (JFrame. "Inspector")
 	panel (JPanel. (MigLayout.))]
     (doto panel
-      (.add (create-app-tab (:app-tab properties)) "pushx, pushy, growx, growy"))
+      (.add (create-app-tab) "pushx, pushy, growx, growy"))
     (doto frame
       (.add panel)
       (.setResizable false)
-      (.setSize (Dimension. (:width properties) (:height properties)))
+      (.setSize (Dimension. width height))
       (.setVisible true))))
