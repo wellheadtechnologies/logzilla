@@ -10,8 +10,9 @@
     (stateChanged [event]
 		  (swing 
 		   (dosync 
-		    (let [value (.getValue (:widget @slider))]
-		      (alter slider assoc :value value)))))))
+		    (let [value (.getValue (:widget @slider))
+			  notches (:notches @slider)]
+		      (alter slider assoc :value (/ value notches))))))))
 
 (defn init-slider [notches] 
   (let [widget (create-depth-slider notches)

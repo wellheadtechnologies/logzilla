@@ -3,4 +3,6 @@
 (defstruct Table 
   :pane
   :widget
-  :altered)
+  :altered-row
+  :altered-col
+  :altered-val)

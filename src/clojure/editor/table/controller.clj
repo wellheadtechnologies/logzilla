@@ -24,9 +24,12 @@
 		  (guard (= (.getFirstRow e) (.getLastRow e))
 			 "first row must equal last row")
 		  (let [row (.getFirstRow e)
-			col (.getColumn e)]
+			col (.getColumn e)
+			val (.. (:widget @table) (getModel) (getValueAt row col))]
 		    (dosync 
-		     (alter table assoc :altered [row col]))))))
+		     (alter table assoc :altered-row row)
+		     (alter table assoc :altered-col col)
+		     (alter table assoc :altered-val val))))))
 
 (defn init-table [aggregate-index dirty-curves]
   (let [widget (create-table-widget aggregate-index dirty-curves)

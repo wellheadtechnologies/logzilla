@@ -10,6 +10,11 @@
 (defn row-to-index [row table]
   (- (dec (.getRowCount table)) row))
 
+(defn convert-to-double [value]
+  (if (string? value)
+    (Double/valueOf value)
+    (double value)))
+
 (defstruct Editor
   :frame 
   :lasfile
@@ -22,3 +27,4 @@
 
 (defstruct EditorGlobalMethods
   :not-dragging-anything)
+

@@ -71,7 +71,8 @@
 	    :get-selected-file get-selected-file
 	    :get-selected-curves get-selected-curves
 	    :add-curve add-curve
-	    :add-lasfile add-lasfile)))
+	    :add-lasfile add-lasfile
+	    :open-curve-editor open-curve-editor)))
 
 (defn open-curve-editor-action [file-manager e]
   (when (and (= (.getButton e) MouseEvent/BUTTON1)

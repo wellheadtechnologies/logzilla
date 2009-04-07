@@ -2,9 +2,7 @@
   (:use util gutil global file.contextmenu.view file.model)
   (:import (java.awt.event MouseEvent MouseAdapter)))
 
-(defn edit [e] nil)
-
-(def get-selected-curves nil)
+(defn edit [file-manager e] (fm-invoke :open-curve-editor file-manager))
 
 (defn copy [file-manager e]
   (swing
@@ -28,7 +26,7 @@
 		  (when (= (.getButton e) MouseEvent/BUTTON3)
 		    (create-context-menu
 		     curve-list (.getX e) (.getY e) 
-		     {:edit edit
+		     {:edit (partial edit file-manager)
 		      :copy (partial copy file-manager)
 		      :paste (partial paste file-manager)
 		      :remove _remove

@@ -15,4 +15,5 @@
   :get-selected-file
   :get-selected-curves
   :add-curve
-  :add-lasfile)
+  :add-lasfile
+  :open-curve-editor)

@@ -35,30 +35,36 @@
      (.setAutoRange false)
      (.setRange (Range. min-depth (+ min-depth scale))))))
 
-;(defn change-dragged-plot [chart-id chart-event]
-;  (change-in chart-id [:dragged-entity] (.getEntity chart-event)))
-;
-;(defn drag-plot [chart-id chart-event]
-;  (dosync 
-;   (let [dragged-entity (lookup-in chart-id :dragged-entity)
-;	 chart-panel (lookup-in chart-id :chart-panel)]
-;     (when dragged-entity
-;       (swing
-;	(let [mouse-event (.getTrigger chart-event)
-;	      series (retrieve-series chart-panel)
-;	      index (.getItem dragged-entity)
-;	      new-value (java-2D-to-value chart-panel (.getX mouse-event))]
-;	  (when (not (or (.isNaN new-value) (.isInfinite new-value)))
-;	    (.updateByIndex series index new-value)
-;	    (.repaint chart-panel)
-;	    (dosync 
-;	     (change-in chart-id [:dirty-curve :data index] new-value)
-;	     (change-in chart-id [:changed-index] index)))))))))
-;
-;(defn init-chart-mouse-listener [chart curve]
-;  (proxy [ChartMouseListener] []
-;    (chartMouseClicked [e] (change-dragged-plot chart curve e))
-;    (chartMouseMoved [e] (drag-plot chart-id curve e))))
+(defn change-dragged-plot [chart chart-event]
+  (dosync 
+   (alter chart assoc :dragged-entity (.getEntity chart-event))))
+
+(defn alter-chart [chart index new-value]
+  (dosync 
+   (let [chart-panel (:chart-panel @chart)]
+     (alter chart assoc-in [:dirty-curve :data index] new-value)
+     (alter chart assoc :changed-index index)
+     (swing
+      (let [series (retrieve-series chart-panel)]
+	(.updateByIndex series index new-value))))))
+
+(defn drag-plot [chart chart-event]
+  (dosync 
+   (let [dragged-entity (:dragged-entity @chart)
+	 chart-panel (:chart-panel @chart)]
+     (when dragged-entity
+       (swing
+	(let [mouse-event (.getTrigger chart-event)
+	      series (retrieve-series chart-panel)
+	      index (.getItem dragged-entity)
+	      new-value (java-2D-to-value chart-panel (.getX mouse-event))]
+	  (when (not (or (.isNaN new-value) (.isInfinite new-value)))
+	    (alter-chart chart index new-value))))))))
+
+(defn init-chart-mouse-listener [chart]
+  (proxy [ChartMouseListener] []
+    (chartMouseClicked [e] (change-dragged-plot chart e))
+    (chartMouseMoved [e] (drag-plot chart e))))
 
 (defn init-chart [editor curve dirty-curve scale-notches] 
   (let [chart-panel (init-chart-panel dirty-curve)
@@ -70,6 +76,8 @@
 		     :scale-notches scale-notches))
 	min-d (min-depth dirty-curve)
 	max-d (max-depth dirty-curve)
-	scale (get-scale min-d max-d scale-notches)]
+	scale (get-scale min-d max-d scale-notches)
+	listener (init-chart-mouse-listener chart)]
+    (.addChartMouseListener chart-panel listener)
     (reset-xaxis chart-panel min-d scale)
     chart))
