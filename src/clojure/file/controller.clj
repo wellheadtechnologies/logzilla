@@ -25,7 +25,6 @@
 	 pane (:pane @file-manager)
 	 file (init-file file-manager lasfile)]
      (alter file-manager assoc :files (conj files file))
-     (println "view = " (:view @file))
      (swing (.addTab pane (:name @lasfile) (:view @file))))))
 
 (defn add-curve-to-gui [curve-list curve]
@@ -34,17 +33,17 @@
      (.addElement (.getModel curve-list) icon)
      (.repaint curve-list))))
 
-(defn add-curve [file curve-ref]
+(defn add-curve [file curve]
   (dosync 
    (let [lasfile (:lasfile @file)
-	 curve-list (:curve-list @file)
-	 curve @curve-ref]
-     (alter lasfile assoc :curves (conj (:curves lasfile) curve-ref))
+	 curves (:curves @lasfile)
+	 curve-list (:curve-list @file)]
+     (alter lasfile assoc :curves (conj curves curve))
      (long-task (add-curve-to-gui curve-list curve)))))
 
-(defn open-curve-editor [file-ref]
+(defn open-curve-editor [file-manager]
   (swing 
-   (let [file @file-ref
+   (let [file @(get-selected-file file-manager)
 	 selected-curve-ids (get-selected-curves (:curve-list file))
 	 selected-lasfile (:lasfile file)]
      (long-task nil
@@ -73,21 +72,18 @@
 	    :add-curve add-curve
 	    :add-lasfile add-lasfile)))
 
-(defn open-curve-editor-action [file-manager]
-  (fn [e]
-    (when (and (= (.getButton e) MouseEvent/BUTTON1)
-	       (= (.getClickCount e) 2))
-      (open-curve-editor file-manager))))
+(defn open-curve-editor-action [file-manager e]
+  (when (and (= (.getButton e) MouseEvent/BUTTON1)
+	     (= (.getClickCount e) 2))
+    (open-curve-editor file-manager)))
 
 (defn init-curve-list [file-manager curves]
   (let [curve-list (create-curve-list)]
-    (println "init curve-list with curves = " (count curves))
     (long-task
       (doseq [curve curves]
-	(println "adding curve " (:descriptor @curve))
-	(add-curve-to-gui curve-list @curve)))
+	(add-curve-to-gui curve-list curve)))
     (doto curve-list
-      (.addMouseListener (click-listener open-curve-editor-action))
+      (.addMouseListener (click-listener (partial open-curve-editor-action file-manager)))
       (.addMouseListener (cmc/init-listener file-manager curve-list)))
     curve-list))
 
