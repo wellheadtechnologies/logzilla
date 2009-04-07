@@ -23,3 +23,13 @@
   `(send print-executor 
 	 (fn [_#]
 	   (println ~@body))))
+
+(def app (ref nil))
+
+(def copied-curves (ref []))
+
+(def file-methods (ref {}))
+
+(defmacro fm-invoke [name & args]
+  `(let [method# (get @file-methods ~name)]
+     (method# ~@args)))

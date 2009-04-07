@@ -1,4 +1,4 @@
-(ns lasfile.contextmenu.view
+(ns file.contextmenu.view
   (:use gutil util global))
 
 (defn create-context-menu [curve-list x y cm-actions]

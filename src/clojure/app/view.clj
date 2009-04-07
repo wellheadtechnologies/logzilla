@@ -7,7 +7,7 @@
 (defn create-main-frame [] (new JFrame "Logzilla"))
 (defn create-main-panel [] (new JPanel (new MigLayout)))
 (defn create-menu-bar [] (new JMenuBar))
-(defn create-window-menu [{:keys [open-inspector]}]
+(defn create-window-menu [open-inspector]
   (let [menu (new JMenu "Windows")]
     (actions menu
       ["Inspector" open-inspector])

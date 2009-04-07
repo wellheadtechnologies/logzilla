@@ -1,6 +1,5 @@
 (ns lasso
   (:use util global)
-  (:require storage)
   (:import (java.io PushbackReader BufferedReader InputStreamReader
 		    BufferedWriter OutputStreamWriter StringReader
 		    StringWriter)
@@ -35,27 +34,26 @@
 	(assoc curve 
 	  :data (replace-nan-with-null (:data curve)))))))
 
-(defn- deconstruct-and-store-lasfile [lasfile]
+(defn deref-curve [curve]
+  (assoc curve :index @(:index curve)))
+
+(defn- referrize-lasfile [lasfile]
   (let [index (:index lasfile)
 	curves (:curves lasfile)
 	headers (:headers lasfile)
-	stored-index (storage/store index)
-	curves (map #(assoc % :index stored-index) curves)
-	stored-curves (doall (map storage/store curves))
-	stored-headers (doall (map storage/store headers))
-	stored-lasfile (storage/store 
-			(assoc lasfile 
-			  :index stored-index
-			  :curves stored-curves
-			  :headers stored-headers))]
-    stored-lasfile))
-
-(defn reconstruct-curve [curve]
-  (assoc curve 
-    :index (storage/lookup (:index curve))))
+	referrized-index (ref index)
+	curves (map #(assoc % :index referrized-index) curves)
+	referrized-curves (doall (map ref curves))
+	referrized-headers (doall (map ref headers))
+	referrized-lasfile (ref 
+			    (assoc lasfile 
+			      :index referrized-index
+			      :curves referrized-curves
+			      :headers referrized-headers))]
+    referrized-lasfile))
 
 (defn load-lasfile [path]
-  (deconstruct-and-store-lasfile 
+  (referrize-lasfile 
    (let [reader (new LasFileParser)
 	 writer (new ClojureWriter)
 	 lf (.readLasFile reader path)
@@ -111,7 +109,7 @@
     (abs (- (nth index-data 0) (nth index-data 1)))))
 
 (defn adjust-curves [curves]
-  (let [curves (doall (map reconstruct-curve curves))]
+  (let [curves (doall (map deref-curve curves))]
     (let [sample-rates (map sample-rate curves)]
       (guard (all-samef sample-rates)
 	     "sample rates must all be the same")

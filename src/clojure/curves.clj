@@ -1,4 +1,5 @@
 (ns curves 
+  (:require lasso)
   (:use util)
   (:import (org.jfree.chart ChartFactory)
 	   (gui ImageUtil CurveLabel)
@@ -53,8 +54,8 @@
 
 (defn fast-scale [image x y] (ImageUtil/fastScale image x y))
 
-(defn curve-to-icon [id curve]
-  (let [chart (create-chart curve)
+(defn curve-to-icon [curve]
+  (let [chart (create-chart (lasso/deref-curve curve))
 	image (new BufferedImage 400 700 BufferedImage/TYPE_INT_ARGB)
 	graphics (.createGraphics image)]
     (.draw chart graphics (new Rectangle 0 0 400 700) nil nil)
@@ -62,7 +63,7 @@
     (let [final-image (render-shadow (fast-scale image 64 64))
 	  icon (new ImageIcon final-image)
 	  name (get-in curve [:descriptor :mnemonic])]
-      (new CurveLabel id name icon SwingConstants/LEFT))))
+      (new CurveLabel curve name icon SwingConstants/LEFT))))
 
 (defn min-depth [curve]
   (let [index-data (get-in curve [:index :data])]

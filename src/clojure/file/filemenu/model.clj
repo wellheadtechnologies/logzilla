@@ -1,4 +1,4 @@
-(ns lasfile.filemenu.model
+(ns file.filemenu.model
   (:require lasso))
 
 (defn open-file [file]

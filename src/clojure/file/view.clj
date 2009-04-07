@@ -1,4 +1,4 @@
-(ns lasfile.view
+(ns file.view
   (:use gutil)
   (:import (javax.swing JMenu JFileChooser JPanel 
 			JScrollPane JList DefaultListModel
