@@ -36,9 +36,11 @@
 
 (defn add-curve-to-gui [curve-list curve]
   (let [icon (curve-to-icon curve)]
-    (swing 
-     (.addElement (.getModel curve-list) icon)
-     (.repaint curve-list))))
+    (dosync 
+     (alter curve assoc :icon icon)
+     (swing 
+      (.addElement (.getModel curve-list) icon)
+      (.repaint curve-list)))))
 
 (defn add-curve [file curve]
   (dosync 
@@ -86,6 +88,10 @@
 
 (defn init-curve-list [file-manager curves]
   (let [curve-list (create-curve-list)]
+    (on-click curve-list 
+      (fn [e] 
+	(let [curves (get-selected-curves curve-list)]
+	  (switch-inspector-tab :curves curves))))
     (long-task
       (doseq [curve curves]
 	(add-curve-to-gui curve-list curve)))

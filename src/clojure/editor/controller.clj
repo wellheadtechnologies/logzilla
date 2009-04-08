@@ -88,12 +88,10 @@
 	   new-col (:altered-col @table)
 	   new-val (:altered-val @table)
 	   chart (nth (:charts @editor) (dec new-col))]
-       (when (and (not (and (= old-row new-row)
-			    (= old-col new-col)
-			    (= old-val new-val)))
-		  (not (nil? new-row))
-		  (not (nil? new-col))
-		  (not (nil? new-val)))
+       (when (and (not-any? nil? [new-row new-col new-val])
+		  (or (not= old-col new-col)
+		      (not= old-row new-row)
+		      (not= old-val new-val)))
 	 (swing
 	  (let [index (row-to-index new-row (:widget @table))
 		new-val (convert-to-double new-val)]

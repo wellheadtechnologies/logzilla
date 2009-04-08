@@ -1,6 +1,6 @@
 (ns gutil
   (:import (java.awt.event ActionListener)
-	   (javax.swing JPanel JLabel JButton
+	   (javax.swing JPanel JLabel JButton JTextArea
 			JFileChooser JMenu JPopupMenu 
 			SwingUtilities JList DefaultListModel
 			JTabbedPane BorderFactory JTextField)
@@ -99,13 +99,21 @@
     b))
 
 (defn add-field [panel ltext value method]
-  (swing-io! 
-   (let [label (JLabel. ltext)
-	 field (JTextField. (str value))]
-     (on-action field (method field))
-     (doto panel
-       (.add label)
-       (.add field "pushx, growx, wrap")))))
+  (let [label (JLabel. ltext)
+	field (JTextField. (str value))]
+    (on-action field (method field))
+    (doto panel
+      (.add label)
+      (.add field "pushx, growx, wrap"))))
+
+(defn add-text-area [panel ltext value method]
+  (let [label (JLabel. ltext)
+	area (JTextArea. (str value))]
+    (.setLineWrap area true)
+    (doto panel
+      (.add label "align 50%, spanx 2, wrap")
+      (.add area "spanx 2, push, grow, wrap"))))
+
 
 (defn text-field [value]
   (println "value = " value)
