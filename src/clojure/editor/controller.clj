@@ -2,13 +2,13 @@
   (:require lasso
 	    [editor.chart.controller :as chart-controller]
 	    [editor.slider.controller :as slider-controller]
-	    [editor.table.controller :as table-controller])
+	    [editor.table.controller :as table-controller]
+	    editor.chart.panel)
   (:use editor.model editor.view util global gutil curves)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane)
 	   (org.jfree.data Range)
-	   (org.jfree.chart ChartMouseListener)
-	   (gui CustomChartPanel)))
+	   (org.jfree.chart ChartMouseListener)))
 
 (defn not-dragging-anything [editor]
   (dosync 
@@ -97,7 +97,7 @@
 	 (swing
 	  (let [index (row-to-index new-row (:widget @table))
 		new-val (convert-to-double new-val)]
-	    (chart-controller/alter-chart chart index new-val))))
+	    (editor.chart.panel/set-chart-value chart index new-val))))
        [new-row new-col old-val]))))
 
 (defn open-curve-editor [lasfile curves]   
