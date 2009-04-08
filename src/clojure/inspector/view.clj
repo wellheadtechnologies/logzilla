@@ -1,16 +1,8 @@
 (ns inspector.view
   (:use global gutil)
-  (:import (javax.swing JFrame JPanel JLabel JTextField) 
+  (:import (javax.swing JFrame JPanel JLabel JTextField JTabbedPane) 
 	   (java.awt Dimension)
 	   (net.miginfocom.swing MigLayout)))
-
-(defn add-field [panel ltext value method]
-  (let [label (JLabel. ltext)
-	field (JTextField. (str value))]
-    (on-action field (method field))
-    (doto panel
-      (.add label)
-      (.add field "pushx, growx, wrap"))))
 
 (defn create-app-tab []
   (let [panel (JPanel. (MigLayout.))]
@@ -28,11 +20,10 @@
 
 (defn create-inspector-window [width height]
   (let [frame (JFrame. "Inspector")
-	panel (JPanel. (MigLayout.))]
+	panel (JTabbedPane.)]
     (doto panel
-      (.add (create-app-tab) "pushx, pushy, growx, growy"))
+      (.addTab "App" (create-app-tab)))
     (doto frame
       (.add panel)
-      (.setResizable false)
       (.setSize (Dimension. width height))
       (.setVisible true))))

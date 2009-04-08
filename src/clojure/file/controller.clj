@@ -1,14 +1,20 @@
 (ns file.controller
   (:require [file.filemenu.controller :as fmc]
 	    [file.contextmenu.controller :as cmc]
+	    [file.headerdialog.controller :as header-dialog]
 	    editor.controller)
   (:use file.view file.model gutil util curves global)
-  (:import (javax.swing JFileChooser JLabel JList DefaultListModel)
+  (:import (javax.swing JFileChooser JLabel JList DefaultListModel JScrollPane
+			JSplitPane JTabbedPane JToggleButton JPanel JButton JDialog
+			JTable)
 	   (java.awt.event MouseEvent MouseAdapter)
+	   (java.awt Dimension)
 	   (javax.swing.event ChangeListener)
-	   (gui IconListCellRenderer)))
+	   (javax.swing.table DefaultTableModel)
+	   (gui IconListCellRenderer)
+	   (net.miginfocom.swing MigLayout)))
 
-(declare init-curve-list init-lasfile-view init-file)
+(declare init-curve-list init-curve-list-view init-file)
 
 (defn get-selected-curves [curve-list]
   (swing-io! (doall (map #(.getCurve %) (.getSelectedValues curve-list)))))
@@ -50,7 +56,6 @@
      (long-task
       (editor.controller/open-curve-editor lasfile curves)))))
 
-
 (defn tab-right [file-manager]
   (swing 
     (let [pane (get @file-manager :pane)
@@ -89,20 +94,32 @@
       (.addMouseListener (cmc/init-listener file-manager curve-list)))
     curve-list))
 
-(defn init-lasfile-view [curve-list]
-  (create-lasfile-view curve-list))
+(defn init-curve-list-view [curve-list]
+  (create-curve-list-view curve-list))
 
 (defn init-file-menu [file-manager] (fmc/init-menu file-manager))
 
+(defn init-save-lasfile-button [lasfile]
+  (let [button (JButton. "Save Lasfile")]
+    (.putClientProperty button "JButton.buttonType" "textured")
+    button))
+
 (defn init-file [file-manager lasfile]
   (let [curve-list (init-curve-list file-manager (:curves @lasfile))
-	view (create-lasfile-view curve-list)
-	file (struct File lasfile curve-list view)]
+	curve-list-view (create-curve-list-view curve-list)
+	panel (JPanel. (MigLayout. "nogrid"))
+	edit-headers-button (header-dialog/init-edit-button lasfile)
+	save-button (init-save-lasfile-button lasfile)
+	file (struct File lasfile curve-list panel)]
+    (doto panel
+      (.add curve-list-view "push, grow, spanx 2, wrap")
+      (.add edit-headers-button "alignx 10%")
+      (.add save-button "wrap"))
     (ref file)))
 
 (defn init-file-manager []
   (ref 
    (struct-map FileManager
      :files []
-     :pane (create-lasfile-pane))))
+     :pane (create-file-pane))))
 

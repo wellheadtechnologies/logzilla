@@ -3,7 +3,7 @@
 	   (javax.swing JPanel JLabel JButton
 			JFileChooser JMenu JPopupMenu 
 			SwingUtilities JList DefaultListModel
-			JTabbedPane BorderFactory)
+			JTabbedPane BorderFactory JTextField)
 	   (java.awt Dimension)
 	   (java.awt.event MouseAdapter)
 	   (gui IconListCellRenderer)
@@ -97,3 +97,31 @@
      (proxy [ActionListener] []
        (actionPerformed [e] (fun e))))
     b))
+
+(defn add-field [panel ltext value method]
+  (swing-io! 
+   (let [label (JLabel. ltext)
+	 field (JTextField. (str value))]
+     (on-action field (method field))
+     (doto panel
+       (.add label)
+       (.add field "pushx, growx, wrap")))))
+
+(defn text-field [value]
+  (println "value = " value)
+  (doto (new JTextField value)
+    (.setText (str value))
+    (.repaint)))
+
+(defn add-descriptor-field [panel descriptor]
+  (swing-io!
+   (println "adding descriptor = " descriptor)
+   (let [label (JLabel. (:mnemonic descriptor))
+	 unit  (text-field (:unit descriptor))
+	 value (text-field (:data descriptor))
+	 description (text-field (:description descriptor))]
+     (doto panel
+       (.add label "growx, pushx")
+       (.add unit "growx, pushx")
+       (.add value "growx, pushx")
+       (.add description "growx, pushx, wrap")))))

@@ -15,7 +15,7 @@
       (.setBackground (.getBackground (new JPanel)))
       (.setOpaque false))))
 
-(defn create-lasfile-view [curve-list]
+(defn create-curve-list-view [curve-list]
   (let [inner-panel (new JPanel (new MigLayout))
 	pane (new JScrollPane inner-panel)
 	outer-panel (new JPanel (new MigLayout))]
@@ -24,5 +24,5 @@
     (doto outer-panel
       (.add pane "pushx, pushy, growx, growy, wrap"))))
 
-(defn create-lasfile-pane []
+(defn create-file-pane []
   (new JTabbedPane))
