@@ -76,8 +76,20 @@
 				  (reverse (:data curve))
 				  (:data curve))))))))))
 
+(defn dereferrize-lasfile [lasfile]
+  (dosync 
+   (let [curves (doall (map deref (:curves @lasfile)))
+	 curves (doall (map deref-curve curves))
+	 headers (doall (map deref (:headers @lasfile)))
+	 index (deref (:index @lasfile))]
+     (assoc @lasfile
+       :curves curves
+       :headers headers
+       :index index))))
+
 (defn save-lasfile [lasfile]
-  (let [lasfile (assoc lasfile :curves (concat [(:index lasfile)] (:curves lasfile)))
+  (let [lasfile (dereferrize-lasfile lasfile)
+	lasfile (assoc lasfile :curves (concat [(:index lasfile)] (:curves lasfile)))
 	lasfile (assoc lasfile :curves (map #(dissoc % :index) (:curves lasfile)))
 	lasfile (insert-nulls lasfile)
 	lasfile (assoc lasfile :curves 

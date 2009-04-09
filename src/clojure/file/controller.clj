@@ -122,6 +122,8 @@
 (defn init-save-lasfile-button [lasfile]
   (let [button (JButton. "Save Lasfile")]
     (.putClientProperty button "JButton.buttonType" "textured")
+    (on-action button
+      (lasso/save-lasfile lasfile))
     button))
 
 (defn init-file [file-manager lasfile]
