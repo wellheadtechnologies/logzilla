@@ -3,7 +3,7 @@
   (:require global))
 
 (defn init-inspector []
-  (create-inspector-window 200 400))
+  (create-inspector-window 225 400))
 
 (def inspector (init-inspector))
 

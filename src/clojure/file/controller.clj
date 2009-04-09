@@ -9,15 +9,31 @@
 			JTable)
 	   (java.awt.event MouseEvent MouseAdapter)
 	   (java.awt Dimension)
-	   (javax.swing.event ChangeListener)
+	   (javax.swing.event ChangeListener ListSelectionListener)
 	   (javax.swing.table DefaultTableModel)
 	   (gui IconListCellRenderer)
 	   (net.miginfocom.swing MigLayout)))
 
 (declare init-curve-list init-curve-list-view init-file)
 
+(def curve-watcher (agent nil))
+
+(defn update-curve-icon [curve-list old-descriptor curve]
+  (dosync 
+   (let [icon (:icon @curve)
+	 descriptor (:descriptor @curve)]
+     (when (not= descriptor old-descriptor)
+       (swing 
+	(.setText icon (:mnemonic descriptor))
+	(.repaint curve-list)))
+     descriptor)))
+
 (defn get-selected-curves [curve-list]
   (swing-io! (doall (map #(.getCurve %) (.getSelectedValues curve-list)))))
+
+(defn init-inspector-listener [curve-list]
+  (proxy [ListSelectionListener] []
+    (valueChanged [e] (switch-inspector-tab :curves (get-selected-curves curve-list)))))
 
 (defn get-selected-file [file-manager]
   (swing-io! 
@@ -38,6 +54,7 @@
   (let [icon (curve-to-icon curve)]
     (dosync 
      (alter curve assoc :icon icon)
+     (add-watcher curve :send curve-watcher (partial update-curve-icon curve-list))
      (swing 
       (.addElement (.getModel curve-list) icon)
       (.repaint curve-list)))))
@@ -88,10 +105,7 @@
 
 (defn init-curve-list [file-manager curves]
   (let [curve-list (create-curve-list)]
-    (on-click curve-list 
-      (fn [e] 
-	(let [curves (get-selected-curves curve-list)]
-	  (switch-inspector-tab :curves curves))))
+    (.addListSelectionListener curve-list (init-inspector-listener curve-list))
     (long-task
       (doseq [curve curves]
 	(add-curve-to-gui curve-list curve)))
