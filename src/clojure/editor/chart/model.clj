@@ -1,5 +1,5 @@
 (ns editor.chart.model
-  (:use gutil)
+  (:use gutil util)
   (:import (org.jfree.ui RectangleEdge)))
 
 (defn java-2D-to-value [chart-panel x]
@@ -13,9 +13,9 @@
   (swing-io! 
    (first (.. chart-panel (getChart) (getPlot) (getDataset) (getSeries)))))
 
-(defn get-scale [min-depth max-depth scale-notches]
-  (let [diff (- max-depth min-depth)
-	scale (/ diff scale-notches)]
+(defn get-unit-scale [min-d max-d scale]
+  (let [range (abs (- max-d min-d))
+	scale (/ range scale)]
     scale))
 
 (defn scale-value [slider-notches scale-notches scale value]
@@ -27,6 +27,7 @@
   :chart-panel
   :curve
   :dirty-curve
-  :scale-notches
+  :scale
+  :extent
   :changed-index
   :dragged-entity)

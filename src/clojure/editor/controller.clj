@@ -8,7 +8,7 @@
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton ImageIcon JPanel
 			ScrollPaneConstants)
-	   (java.awt Dimension)
+	   (java.awt Dimension Color)
 	   (org.jfree.data Range)
 	   (org.jfree.chart ChartMouseListener)
 	   (net.miginfocom.swing MigLayout)))
@@ -51,12 +51,16 @@
 	panel (create-panel
 	       [tool-panel "width 30%, height 100%"])]
     (swing 
+     (doto chart-pane
+       (.setBackground Color/white))
+     (doto charts-panel
+       (.setBackground Color/white))
      (doseq [chart charts]
        (let [chart-panel (:chart-panel @chart)]
 	 (.add charts-panel chart-panel (str "width 350, height " (- height 50)))))
      (doto panel
        (.add chart-pane (str "width " width ", height " height ", push, grow"))
-       (.add toolbar)))
+       (.add toolbar "pushy, growy")))
     panel))
 
 (def slider-watcher (agent nil))
@@ -108,15 +112,32 @@
 	    (editor.chart.panel/set-chart-value chart index new-val))))
        [new-row new-col old-val]))))
 
-(defn init-zoom-in-button []
+(defn init-zoom-in-button [editor]
   (let [button (JButton. (ImageIcon. "resources/zoom-in.png"))]
+    (on-action button
+      (dosync 
+       (let [charts (:charts @editor)]
+	 (doseq [chart charts]
+	   (alter chart assoc :scale (inc (:scale @chart)))))))
     button))
 
-(defn init-toolbar []
+(defn init-zoom-out-button [editor]
+  (let [button (JButton. (ImageIcon. "resources/zoom-out.png"))]
+    (on-action button 
+      (dosync 
+       (let [charts (:charts @editor)]
+	 (doseq [chart charts]
+	   (alter chart assoc :scale (dec (:scale @chart)))))))
+    button))
+
+(defn init-toolbar [editor]
   (let [toolbar (JToolBar. JToolBar/VERTICAL)
-	zoom-in-button (init-zoom-in-button)]
+	zoom-in-button (init-zoom-in-button editor)
+	zoom-out-button (init-zoom-out-button editor)]
     (doto toolbar
-      (.add zoom-in-button))))
+      (.setFloatable false)
+      (.add zoom-in-button)
+      (.add zoom-out-button))))
 
 (defn open-curve-editor [lasfile curves]   
   (let [frame (init-frame lasfile curves)
@@ -138,7 +159,7 @@
 		       :charts charts)
 	saveb (init-save-button editor)
 	mergeb (init-merge-button editor)
-	tool-bar (init-toolbar)
+	tool-bar (init-toolbar editor)
 	tool-panel (init-tool-panel slider table saveb mergeb)
 	main-panel (init-main-panel charts tool-panel tool-bar)]
     (dosync (ref-set editor editor-props))

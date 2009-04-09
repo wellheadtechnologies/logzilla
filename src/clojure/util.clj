@@ -79,7 +79,6 @@
     (not (some #(> (- example %) 0.00001) coll))))
 
 (defn exec [command]
-  (println "command = " command)
   (let [runtime (Runtime/getRuntime)
 	proc (.exec runtime command)]
     proc))
