@@ -6,9 +6,12 @@
 	    editor.chart.panel)
   (:use editor.model editor.view util global gutil curves)
   (:import (javax.swing.event TableModelListener ChangeListener)
-	   (javax.swing JFrame JScrollPane)
+	   (javax.swing JFrame JScrollPane JToolBar JButton ImageIcon JPanel
+			ScrollPaneConstants)
+	   (java.awt Dimension)
 	   (org.jfree.data Range)
-	   (org.jfree.chart ChartMouseListener)))
+	   (org.jfree.chart ChartMouseListener)
+	   (net.miginfocom.swing MigLayout)))
 
 (defn not-dragging-anything [editor]
   (dosync 
@@ -40,13 +43,20 @@
    [saveb "cell 1 1"]
    [mergeb "cell 2 1"]))
 
-(defn init-main-panel [charts tool-panel width height]
-  (let [panel (create-panelS
-	       {:width width, :height height}
-	       [tool-panel "pushy, growy"])]
+(defn init-main-panel [charts tool-panel toolbar]
+  (let [charts-panel (JPanel. (MigLayout.))
+	chart-pane (JScrollPane. charts-panel)
+	width (with-limit 1000 (* 400 (count charts)))
+	height 700
+	panel (create-panel
+	       [tool-panel "width 30%, height 100%"])]
     (swing 
      (doseq [chart charts]
-       (.add panel (:chart-panel @chart) "pushx, pushy, growx, growy")))
+       (let [chart-panel (:chart-panel @chart)]
+	 (.add charts-panel chart-panel (str "width 350, height " (- height 50)))))
+     (doto panel
+       (.add chart-pane (str "width " width ", height " height ", push, grow"))
+       (.add toolbar)))
     panel))
 
 (def slider-watcher (agent nil))
@@ -98,6 +108,16 @@
 	    (editor.chart.panel/set-chart-value chart index new-val))))
        [new-row new-col old-val]))))
 
+(defn init-zoom-in-button []
+  (let [button (JButton. (ImageIcon. "resources/zoom-in.png"))]
+    button))
+
+(defn init-toolbar []
+  (let [toolbar (JToolBar. JToolBar/VERTICAL)
+	zoom-in-button (init-zoom-in-button)]
+    (doto toolbar
+      (.add zoom-in-button))))
+
 (defn open-curve-editor [lasfile curves]   
   (let [frame (init-frame lasfile curves)
 	[index dirty-curves] (lasso/adjust-curves (map (comp lasso/deref-curve deref) curves))
@@ -107,8 +127,6 @@
 		 (chart-controller/init-chart editor c d scale-notches))
 	depth-data (:data index)
 	slider-notches 200
-	width (* 600 (count curves))
-	height 700
 	slider (slider-controller/init-slider slider-notches)
 	table (table-controller/init-table index dirty-curves)
 	editor-props (struct-map Editor
@@ -117,20 +135,17 @@
 		       :index index 
 		       :slider slider
 		       :table table
-		       :charts charts
-		       :width width
-		       :height height)
+		       :charts charts)
 	saveb (init-save-button editor)
 	mergeb (init-merge-button editor)
+	tool-bar (init-toolbar)
 	tool-panel (init-tool-panel slider table saveb mergeb)
-	main-panel (init-main-panel charts tool-panel width height)]
-
+	main-panel (init-main-panel charts tool-panel tool-bar)]
     (dosync (ref-set editor editor-props))
     (add-watcher slider :send slider-watcher (partial scroll-table-and-chart editor))
     (add-watcher table :send table-watcher (partial sync-chart-with-table editor))
     (doseq [[chart col] (tuplize charts (range 1 (inc (count charts))))]
       (add-watcher chart :send chart-watcher (partial sync-table-with-chart editor col)))
-
     (swing
      (table-controller/show-percentage (:widget @table) 0)
      (doto frame
