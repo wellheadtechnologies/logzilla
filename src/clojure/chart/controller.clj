@@ -18,12 +18,12 @@
 
 (defmethod show-percentage :chart [chart percentage]
   (dosync 
-   (let [chart-panel (:chart-panel @chart)
+   (let [{:keys [chart-panel dirty-curves]} @chart
 	 xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
-	 dirty-curve (only (:dirty-curves @chart))
+	 exemplar (first dirty-curves)
 	 chart-range (get-chart-range xaxis)
-	 depth-range (get-depth-range dirty-curve)
-	 mind (min-depth dirty-curve)
+	 depth-range (get-depth-range exemplar)
+	 mind (min-depth exemplar)
 	 scale (get-scale depth-range chart-range)
 	 unit (get-unit depth-range scale)
 	 lower (+ mind (* percentage depth-range))
@@ -96,3 +96,9 @@
   (dosync 
    (let [percentage (:percentage-shown @chart)]
      (show-percentage chart (- percentage 1/100)))))
+
+(defn enable-dragging [chart]
+  (suppress (dosync (alter chart assoc :dragging-enabled true))))
+
+(defn disable-dragging [chart]
+  (suppress (dosync (alter chart assoc :dragging-enabled false))))
