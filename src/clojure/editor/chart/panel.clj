@@ -1,7 +1,8 @@
 (ns editor.chart.panel
   (:use util gutil global editor.chart.model)
   (:import (org.jfree.chart ChartPanel)
-	   (java.awt.event MouseAdapter MouseMotionAdapter)))
+	   (java.awt.event MouseAdapter MouseMotionAdapter)
+	   (java.awt.geom Point2D Point2D$Double)))
 
 (defn sqrt [x] (Math/sqrt x))
 (defn pow [x y]
@@ -19,14 +20,17 @@
 
 (defn closest [x y entities]
   (let [len (count entities)]
-    (when (> len 1)
-      (let [delta (partial delta x y)]
-	(reduce 
-	 (fn [a b]
-	   (if (< (delta a) (delta b))
-	     a
-	     b))
-	 entities)))))
+    (cond 
+     (> len 1)
+     (let [delta (partial delta x y)]
+       (reduce 
+	(fn [a b]
+	  (if (< (delta a) (delta b))
+	    a
+	    b))
+	entities))
+     
+     (= len 1) (first entities))))
 
 (defn chart-press-listener [chart]
   (proxy [MouseAdapter] []
