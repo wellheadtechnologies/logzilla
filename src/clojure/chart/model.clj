@@ -1,4 +1,4 @@
-(ns editor.chart.model
+(ns chart.model
   (:use gutil util curves)
   (:import (org.jfree.ui RectangleEdge)))
 

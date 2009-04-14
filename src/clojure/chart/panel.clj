@@ -1,5 +1,5 @@
-(ns editor.chart.panel
-  (:use util gutil global editor.chart.model)
+(ns chart.panel
+  (:use util gutil global chart.model)
   (:import (org.jfree.chart ChartPanel)
 	   (java.awt.event MouseAdapter MouseMotionAdapter)
 	   (java.awt.geom Point2D Point2D$Double)))
@@ -37,16 +37,19 @@
        (mousePressed [event]
 		     (swing-io! 
 		      (dosync 
-		       (let [chart-panel (:chart-panel @chart)
-			     insets (.getInsets chart-panel)
-			     x (/ (- (.getX event) (. insets left)) (.getScaleX chart-panel))
-			     y (/ (- (.getY event) (. insets top)) (.getScaleY chart-panel))
-			     entities (.. chart-panel (getChartRenderingInfo) (getEntityCollection) (getEntities))
-			     nearest-entities (filter #(in-range x y %) entities)
-			     chosen (closest x y nearest-entities)]
-			 (alter chart assoc :dragged-entity chosen)))))
+		       (when (:dragging-enabled @chart)
+			 (let [chart-panel (:chart-panel @chart)
+			       insets (.getInsets chart-panel)
+			       x (/ (- (.getX event) (. insets left)) (.getScaleX chart-panel))
+			       y (/ (- (.getY event) (. insets top)) (.getScaleY chart-panel))
+			       entities (.. chart-panel (getChartRenderingInfo) (getEntityCollection) (getEntities))
+			       nearest-entities (filter #(in-range x y %) entities)
+			       chosen (closest x y nearest-entities)]
+			   (alter chart assoc :dragged-entity chosen))))))
        (mouseReleased [event]
-		      (dosync (alter chart assoc :dragged-entity nil)))))
+		      (dosync 
+		       (when (:dragging-enabled @chart)
+			 (alter chart assoc :dragged-entity nil))))))
 
 (defn set-chart-value [chart index new-value]
   (dosync 
@@ -60,24 +63,21 @@
 (defn chart-drag-listener [chart]
   (proxy [MouseMotionAdapter] []
     (mouseDragged [event]
-		  (dosync 
-		   (let [dragged-entity (:dragged-entity @chart)
-			 chart-panel (:chart-panel @chart)]
-		     (when dragged-entity
-		       (swing
-			(let [series (retrieve-series chart-panel)
-			      index (.getItem dragged-entity)
-			      new-value (java-2D-to-value chart-panel (.getX event))]
-			  (when (not (or (.isNaN new-value) (.isInfinite new-value)))
-			    (set-chart-value chart index new-value))))))))))
+		  (dosync
+		   (when (:dragging-enabled @chart)
+		     (let [dragged-entity (:dragged-entity @chart)
+			   chart-panel (:chart-panel @chart)]
+		       (when dragged-entity
+			 (swing
+			  (let [series (retrieve-series chart-panel)
+				index (.getItem dragged-entity)
+				new-value (java-2D-to-value chart-panel (.getX event))]
+			    (when (not (or (.isNaN new-value) (.isInfinite new-value)))
+			      (set-chart-value chart index new-value)))))))))))
 
 (defn custom-chart-panel [chart jfree-chart]
-  (let [chart-panel (proxy [ChartPanel] [ jfree-chart false false false false false]
-		      (zoom [rect] 
-			    (proxy-super zoom rect))
-		      )]
+  (let [chart-panel (ChartPanel. jfree-chart false false false false false)]
     (doto chart-panel
-      (.setMouseZoomable true)
-      (.setFillZoomRectangle false)
+      (.setMouseZoomable false)
       (.addMouseListener (chart-press-listener chart))
       (.addMouseMotionListener (chart-drag-listener chart)))))

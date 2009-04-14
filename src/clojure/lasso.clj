@@ -60,17 +60,17 @@
 	 lasfile (read-string (.writeLasFileToString writer lf))
 	 curves (:curves lasfile)
 	 index (first curves)
-	 sorted-index (assoc index :data (sort (:data index)))
-	 do-reverse (not= (first (:data index)) (first (:data sorted-index)))
+	 index (assoc index :data (apply vector (sort (:data index))))
+	 do-reverse (not= (first (:data index)) (first (:data index)))
 	 curves (rest curves)]
      (assoc lasfile 
        :path path
-       :index sorted-index
+       :index index
        :do-reverse do-reverse
        :curves 
        (for [curve curves]
 	 (assoc curve 
-	   :index sorted-index
+	   :index index
 	   :data (apply vector (replace-null-with-nan 
 				(if do-reverse
 				  (reverse (:data curve))

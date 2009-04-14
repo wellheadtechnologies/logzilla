@@ -5,6 +5,7 @@ require 'fileutils'
 build = ARGV.any? {|a| a =~ /-b/}
 refresh = ARGV.any? {|a| a =~ /-r/}
 tests = ARGV.any? {|a| a =~ /-t/}
+chart_tests = ARGV.any? {|a| a =~ /-c/}
 gui = ARGV.any? {|a| a =~ /-g/}
 logscript = ARGV.any? {|a| a =~ /-s/}
 interactive = ARGV.any? {|a| a =~ /-i/}
@@ -46,6 +47,11 @@ elsif logscript
 elsif database
   script = """
 (use 'database)
+"""
+elsif chart_tests 
+  script = """
+(use 'tests.tchart)
+(show-chart)
 """
 end
 

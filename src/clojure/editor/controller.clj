@@ -1,12 +1,13 @@
 (ns editor.controller
   (:require lasso
-	    [editor.chart.controller :as chart-controller]
+	    [chart.controller :as chart-controller]
 	    [editor.slider.controller :as slider-controller]
 	    [editor.table.controller :as table-controller]
-	    editor.chart.panel)
+	    chart.panel)
   (:use editor.model editor.view util global gutil curves)
   (:import (javax.swing.event TableModelListener ChangeListener)
-	   (javax.swing JFrame JScrollPane JToolBar JButton ImageIcon JPanel
+	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
+			ButtonGroup ImageIcon JPanel
 			ScrollPaneConstants)
 	   (java.awt Dimension Color)
 	   (org.jfree.data Range)
@@ -109,32 +110,46 @@
 	 (swing
 	  (let [index (row-to-index new-row (:widget @table))
 		new-val (convert-to-double new-val)]
-	    (editor.chart.panel/set-chart-value chart index new-val))))
+	    (chart.panel/set-chart-value chart index new-val))))
        [new-row new-col old-val]))))
 
-(defn init-zoom-in-button [editor]
-  (let [button (JButton. (ImageIcon. "resources/zoom-in.png"))]
+(defn init-zoom-button [editor]
+  (let [button (JToggleButton. (ImageIcon. "resources/zoom.png"))]
+    (on-action button
+      (doseq [chart (:charts @editor)]
+	(doto (:chart-panel @chart)
+	  (.setMouseZoomable true)
+	  (.setFillZoomRectangle false))))
     button))
 
-(defn init-zoom-out-button [editor]
-  (let [button (JButton. (ImageIcon. "resources/zoom-out.png"))]
+(defn init-edit-button [editor]
+  (let [button (JToggleButton. (ImageIcon. "resources/edit.png"))]
+    (on-action button
+      (doseq [chart (:charts @editor)]
+	(let [chart-panel (:chart-panel @chart)]
+	  (.setMouseZoomable chart-panel false))))
     button))
 
 (defn init-toolbar [editor]
   (let [toolbar (JToolBar. JToolBar/VERTICAL)
-	zoom-in-button (init-zoom-in-button editor)
-	zoom-out-button (init-zoom-out-button editor)]
+	zoom-button (init-zoom-button editor)
+	edit-button (init-edit-button editor)
+	button-group (ButtonGroup.)]
+    (.setSelected edit-button true)
+    (doto button-group 
+      (.add zoom-button)
+      (.add edit-button))
     (doto toolbar
       (.setFloatable false)
-      (.add zoom-in-button)
-      (.add zoom-out-button))))
+      (.add zoom-button)
+      (.add edit-button))))
 
 (defn open-curve-editor [lasfile curves]   
   (let [frame (init-frame lasfile curves)
 	[index dirty-curves] (lasso/adjust-curves (map (comp lasso/deref-curve deref) curves))
 	editor (ref {})
 	charts (for [[c d] (tuplize curves dirty-curves)]
-		 (chart-controller/init-chart editor c d))
+		 (chart-controller/init-chart c d))
 	depth-data (:data index)
 	slider-notches 200
 	slider (slider-controller/init-slider slider-notches)
