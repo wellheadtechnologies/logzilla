@@ -72,7 +72,12 @@
 			    (set-chart-value chart index new-value))))))))))
 
 (defn custom-chart-panel [chart jfree-chart]
-  (let [chart-panel (ChartPanel. jfree-chart false false false false false)]
-    (.addMouseListener chart-panel (chart-press-listener chart))
-    (.addMouseMotionListener chart-panel (chart-drag-listener chart))
-    chart-panel))
+  (let [chart-panel (proxy [ChartPanel] [ jfree-chart false false false false false]
+		      (zoom [rect] 
+			    (proxy-super zoom rect))
+		      )]
+    (doto chart-panel
+      (.setMouseZoomable true)
+      (.setFillZoomRectangle false)
+      (.addMouseListener (chart-press-listener chart))
+      (.addMouseMotionListener (chart-drag-listener chart)))))

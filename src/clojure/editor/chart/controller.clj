@@ -12,65 +12,43 @@
      (let [chart-panel (:chart-panel @chart)
 	   xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
 	   dirty-curve (:dirty-curve @chart)
-	   scale (:scale @chart)
+	   chart-range (get-chart-range xaxis)
+	   depth-range (get-depth-range dirty-curve)
 	   mind (min-depth dirty-curve)
-	   maxd (max-depth dirty-curve)
-	   range (abs (- maxd mind))
-	   unit (/ range scale)
-	   extent (+ mind (* percentage range))]
-       (alter chart assoc :extent extent)
+	   scale (get-scale depth-range chart-range)
+	   unit (get-unit depth-range scale)
+	   lower (+ mind (* percentage depth-range))
+	   upper (+ lower unit)]
        (swing 
-	 (.setRange xaxis (Range. extent (+ extent unit)))
-	 (.repaint chart-panel))))))
+	(.setRange xaxis (Range. lower upper))
+	(.repaint chart-panel))))))
 
 (defn init-chart-panel [chart-ref curve]
   (let [jfree-chart (create-chart curve)
 	chart-panel (custom-chart-panel chart-ref jfree-chart)]
-    (doto chart-panel
-      (.setDomainZoomable false)
-      (.setMouseZoomable false))))
+    chart-panel))
 
-(defn reset-xaxis [chart-panel min-depth unit-scale]
+(defn reset-scale [chart-panel mind unit]
   (swing 
+   (.restoreAutoRangeBounds chart-panel)
    (doto (.. chart-panel (getChart) (getPlot) (getDomainAxis))
      (.setAutoRange false)
-     (.setRange (Range. min-depth (+ min-depth unit-scale))))))
-
-(defn zoom [old-scales chart]
-  (dosync 
-   (let [old-scale (get old-scales chart)
-	 {:keys [scale chart-panel extent dirty-curve]} @chart
-	 mind (min-depth dirty-curve)
-	 maxd (max-depth dirty-curve)
-	 unit (get-unit-scale mind maxd scale)]
-     (when (not= old-scale scale)
-       (let [xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))]
-	 (swing
-	  (.setRange xaxis (Range. extent (+ extent unit)))
-	  (.repaint chart-panel))))
-     (assoc old-scales chart scale))))
-
-(def scale-watcher (agent {}))
+     (.setRange (Range. mind (+ mind unit))))))
 
 (defn change-dragged-plot [chart entity]
   (dosync 
    (alter chart assoc :dragged-entity entity)))
 
-(defn init-chart [editor curve dirty-curve scale] 
+(defn init-chart [editor curve dirty-curve] 
   (let [chart (ref nil)
 	chart-panel (init-chart-panel chart dirty-curve)
-	min-d (min-depth dirty-curve)
-	max-d (max-depth dirty-curve)
 	props (struct-map Chart 
 		:editor editor
 		:chart-panel chart-panel
 		:curve curve
-		:dirty-curve dirty-curve
-		:scale scale
-		:extent min-d)
-	unit-scale (get-unit-scale min-d max-d scale)]
+		:dirty-curve dirty-curve)
+	depth-range (get-depth-range dirty-curve)
+	unit (get-unit depth-range default-scale)]
     (dosync (ref-set chart props))
-    (add-watcher chart :send scale-watcher zoom)
-    (set-validator! chart #(not (>= 0 (:scale %))))
-    (reset-xaxis chart-panel min-d unit-scale)
+    (reset-scale chart-panel (min-depth dirty-curve) unit)
     chart))

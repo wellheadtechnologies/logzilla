@@ -114,20 +114,10 @@
 
 (defn init-zoom-in-button [editor]
   (let [button (JButton. (ImageIcon. "resources/zoom-in.png"))]
-    (on-action button
-      (dosync 
-       (let [charts (:charts @editor)]
-	 (doseq [chart charts]
-	   (alter chart assoc :scale (inc (:scale @chart)))))))
     button))
 
 (defn init-zoom-out-button [editor]
   (let [button (JButton. (ImageIcon. "resources/zoom-out.png"))]
-    (on-action button 
-      (dosync 
-       (let [charts (:charts @editor)]
-	 (doseq [chart charts]
-	   (alter chart assoc :scale (dec (:scale @chart)))))))
     button))
 
 (defn init-toolbar [editor]
@@ -142,10 +132,9 @@
 (defn open-curve-editor [lasfile curves]   
   (let [frame (init-frame lasfile curves)
 	[index dirty-curves] (lasso/adjust-curves (map (comp lasso/deref-curve deref) curves))
-	scale-notches 10
 	editor (ref {})
 	charts (for [[c d] (tuplize curves dirty-curves)]
-		 (chart-controller/init-chart editor c d scale-notches))
+		 (chart-controller/init-chart editor c d))
 	depth-data (:data index)
 	slider-notches 200
 	slider (slider-controller/init-slider slider-notches)
