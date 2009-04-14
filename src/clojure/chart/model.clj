@@ -9,10 +9,10 @@
 	 value (.java2DToValue xaxis x (.getScreenDataArea chart-panel) RectangleEdge/TOP)]
      value)))
 
-(defn retrieve-series [chart-panel]
+(defn retrieve-series [chart-panel curve-index]
   (swing-io! 
-   (first (.. chart-panel (getChart) (getPlot) (getDataset) (getSeries)))))
-
+    (let [series (.. chart-panel (getChart) (getPlot) (getDataset) (getSeries))]
+      (nth series curve-index))))
 
 (defn get-chart-range [xaxis]
   (let [range (.getRange xaxis)
@@ -37,9 +37,10 @@
 (def default-scale 10)
 
 (defstruct Chart
-  :editor
   :chart-panel
-  :curve
-  :dirty-curve
-  :changed-index
-  :dragged-entity)
+  :curves
+  :dirty-curves
+  :changes
+  :dragged-entity
+  :dragging-enabled
+  :percentage-shown)

@@ -4,10 +4,6 @@
 	   (java.awt.event MouseAdapter MouseMotionAdapter)
 	   (java.awt.geom Point2D Point2D$Double)))
 
-(defn sqrt [x] (Math/sqrt x))
-(defn pow [x y]
-  (Math/pow x y))
-
 (defn delta [x y entity]
   (let [bounds (.. entity (getArea) (getBounds))
 	bx (. bounds x)
@@ -51,14 +47,15 @@
 		       (when (:dragging-enabled @chart)
 			 (alter chart assoc :dragged-entity nil))))))
 
-(defn set-chart-value [chart index new-value]
+(defn set-chart-value [chart curve-index data-index new-value]
   (dosync 
-   (let [chart-panel (:chart-panel @chart)]
-     (alter chart assoc-in [:dirty-curve :data index] new-value)
-     (alter chart assoc :changed-index index)
+   (let [chart-panel (:chart-panel @chart)
+	 curves (:curves @chart)]
+     (alter chart assoc-in [:dirty-curves curve-index :data data-index] new-value)
+     (alter chart assoc :changes [(nth curves curve-index) data-index])
      (swing
-      (let [series (retrieve-series chart-panel)]
-	(.updateByIndex series index new-value))))))
+      (let [series (retrieve-series chart-panel curve-index)]
+	(.updateByIndex series data-index new-value))))))
 
 (defn chart-drag-listener [chart]
   (proxy [MouseMotionAdapter] []
@@ -66,14 +63,15 @@
 		  (dosync
 		   (when (:dragging-enabled @chart)
 		     (let [dragged-entity (:dragged-entity @chart)
-			   chart-panel (:chart-panel @chart)]
+			   chart-panel (:chart-panel @chart)
+			   curve-index (.getSeriesIndex dragged-entity)]
 		       (when dragged-entity
 			 (swing
-			  (let [series (retrieve-series chart-panel)
-				index (.getItem dragged-entity)
+			  (let [series (retrieve-series chart-panel curve-index)
+				data-index (.getItem dragged-entity)
 				new-value (java-2D-to-value chart-panel (.getX event))]
 			    (when (not (or (.isNaN new-value) (.isInfinite new-value)))
-			      (set-chart-value chart index new-value)))))))))))
+			      (set-chart-value chart curve-index data-index new-value)))))))))))
 
 (defn custom-chart-panel [chart jfree-chart]
   (let [chart-panel (ChartPanel. jfree-chart false false false false false)]

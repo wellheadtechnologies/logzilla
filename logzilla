@@ -52,6 +52,7 @@ elsif chart_tests
   script = """
 (use 'tests.tchart)
 (show-chart)
+(show-multi-chart)
 """
 end
 

@@ -115,3 +115,14 @@
 
 (defmacro standard-imports []
   `(use ~(quote app.controller)))
+
+(defn only [coll]
+  (guard (= 1 (count coll))
+	 "Collection must have only one member!")
+  (first coll))
+
+(defn sqrt [x] (Math/sqrt x))
+
+(defn pow [x y]
+  (Math/pow x y))
+

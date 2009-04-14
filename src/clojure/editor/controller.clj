@@ -149,7 +149,7 @@
 	[index dirty-curves] (lasso/adjust-curves (map (comp lasso/deref-curve deref) curves))
 	editor (ref {})
 	charts (for [[c d] (tuplize curves dirty-curves)]
-		 (chart-controller/init-chart c d))
+		 (chart-controller/init-single-chart c d))
 	depth-data (:data index)
 	slider-notches 200
 	slider (slider-controller/init-slider slider-notches)
