@@ -31,6 +31,11 @@
   `(.addActionListener ~widget 
 		       (proxy [ActionListener] []
 			 (actionPerformed [e#] ~@body))))
+
+(defn set-action [widget fn]
+  (.addActionListener widget
+		      (proxy [ActionListener] []
+			(actionPerformed [e] (fn)))))
 					    
 (def swing-agent (agent nil))
 		       

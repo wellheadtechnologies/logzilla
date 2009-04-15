@@ -13,13 +13,11 @@
     (windowClosing [e] (System/exit 0))))
 
 (defn resize [app]
-  (let [app @app
-	frame (get app :frame)
-	height (get app :height)
-	width (get app :width)]
+  (let [{:keys [frame height width]} @app]
     (swing 
-     (.setSize frame width height)
-     (.repaint frame))))
+     (doto frame
+       (.setSize width height)
+       (.repaint)))))
 
 (defstruct App 
   :width
@@ -29,7 +27,7 @@
   :menu-bar
   :file-menu
   :window-menu
-  :lasfile-pane
+  :file-widget
   :window-listeners)
 
 (def size-watcher (agent []))
@@ -55,9 +53,18 @@
 	menu-bar (create-menu-bar)
 	file-menu  (file.controller/init-file-menu file-manager)
 	window-menu (create-window-menu (fn [e] (inspector.controller/open-inspector)))
-	lasfile-pane (:pane @file-manager)
+	file-widget (:pane @file-manager)
 	window-listeners [exit-on-close]]
-    (struct App width height frame panel menu-bar file-menu window-menu lasfile-pane window-listeners)))
+    (struct-map App
+      :width width
+      :height height
+      :frame frame
+      :panel panel
+      :menu-bar menu-bar
+      :file-menu file-menu
+      :window-menu window-menu
+      :file-widget file-widget
+      :window-listeners window-listeners)))
 
 (defn run-main []
   (let [my-app (init-app)]

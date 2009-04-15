@@ -21,10 +21,6 @@
   :index
   :slider
   :table
-  :charts
+  :chart
   :width
   :height)
-
-(defstruct EditorGlobalMethods
-  :not-dragging-anything)
-

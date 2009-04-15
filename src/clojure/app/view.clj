@@ -14,11 +14,11 @@
     menu))
 
 (defn create-main-window [{:keys [width height frame panel 
-				  menu-bar file-menu lasfile-pane
+				  menu-bar file-menu file-widget
 				  window-listeners window-menu]}]
   (doto panel
     (.setPreferredSize (new Dimension width height))
-    (.add lasfile-pane "pushy, growy, pushx, growx"))
+    (.add file-widget "pushy, growy, pushx, growx"))
   (.add menu-bar file-menu)
   (.add menu-bar window-menu)
   (swing 

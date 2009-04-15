@@ -70,10 +70,10 @@
 (defn open-curve-editor [file-manager]
   (swing 
    (let [file @(get-selected-file file-manager)
-	 curves (get-selected-curves (:curve-list file))
+	 curve (only (get-selected-curves (:curve-list file)))
 	 lasfile (:lasfile file)]
      (long-task
-      (editor.controller/open-curve-editor lasfile curves)))))
+      (editor.controller/open-curve-editor lasfile curve)))))
 
 (defn tab-right [file-manager]
   (swing 

@@ -31,8 +31,8 @@
 		     (alter table assoc :altered-col col)
 		     (alter table assoc :altered-val val))))))
 
-(defn init-table [aggregate-index dirty-curves]
-  (let [widget (create-table-widget aggregate-index dirty-curves)
+(defn init-table [index dirty-curve]
+  (let [widget (create-table-widget index [dirty-curve])
 	pane (JScrollPane. widget)
 	model (.getModel widget)
 	table (ref (struct-map Table
