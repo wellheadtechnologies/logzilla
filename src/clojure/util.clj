@@ -126,3 +126,11 @@
 (defn pow [x y]
   (Math/pow x y))
 
+(defmacro times [n & body]
+  `(doseq [i# (range 0 ~n)]
+     ~@body))
+
+(defmacro animate [n t & body]
+  `(doseq [i# (range 0 ~n)]
+     ~@body
+     (Thread/sleep ~t)))

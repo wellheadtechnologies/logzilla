@@ -34,6 +34,10 @@
 (defn get-extent [xaxis]
   (.. xaxis (getRange) (getLowerBound)))
 
+(defn get-percentage [xaxis mind depth-range]
+  (let [lower (.. xaxis (getRange) (getLowerBound))]
+    (/ (- lower mind) depth-range)))
+
 (def default-scale 10)
 
 (defstruct Chart
@@ -43,4 +47,5 @@
   :changes
   :dragged-entity
   :dragging-enabled
-  :percentage-shown)
+  :zooming-enabled
+  :showing-points)

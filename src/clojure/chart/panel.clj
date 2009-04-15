@@ -8,8 +8,9 @@
   (let [bounds (.. entity (getArea) (getBounds))
 	bx (. bounds x)
 	by (. bounds y)]
-    (sqrt (+ (pow (abs (- x by)) 2)
-	     (pow (abs (- y bx)) 2)))))
+    (let [d (sqrt (+ (pow (abs (- x by)) 2)
+		      (pow (abs (- y bx)) 2)))]
+      d)))
 
 (defn in-range [x y entity]
   (< (delta x y entity) 10))
@@ -25,7 +26,7 @@
 	    a
 	    b))
 	entities))
-     
+
      (= len 1) (first entities))))
 
 (defn chart-press-listener [chart]
@@ -39,8 +40,12 @@
 			       x (/ (- (.getX event) (. insets left)) (.getScaleX chart-panel))
 			       y (/ (- (.getY event) (. insets top)) (.getScaleY chart-panel))
 			       entities (.. chart-panel (getChartRenderingInfo) (getEntityCollection) (getEntities))
-			       nearest-entities (filter #(in-range x y %) entities)
-			       chosen (closest x y nearest-entities)]
+			       nearest-entities (if (:showing-points @chart)
+						  (filter #(in-range y x %) entities)
+						  (filter #(in-range x y %) entities))
+			       chosen (if (:showing-points @chart)
+					(closest y x nearest-entities)
+					(closest x y nearest-entities))]
 			   (alter chart assoc :dragged-entity chosen))))))
        (mouseReleased [event]
 		      (dosync 
@@ -61,7 +66,7 @@
   (proxy [MouseMotionAdapter] []
     (mouseDragged [event]
 		  (dosync
-		   (when (:dragging-enabled @chart)
+		   (when (and (:dragging-enabled @chart) (:dragged-entity @chart))
 		     (let [dragged-entity (:dragged-entity @chart)
 			   chart-panel (:chart-panel @chart)
 			   curve-index (.getSeriesIndex dragged-entity)]

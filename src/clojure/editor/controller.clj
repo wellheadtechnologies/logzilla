@@ -1,9 +1,9 @@
 (ns editor.controller
   (:require lasso
-	    [chart.controller :as chart-controller]
+	    [editor.chart.controller :as chart-controller]
 	    [editor.slider.controller :as slider-controller]
 	    [editor.table.controller :as table-controller]
-	    chart.panel)
+	    editor.chart.panel)
   (:use editor.model editor.view util global gutil curves)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
@@ -110,7 +110,7 @@
 	 (swing
 	  (let [index (row-to-index new-row (:widget @table))
 		new-val (convert-to-double new-val)]
-	    (chart.panel/set-chart-value chart index new-val))))
+	    (editor.chart.panel/set-chart-value chart index new-val))))
        [new-row new-col old-val]))))
 
 (defn init-zoom-button [editor]
@@ -149,7 +149,7 @@
 	[index dirty-curves] (lasso/adjust-curves (map (comp lasso/deref-curve deref) curves))
 	editor (ref {})
 	charts (for [[c d] (tuplize curves dirty-curves)]
-		 (chart-controller/init-single-chart c d))
+		 (chart-controller/init-chart editor c d))
 	depth-data (:data index)
 	slider-notches 200
 	slider (slider-controller/init-slider slider-notches)

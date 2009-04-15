@@ -5,7 +5,8 @@
 	chart.panel
 	lasso)
   (:import (org.jfree.chart ChartMouseListener)
-	   (org.jfree.data Range)))
+	   (org.jfree.data Range)
+	   (org.jfree.chart.renderer.xy XYDifferenceRenderer StandardXYItemRenderer)))
 
 (defmulti show-percentage (fn [x y] 
 			    (cond 
@@ -28,7 +29,6 @@
 	 unit (get-unit depth-range scale)
 	 lower (+ mind (* percentage depth-range))
 	 upper (+ lower unit)]
-     (alter chart assoc :percentage-shown percentage)
      (swing 
        (.setRange xaxis (Range. lower upper))
        (.repaint chart-panel)))))
@@ -48,7 +48,7 @@
 	chart-panel (custom-chart-panel chart-ref jfree-chart)]
     chart-panel))
 
-(defn reset-scale [chart]
+(defn reset [chart]
   (dosync 
    (let [{:keys [chart-panel dirty-curves]} @chart
 	 depth-ranges (doall (map get-depth-range dirty-curves))
@@ -74,10 +74,9 @@
 	props (struct-map Chart 
 		:chart-panel chart-panel
 		:curves curves
-		:dirty-curves dirty-curves
-		:percentage-shown 0)]
+		:dirty-curves dirty-curves)]
     (dosync (ref-set chart props))
-    (reset-scale chart)
+    (reset chart)
     chart))
 
 (defmethod init-chart :single [curve dirty-curve]
@@ -85,20 +84,97 @@
 
 (defn set-scale [chart scale]
   (binding [default-scale scale]
-    (reset-scale chart)))
+    (reset chart)))
 
-(defn scroll-up [chart]
-  (dosync 
-   (let [percentage (:percentage-shown @chart)]
-     (show-percentage chart (+ percentage 1/100)))))
+(defn scroll-up
+  ([chart delta]
+     (dosync 
+      (let [{:keys [chart-panel dirty-curves]} @chart
+	    xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	    exemplar (first dirty-curves)
+	    depth-range (get-depth-range exemplar)
+	    mind (min-depth exemplar)
+	    percentage (get-percentage xaxis mind depth-range)]
+	(show-percentage chart (+ percentage delta)))))
+  ([chart]
+     (scroll-up chart 1/100)))
 
-(defn scroll-down [chart]
-  (dosync 
-   (let [percentage (:percentage-shown @chart)]
-     (show-percentage chart (- percentage 1/100)))))
+(defn scroll-down 
+  ([chart delta]
+     (dosync 
+      (let [{:keys [chart-panel dirty-curves]} @chart
+	    xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	    exemplar (first dirty-curves)
+	    depth-range (get-depth-range exemplar)
+	    mind (min-depth exemplar)
+	    percentage (get-percentage xaxis mind depth-range)]
+	(show-percentage chart (- percentage delta)))))
+  ([chart]
+     (scroll-down chart 1/100)))
+
+(declare enable-zooming disable-zooming)
 
 (defn enable-dragging [chart]
-  (suppress (dosync (alter chart assoc :dragging-enabled true))))
+  (suppress 
+    (dosync
+     (disable-zooming chart)
+     (alter chart assoc :dragging-enabled true))))
 
 (defn disable-dragging [chart]
   (suppress (dosync (alter chart assoc :dragging-enabled false))))
+
+(defn enable-zooming [chart]
+  (suppress 
+    (dosync 
+     (disable-dragging chart)
+     (let [chart-panel (:chart-panel @chart)]
+       (alter chart assoc :zooming-enabled true)
+       (swing 
+	 (doto chart-panel
+	     (.setMouseZoomable true)
+	     (.setFillZoomRectangle false)))))))
+
+(defn disable-zooming [chart]
+  (suppress
+    (dosync 
+     (let [chart-panel (:chart-panel @chart)]
+       (alter chart assoc :zooming-enabled false)
+       (swing 
+	 (doto chart-panel
+	   (.setMouseZoomable false)))))))
+
+(defn shade-difference [chart]
+  (let [renderer (create-difference-renderer)
+	chart-panel (:chart-panel @chart)
+	plot (.. chart-panel (getChart) (getPlot))]
+    (swing 
+      (.setRenderer plot renderer)
+      (.repaint chart-panel))))
+
+(defn unshade-difference [chart]
+  (let [renderer (create-std-renderer)
+	chart-panel (:chart-panel @chart)
+	plot (.. chart-panel (getChart) (getPlot))]
+    (swing
+      (.setRenderer plot renderer)
+      (.repaint chart-panel))))
+
+(defn show-points [chart]
+  (dosync 
+   (when (not (:showing-points @chart))
+     (let [chart-panel (:chart-panel @chart)
+	   plot (.. chart-panel (getChart) (getPlot))
+	   renderer (.getRenderer plot)]
+       (alter chart assoc :showing-points true)
+       (swing
+	 (.setBaseShapesVisible renderer true))))))
+
+(defn hide-points [chart]
+  (dosync 
+   (when (:showing-points @chart)
+     (let [chart-panel (:chart-panel @chart)
+	   plot (.. chart-panel (getChart) (getPlot))
+	   renderer (.getRenderer plot)]
+       (alter chart assoc :showing-points false)
+       (swing
+	 (.setBaseShapesVisible renderer false))))))
