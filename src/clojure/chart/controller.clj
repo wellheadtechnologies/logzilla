@@ -178,3 +178,9 @@
        (alter chart assoc :showing-points false)
        (swing
 	 (.setBaseShapesVisible renderer false))))))
+
+(defn save-chart [chart]
+  (dosync
+   (let [{:keys [curves dirty-curves]} @chart]
+     (doseq [[c d] (tuplize curves dirty-curves)]
+       (alter c assoc :data (:data d))))))

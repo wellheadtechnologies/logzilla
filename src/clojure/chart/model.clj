@@ -40,6 +40,9 @@
 
 (def default-scale 10)
 
+(defn dirty-curve [chart]
+  (only (:dirty-curves @chart)))
+
 (defstruct Chart
   :chart-panel
   :curves

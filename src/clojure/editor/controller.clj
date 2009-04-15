@@ -1,10 +1,10 @@
 (ns editor.controller
   (:require lasso
-	    [editor.chart.controller :as chart-controller]
 	    [editor.slider.controller :as slider-controller]
 	    [editor.table.controller :as table-controller]
-	    editor.chart.panel)
-  (:use editor.model editor.view util global gutil curves)
+	    [chart.controller :as chart-controller]
+	    chart.panel)
+  (:use editor.model editor.view util global gutil curves chart.controller)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
 			ButtonGroup ImageIcon JPanel
@@ -25,11 +25,9 @@
     frame))
 
 (defn save [editor]
-  (dosync 
+  (dosync
    (doseq [chart (:charts @editor)]
-     (let [dirty-curve (:dirty-curve @chart)
-	   curve (:curve @chart)]
-       (alter curve assoc :data (:data dirty-curve))))))
+     (chart-controller/save-chart chart))))
 
 (defn init-merge-button [editor]
   (create-merge-button (fn [e] nil)))
@@ -85,7 +83,8 @@
    (let [table (get @editor :table)
 	 table-widget (get @table :widget)
 	 index (get @chart :changed-index)
-	 value (get-in @chart [:dirty-curve :data index])]
+	 dirty-curve (only (:dirty-curves @chart))
+	 value (get-in dirty-curve [:data index])]
      (when (and (not= nil index)
 		(not= nil value))
        (swing 
@@ -110,24 +109,21 @@
 	 (swing
 	  (let [index (row-to-index new-row (:widget @table))
 		new-val (convert-to-double new-val)]
-	    (editor.chart.panel/set-chart-value chart index new-val))))
+	    (chart.panel/set-chart-value chart index new-val))))
        [new-row new-col old-val]))))
 
 (defn init-zoom-button [editor]
   (let [button (JToggleButton. (ImageIcon. "resources/zoom.png"))]
     (on-action button
       (doseq [chart (:charts @editor)]
-	(doto (:chart-panel @chart)
-	  (.setMouseZoomable true)
-	  (.setFillZoomRectangle false))))
+	(enable-zooming chart)))
     button))
 
 (defn init-edit-button [editor]
   (let [button (JToggleButton. (ImageIcon. "resources/edit.png"))]
     (on-action button
       (doseq [chart (:charts @editor)]
-	(let [chart-panel (:chart-panel @chart)]
-	  (.setMouseZoomable chart-panel false))))
+	(enable-dragging chart)))
     button))
 
 (defn init-toolbar [editor]
@@ -149,7 +145,7 @@
 	[index dirty-curves] (lasso/adjust-curves (map (comp lasso/deref-curve deref) curves))
 	editor (ref {})
 	charts (for [[c d] (tuplize curves dirty-curves)]
-		 (chart-controller/init-chart editor c d))
+		 (chart-controller/init-chart c d))
 	depth-data (:data index)
 	slider-notches 200
 	slider (slider-controller/init-slider slider-notches)
