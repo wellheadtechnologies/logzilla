@@ -23,9 +23,9 @@
       (.setOpaque false))))
 
 (defn create-curve-list-view [curve-list]
-  (let [inner-panel (JPanel. (MigLayout.))
+  (let [inner-panel (JPanel. (MigLayout. "ins 0"))
 	pane (JScrollPane. inner-panel)
-	outer-panel (JPanel. (MigLayout.))]
+	outer-panel (JPanel. (MigLayout. "ins 0"))]
     (doto inner-panel
       (.add curve-list "pushx, growx, pushy, growy, wrap"))
     (doto outer-panel
@@ -46,8 +46,8 @@
   (let [panel (JPanel. (MigLayout. "ins 0"))
 	source-panel (MacWidgetFactory/createSourceListScrollPane source-tree)]
     (doto panel
-      (.add source-panel "width 50%, height 100%")
-      (.add curve-panel "width 50%, height 100%"))))
+      (.add source-panel "width 35%, height 100%")
+      (.add curve-panel "width 65%, height 100%"))))
 
 (defn custom-tree-payload [file]
   (proxy [NodePayload] []
@@ -56,6 +56,13 @@
 	       (let [lasfile (:lasfile @file)]
 		 (:name @lasfile))))
     (getFile [] file)))
+
+(defn create-file-view [curve-list-view header-edit-button save-lasfile-button]
+  (let [panel (JPanel. (MigLayout. "ins 0, nogrid"))]
+    (doto panel
+      (.add curve-list-view "push, grow, spanx 2, wrap")
+      (.add header-edit-button "alignx 50%")
+      (.add save-lasfile-button "wrap"))))
 
 ;; file-menu
 (defn create-file-menu [open save-all quit]

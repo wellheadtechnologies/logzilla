@@ -30,19 +30,16 @@
    (let [chart (:chart @editor)]
      (chart-controller/save-chart chart))))
 
-(defn init-save-button [editor]
-  (create-save-button (fn [e] (save editor))))
 
-(defn init-tool-panel [slider table saveb]
-  (create-panel 
-   [(:widget @slider) "pushy, growy"]
-   [(:pane @table) "pushy, growy, spanx 2, wrap"]
-   [saveb "cell 1 1"]))
+(defn init-table-panel [slider table]
+  (let [panel (JPanel. (MigLayout. "ins 0"))]
+    (doto panel
+      (.add (:widget @slider) "pushy, growy")
+      (.add (:pane @table) "pushy, growy, spanx 2, wrap"))))
 
 (defn init-main-panel [chart table-panel toolbar]
-  (let [cpanel (JPanel. (MigLayout.))
-	panel (create-panel
-	       [table-panel "push, grow"])]
+  (let [cpanel (JPanel. (MigLayout. "ins 0"))
+	panel (doto (JPanel. (MigLayout. "ins 0")))]
     (swing 
      (doto cpanel
        (.setBackground Color/white))
@@ -50,8 +47,9 @@
        (.add cpanel chart-panel "push, grow"))
      (doto panel
        (.setPreferredSize (Dimension. 700 900))
-       (.add cpanel "push, grow")
-       (.add toolbar "pushy, growy")))
+       (.add toolbar "pushx, growx, wrap")
+       (.add table-panel "push, grow")
+       (.add cpanel "push, grow")))
     panel))
 
 (def slider-watcher (agent nil))
@@ -103,22 +101,22 @@
 	    (chart.panel/set-chart-value chart 0 index new-val))))
        [new-row old-val]))))
 
+(defn init-save-button [editor]
+  (create-save-button #(save editor)))
+
 (defn init-zoom-button [editor]
-  (let [button (JToggleButton. (ImageIcon. "resources/zoom.png"))]
-    (on-action button
-      (let [chart (:chart @editor)]
-	(enable-zooming chart)))
-    button))
+  (create-zoom-button
+   #(let [chart (:chart @editor)]
+      (enable-zooming chart))))
 
 (defn init-edit-button [editor]
-  (let [button (JToggleButton. (ImageIcon. "resources/edit.png"))]
-    (on-action button
-      (let [chart (:chart @editor)]
-	(enable-dragging chart)))
-    button))
+  (create-edit-button
+   #(let [chart (:chart @editor)]
+      (enable-dragging chart))))
 
 (defn init-toolbar [editor]
-  (let [toolbar (JToolBar. JToolBar/VERTICAL)
+  (let [toolbar (JToolBar. JToolBar/HORIZONTAL)
+	save-button (init-save-button editor)
 	zoom-button (init-zoom-button editor)
 	edit-button (init-edit-button editor)
 	button-group (ButtonGroup.)]
@@ -128,6 +126,7 @@
       (.add edit-button))
     (doto toolbar
       (.setFloatable false)
+      (.add save-button)
       (.add zoom-button)
       (.add edit-button))))
 
@@ -148,10 +147,9 @@
 		       :slider slider
 		       :table table
 		       :chart chart)
-	saveb (init-save-button editor)
 	tool-bar (init-toolbar editor)
-	tool-panel (init-tool-panel slider table saveb)
-	main-panel (init-main-panel chart tool-panel tool-bar)]
+	table-panel (init-table-panel slider table)
+	main-panel (init-main-panel chart table-panel tool-bar)]
 
     (dosync (ref-set editor editor-props))
     (chart-controller/enable-dragging chart)

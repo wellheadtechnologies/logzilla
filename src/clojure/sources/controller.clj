@@ -106,35 +106,34 @@
 (defn init-file [source-manager lasfile]
   (let [curve-list (init-curve-list source-manager (:curves @lasfile))
 	curve-list-view (create-curve-list-view curve-list)
-	panel (JPanel. (MigLayout. "nogrid"))
 	edit-headers-button (header-dialog/init-edit-button lasfile)
 	save-button (init-save-lasfile-button lasfile)
+	panel (create-file-view curve-list-view edit-headers-button save-button)
 	file (struct-map File
 	       :lasfile lasfile
 	       :curve-list curve-list
 	       :view panel)]
-    (doto panel
-      (.add curve-list-view "push, grow, spanx 2, wrap")
-      (.add edit-headers-button "alignx 10%")
-      (.add save-button "wrap"))
     (ref file)))
+
+(defn display-curves-for [source-manager source]
+  (dosync 
+   (alter source-manager assoc :selected-source source)
+   (swing 
+    (let [curve-panel (:curve-panel @source-manager)]
+      (doto curve-panel
+	(.removeAll)
+	(.add (:view @source) "push, grow")
+	(.revalidate)
+	(.repaint))))))
 
 (defn init-source-tree-selection-listener [source-manager]
   (proxy [TreeSelectionListener] []
     (valueChanged [e]
 		  (let [path (.getNewLeadSelectionPath e)
 			leaf (.getLastPathComponent path)
-			source (.getUserObject leaf)
-			file (.getFile source)]
-		    (dosync 
-		     (alter source-manager assoc :selected-source file)
-		     (swing 
-		      (let [curve-panel (:curve-panel @source-manager)]
-			(println "view = " (:view @file))
-			(doto curve-panel
-			  (.add (:view @file) "push, grow")
-			  (.revalidate)
-			  (.repaint)))))))))
+			payload (.getUserObject leaf)
+			file (.getFile payload)]
+		    (display-curves-for source-manager file)))))
 
 
 (defn init-source-tree [source-manager]

@@ -28,5 +28,5 @@
       (.add panel)
       (.setJMenuBar menu-bar)
       (.pack)
-      (.setResizable false)
+      (.setResizable true)
       (.setVisible true))))
