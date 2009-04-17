@@ -4,8 +4,8 @@
 	   (java.awt Dimension)
 	   (net.miginfocom.swing MigLayout)))
 
-(defn create-main-frame [] (new JFrame "Logzilla"))
-(defn create-main-panel [] (new JPanel (new MigLayout)))
+(defn create-main-frame [] (JFrame. "Logzilla"))
+(defn create-main-panel [] (JPanel. (MigLayout. "ins 0")))
 (defn create-menu-bar [] (new JMenuBar))
 (defn create-window-menu [open-inspector]
   (let [menu (new JMenu "Windows")]
@@ -18,7 +18,7 @@
 				  window-listeners window-menu]}]
   (doto panel
     (.setPreferredSize (new Dimension width height))
-    (.add file-widget "pushy, growy, pushx, growx"))
+    (.add file-widget "push, grow"))
   (.add menu-bar file-menu)
   (.add menu-bar window-menu)
   (swing 

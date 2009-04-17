@@ -27,14 +27,3 @@
 (def app (ref nil))
 
 (def copied-curves (ref []))
-
-(def file-methods (ref {}))
-
-(defmacro fm-invoke [name & args]
-  `(let [method# (get @file-methods ~name)]
-     (method# ~@args)))
-
-(def switch-inspector-tab-method (ref nil))
-
-(defn switch-inspector-tab [& args]
-  (apply @switch-inspector-tab-method args))

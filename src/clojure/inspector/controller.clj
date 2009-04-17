@@ -19,6 +19,3 @@
 (defn switch-inspector-tab [to object]
   (cond 
    (= to :curves) (when (< 0 (count object)) (switch-to-curves-tab object))))
-
-(dosync 
- (ref-set global/switch-inspector-tab-method switch-inspector-tab))

@@ -1,4 +1,4 @@
-(ns file.headerdialog.controller
+(ns sources.headerdialog.controller
   (:use util gutil global)
   (:import (javax.swing JTable JScrollPane JButton JPanel JDialog JTabbedPane)
 	   (org.jdesktop.swingx JXTable)

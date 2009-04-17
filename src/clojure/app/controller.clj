@@ -1,11 +1,11 @@
 (ns app.controller
-  (:require file.controller inspector.controller)
+  (:require sources.controller inspector.controller)
   (:use app.view app.model gutil global util)
   (:import (java.awt.event WindowAdapter)
 	   (java.awt Dimension)
 	   (javax.swing UIManager)))
 
-;(System/setProperty "apple.laf.useScreenMenuBar" "true")
+(System/setProperty "apple.laf.useScreenMenuBar" "true")
 ;(UIManager/setLookAndFeel (UIManager/getSystemLookAndFeelClassName))
 
 (def exit-on-close 
@@ -27,7 +27,7 @@
   :menu-bar
   :file-menu
   :window-menu
-  :file-widget
+  :sources-widget
   :window-listeners)
 
 (def size-watcher (agent []))
@@ -47,13 +47,13 @@
 (defn init-app []
   (let [width 500
 	height 700
-	file-manager (file.controller/init-file-manager)
+	source-manager (sources.controller/init-source-manager)
 	frame (create-main-frame)
 	panel (create-main-panel)
 	menu-bar (create-menu-bar)
-	file-menu  (file.controller/init-file-menu file-manager)
+	file-menu  (sources.controller/init-file-menu source-manager)
 	window-menu (create-window-menu (fn [e] (inspector.controller/open-inspector)))
-	file-widget (:pane @file-manager)
+	sources-widget (:widget @source-manager)
 	window-listeners [exit-on-close]]
     (struct-map App
       :width width
@@ -63,7 +63,7 @@
       :menu-bar menu-bar
       :file-menu file-menu
       :window-menu window-menu
-      :file-widget file-widget
+      :sources-widget sources-widget
       :window-listeners window-listeners)))
 
 (defn run-main []

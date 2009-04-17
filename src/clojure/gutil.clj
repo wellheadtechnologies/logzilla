@@ -3,12 +3,17 @@
 	   (javax.swing JPanel JLabel JButton JTextArea
 			JFileChooser JMenu JPopupMenu 
 			SwingUtilities JList DefaultListModel
-			JTabbedPane BorderFactory JTextField)
+			JTabbedPane BorderFactory JTextField JSplitPane
+			UIManager)
+	   (javax.swing.tree DefaultMutableTreeNode DefaultTreeModel)
+	   (javax.swing.plaf.basic BasicSplitPaneUI)
 	   (java.awt Dimension)
 	   (java.awt.event MouseAdapter)
 	   (gui IconListCellRenderer)
-	   (net.miginfocom.swing MigLayout)))
-
+	   (net.miginfocom.swing MigLayout)	   
+	   (com.explodingpixels.macwidgets SourceList SourceListModel 
+					   SourceListCategory 
+					   MacWidgetFactory)))
 
 (defn actions [menu & name-actions]
   (doseq [[name action] name-actions]
@@ -103,3 +108,14 @@
        (actionPerformed [e] (fun e))))
     b))
 
+(defn tree-node [hierarchy]
+  (let [node (DefaultMutableTreeNode. (first hierarchy))
+	children (rest hierarchy)]
+    (doseq [child children]
+      (if (sequential? child)
+	(.add node (tree-node child))
+	(.add node (DefaultMutableTreeNode. child))))
+    node))
+
+(defn tree [hierarchy]
+  (MacWidgetFactory/createSourceList (DefaultTreeModel. (tree-node hierarchy))))
