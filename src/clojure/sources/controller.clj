@@ -1,19 +1,19 @@
 (ns sources.controller
   (:require [sources.headerdialog.controller :as header-dialog]
 	    editor.controller)
-  (:use sources.view sources.model gutil util curves global)
+  (:use sources.view sources.model gutil util curves global inspector.controller)
   (:import (javax.swing JFileChooser JLabel JList DefaultListModel JScrollPane
 			JSplitPane JTabbedPane JToggleButton JPanel JButton JDialog
 			JTable)
 	   (java.awt.event MouseEvent MouseAdapter)
 	   (java.awt Dimension)
-	   (javax.swing.event ChangeListener ListSelectionListener)
+	   (javax.swing.event ChangeListener ListSelectionListener TreeSelectionListener)
 	   (javax.swing.table DefaultTableModel)
-	   (javax.swing.tree DefaultMutableTreeNode)
+	   (javax.swing.tree DefaultMutableTreeNode TreeCellRenderer)
 	   (gui IconListCellRenderer)
 	   (net.miginfocom.swing MigLayout)))
 
-(declare init-curve-list init-curve-list-view init-file)
+(declare init-curve-list init-curve-list-view init-file init-context-menu-listener)
 
 (def curve-watcher (agent nil))
 
@@ -37,6 +37,7 @@
 (defn get-selected-source [source-manager]
   (:selected-source @source-manager))
 
+
 (defn add-lasfile [source-manager lasfile]
   (dosync 
    (let [{:keys [sources source-tree]} @source-manager
@@ -45,7 +46,8 @@
      (alter source-manager assoc :sources (conj sources file))
      (swing 
       (doto lasfiles-node
-	(.add (MutableTreeNode. (:name @lasfile))))))))
+	(.add (DefaultMutableTreeNode. (custom-tree-payload file))))
+      (.. source-tree (getModel) (reload lasfiles-node))))))
 
 (defn add-curve-to-gui [curve-list curve]
   (let [icon (curve-to-icon curve)]
@@ -72,6 +74,9 @@
      (long-task
       (editor.controller/open-curve-editor lasfile curve)))))
 
+(defn open-curve-merger [source-manager]
+  (throw (RuntimeException. "THIS NOT IN!")))
+
 (defn open-curve-editor-action [source-manager e]
   (when (and (= (.getButton e) MouseEvent/BUTTON1)
 	     (= (.getClickCount e) 2))
@@ -85,13 +90,11 @@
 	(add-curve-to-gui curve-list curve)))
     (doto curve-list
       (.addMouseListener (click-listener (partial open-curve-editor-action source-manager)))
-      (.addMouseListener (cmc/init-listener source-manager curve-list)))
+      (.addMouseListener (init-context-menu-listener source-manager curve-list)))
     curve-list))
 
 (defn init-curve-list-view [curve-list]
   (create-curve-list-view curve-list))
-
-(defn init-file-menu [source-manager] (fmc/init-menu source-manager))
 
 (defn init-save-lasfile-button [lasfile]
   (let [button (JButton. "Save Lasfile")]
@@ -113,13 +116,33 @@
       (.add save-button "wrap"))
     (ref file)))
 
+(defn init-source-tree-selection-listener [source-manager]
+  (proxy [TreeSelectionListener] []
+    (valueChanged [e]
+		  (let [path (.getNewLeadSelectionPath e)
+			leaf (.getLastPathComponent path)
+			source (.getUserObject leaf)]
+		    (println "selected source = " source)
+		    (println "class of file = " (class (.getFile source)))
+		    (dosync (alter source-manager assoc :selected-source source))))))
+
+
+(defn init-source-tree [source-manager]
+  (let [source-tree (create-source-tree)
+	renderer (.getCellRenderer source-tree)]
+    (doto source-tree
+      (.addTreeSelectionListener (init-source-tree-selection-listener source-manager)))))
+
 (defn init-source-manager []
-  (ref 
-   (let [source-tree (create-source-tree)]
-     (struct-map SourceManager
-       :files []
-       :source-tree source-tree
-       :widget (create-manager-widget source-tree)))))
+  (let [source-manager (ref nil)
+	source-tree (init-source-tree source-manager)]
+    (dosync 
+     (ref-set source-manager
+	      (struct-map SourceManager
+		:files []
+		:source-tree source-tree
+		:widget (create-manager-widget source-tree))))
+    source-manager))
 
 ;;file-menu 
 

@@ -2,9 +2,10 @@
   (:use gutil)
   (:import (javax.swing JMenu JFileChooser JPanel JTree
 			JScrollPane JList DefaultListModel
-			BorderFactory JTabbedPane JSplitPane)
+			BorderFactory JTabbedPane JSplitPane
+			JPopupMenu JMenuItem)
 	   (java.awt Color)
-	   (gui IconListCellRenderer)
+	   (gui IconListCellRenderer NodePayload)
 	   (net.miginfocom.swing MigLayout)
 	   (javax.swing.tree DefaultTreeModel)
 	   (javax.swing.border BevelBorder)
@@ -31,8 +32,8 @@
 
 (defn create-source-tree []
   (tree 
-   ["foo" 
-    ["Las Files" "foo" "bar"] 
+   ["" 
+    ["Las Files"] 
     "Other"]))
 
 (defn create-manager-widget [source-tree]
@@ -42,6 +43,14 @@
     (doto panel
       (.add source-panel "width 50%, height 100%")
       (.add curve-panel "width 50%, height 100%"))))
+
+(defn custom-tree-payload [file]
+  (proxy [NodePayload] []
+    (toString [] 
+	      (dosync 
+	       (let [lasfile (:lasfile @file)]
+		 (:name @lasfile))))
+    (getFile [] file)))
 
 ;; file-menu
 (defn create-file-menu [open save-all quit]

@@ -9,16 +9,9 @@
 
 (defstruct SourceManager
   :sources
+  :selected-source
   :source-tree
   :pane)
-
-(defstruct SourceManagerGlobalMethods
-  :get-selected-source
-  :get-selected-curves 
-  :add-curve
-  :add-lasfile
-  :open-curve-editor)
-
 
 ;; file-menu
 

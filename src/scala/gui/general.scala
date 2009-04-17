@@ -5,6 +5,7 @@ import java.awt.event._
 import java.awt.image.{BufferedImage}
 import java.awt.geom.{Rectangle2D,Point2D}
 import javax.swing._
+import javax.swing.tree._
 import javax.swing.border._
 import java.util.{List,LinkedList,ArrayList}
 import scala.collection.jcl.Conversions._
@@ -21,6 +22,10 @@ import java.util.concurrent.locks.{ReadWriteLock,ReentrantReadWriteLock}
 
 class CurveLabel(curve: Object, name:String, icon:ImageIcon, orientation:Int) extends JLabel(name, icon, orientation){
   def getCurve:Object = curve
+}
+
+trait NodePayload {
+  def getFile:Object
 }
 
 class IconListCellRenderer extends JLabel with ListCellRenderer {
@@ -58,8 +63,7 @@ class IconListCellRenderer extends JLabel with ListCellRenderer {
     super.paintComponent(g2)
   }
 
-}
-
+} 
 
 object ImageUtil {
   def fastScale(img:BufferedImage, targetWidth: Int, targetHeight: Int) = {
