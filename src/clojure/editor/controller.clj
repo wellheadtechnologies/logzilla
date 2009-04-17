@@ -15,7 +15,10 @@
 	   (net.miginfocom.swing MigLayout)))
 
 (defn not-dragging-anything [editor]
-  (nil? (get-in @editor [:chart :dragged-entity])))
+  (dosync
+   (let [chart (:chart @editor)
+	 dragged-entity (:dragged-entity @chart)]
+     (nil? dragged-entity))))
 
 (defn init-frame [lasfile curve]
   (let [name (get-in @curve [:descriptor :mnemonic])
@@ -66,22 +69,24 @@
 	(chart-controller/show-percentage chart new-value)))
      new-value)))
 
-(defn sync-table-with-chart [editor column [old-index old-value] chart]
+(defn sync-table-with-chart [editor [old-index old-value] chart]
   (dosync
-   (let [table (get @editor :table)
-	 table-widget (get @table :widget)
-	 index (get @chart :changed-index)
+   (let [table (:table @editor)
+	 table-widget (:widget @table)
+	 [curve-index data-index] (:changes @chart)
 	 dirty-curve (only (:dirty-curves @chart))
-	 value (get-in dirty-curve [:data index])]
-     (when (and (not= nil index)
+	 value (get-in dirty-curve [:data data-index])]
+     (when (and (not= nil data-index) 
 		(not= nil value))
+       (guard (= curve-index 0) 
+	      "curve index must be zero, as the editor only edits one curve at a time")
        (swing 
 	(let [model (.getModel table-widget)
-	      row (index-to-row index table-widget)]
-	  (cond
-	   (not= old-index index) (.setValueAt model value row column)
-	   (not= old-value value) (.setValueAt model value row column)))))
-     [index value])))
+	      row (index-to-row data-index table-widget)]
+	  (when (or (not= old-index data-index)
+		    (not= old-value value)) 
+	    (.setValueAt model value row 1)))))
+     [data-index value])))
 
 (defn sync-chart-with-table [editor [old-row old-val] table]
   (dosync 
@@ -95,7 +100,7 @@
 	 (swing
 	  (let [index (row-to-index new-row (:widget @table))
 		new-val (convert-to-double new-val)]
-	    (chart.panel/set-chart-value chart index new-val))))
+	    (chart.panel/set-chart-value chart 0 index new-val))))
        [new-row old-val]))))
 
 (defn init-zoom-button [editor]
@@ -152,7 +157,7 @@
     (chart-controller/enable-dragging chart)
     (add-watcher slider :send slider-watcher (partial scroll-table-and-chart editor))
     (add-watcher table :send table-watcher (partial sync-chart-with-table editor))
-    (add-watcher chart :send chart-watcher (partial sync-table-with-chart editor 1))
+    (add-watcher chart :send chart-watcher (partial sync-table-with-chart editor))
 
     (swing
      (table-controller/show-percentage (:widget @table) 0)

@@ -57,7 +57,7 @@
    (let [chart-panel (:chart-panel @chart)
 	 curves (:curves @chart)]
      (alter chart assoc-in [:dirty-curves curve-index :data data-index] new-value)
-     (alter chart assoc :changes [(nth curves curve-index) data-index])
+     (alter chart assoc :changes [curve-index data-index])
      (swing
       (let [series (retrieve-series chart-panel curve-index)]
 	(.updateByIndex series data-index new-value))))))

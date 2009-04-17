@@ -3,7 +3,8 @@
   (:import (javax.swing JMenu JFileChooser JPanel JTree
 			JScrollPane JList DefaultListModel
 			BorderFactory JTabbedPane JSplitPane
-			JPopupMenu JMenuItem)
+			JPopupMenu JMenuItem BorderFactory)
+	   (javax.swing.border BevelBorder)
 	   (java.awt Color)
 	   (gui IconListCellRenderer NodePayload)
 	   (net.miginfocom.swing MigLayout)
@@ -36,10 +37,14 @@
     ["Las Files"] 
     "Other"]))
 
-(defn create-manager-widget [source-tree]
+(defn create-curve-panel []
+  (let [panel (JPanel. (MigLayout. "ins 0"))]
+    (doto panel
+      (.setBorder (BorderFactory/createBevelBorder BevelBorder/LOWERED)))))
+
+(defn create-manager-widget [source-tree curve-panel]
   (let [panel (JPanel. (MigLayout. "ins 0"))
-	source-panel (MacWidgetFactory/createSourceListScrollPane source-tree)
-	curve-panel (JPanel. (MigLayout.))]
+	source-panel (MacWidgetFactory/createSourceListScrollPane source-tree)]
     (doto panel
       (.add source-panel "width 50%, height 100%")
       (.add curve-panel "width 50%, height 100%"))))

@@ -11,7 +11,8 @@
   :sources
   :selected-source
   :source-tree
-  :pane)
+  :curve-panel
+  :widget)
 
 ;; file-menu
 
