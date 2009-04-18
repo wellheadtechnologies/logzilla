@@ -8,7 +8,7 @@
 
 ;; panel 
 
-(declare update-percentage fire-value-change-event)
+(declare update-percentage fire-value-change-event fire-percentage-change-event)
 
 (defn delta [x y entity]
   (let [bounds (.. entity (getArea) (getBounds))
@@ -105,7 +105,8 @@
 	  mind (min-depth exemplar)
 	  depth-range (get-depth-range exemplar)
 	  percentage (get-percentage xaxis mind depth-range)]
-      (alter chart assoc :percentage percentage)))))
+      (alter chart assoc :percentage percentage)
+      (fire-percentage-change-event chart percentage)))))
 
 
 (defmulti show-percentage (fn [x y] 
@@ -131,6 +132,7 @@
 	 upper (+ lower unit)]
      (when (not= percentage (:percentage @chart))
        (alter chart assoc :percentage percentage)
+       (fire-percentage-change-event chart percentage)
        (swing 
 	 (.setRange xaxis (Range. lower upper))
 	 (.repaint chart-panel))))))
@@ -160,6 +162,7 @@
      (guard (all-same depth-ranges)
 	    "all depth ranges must be equal to scale chart")
      (alter chart assoc :percentage 0)
+     (fire-percentage-change-event chart 0)
      (swing 
        (.restoreAutoRangeBounds chart-panel)
        (doto (.. chart-panel (getChart) (getPlot) (getDomainAxis))
@@ -178,7 +181,8 @@
 		:chart-panel chart-panel
 		:curves curves
 		:dirty-curves dirty-curves
-		:value-change-listeners [])]
+		:value-change-listeners []
+		:percentage-change-listeners [])]
     (dosync (ref-set chart props))
     (reset chart)
     chart))
@@ -299,3 +303,14 @@
 
 (defn remove-value-change-listener [chart listener]
   (remove-listener :value-change-listeners chart listener))
+
+(defn fire-percentage-change-event [chart percentage]
+  (let [event {:percentage percentage}
+	listeners (:percentage-change-listeners @chart)]
+    (fire-event listeners event)))
+
+(defn add-percentage-change-listener [chart listener]
+  (add-listener :percentage-change-listeners chart listener))
+
+(defn remove-percentage-change-listener [chart listener]
+  (remove-listener :percentage-change-listeners chart listener))

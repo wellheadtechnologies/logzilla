@@ -59,8 +59,9 @@
   (dosync 
    (let [{:keys [percentage]} event]
      (swing 
-       (table-controller/show-percentage table percentage)
-       (chart-controller/show-percentage chart percentage)))))
+       (suppress-events
+	(table-controller/show-percentage table percentage)
+	(chart-controller/show-percentage chart percentage))))))
 
 (defn update-table [table event]
   (dosync
@@ -161,6 +162,8 @@
 						   (let [{:keys [row value]} event
 							 index (row-to-index (:widget @table) row)]
 						     (update-chart chart {:index index :value value})))))
+    (chart-controller/add-percentage-change-listener chart (partial update-slider slider))
+
     (swing
       (table-controller/show-percentage table 0)
       (doto frame
