@@ -1,28 +1,44 @@
 (ns editor.view
   (:use editor.model util gutil global)
   (:import (javax.swing JButton JSlider JTable JToggleButton ImageIcon)
-	   (javax.swing.table DefaultTableModel)))
+	   (javax.imageio ImageIO)
+	   (javax.swing.table DefaultTableModel)
+	   (java.io File)
+	   (java.awt Image)))
 
 (defn create-save-button [save-action]
   (let [button (JButton. (ImageIcon. "resources/save.png"))]
-    (.putClientProperty button "JButton.buttonType" "textured")
-    (on-action button (save-action))
-    button))
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action (save-action)))))
 
 (defn create-edit-button [edit-action]
   (let [button (JToggleButton. (ImageIcon. "resources/edit.png"))]
-    (.putClientProperty button "JButton.buttonType" "textured")
-    (on-action button (edit-action))
-    button))
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action (edit-action)))))
 
 (defn create-zoom-button [zoom-action]
   (let [button (JToggleButton. (ImageIcon. "resources/zoom.png"))]
-    (.putClientProperty button "JButton.buttonType" "textured")
-    (on-action button (zoom-action))
-    button))
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action (zoom-action)))))
 
 (defn create-reset-button [reset-action]
   (let [button (JButton. "Reset Scale")]
-    (.putClientProperty button "JButton.buttonType" "textured")
-    (on-action button (reset-action))
-    button))
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action (reset-action)))))
+
+(defn create-points-button [points-action]
+  (let [button (JToggleButton. "Points")]
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action (points-action)))))
+
+(defn create-pan-button [pan-action]
+  (let [glove (.getScaledInstance (ImageIO/read (File. "resources/glove.png")) 24 24 Image/SCALE_DEFAULT)
+	button (JToggleButton. (ImageIcon. glove))]
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action (pan-action)))))

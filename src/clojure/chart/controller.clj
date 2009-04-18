@@ -287,6 +287,12 @@
        (swing
 	 (.setBaseShapesVisible renderer false))))))
 
+(defn toggle-points [chart]
+  (dosync 
+   (if (:showing-points @chart)
+     (hide-points chart)
+     (show-points chart))))
+
 (defn save-chart [chart]
   (dosync
    (let [{:keys [curves dirty-curves]} @chart]

@@ -8,10 +8,14 @@
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
 			ButtonGroup ImageIcon JPanel
 			ScrollPaneConstants)
-	   (java.awt Dimension Color)
+	   (java.awt Dimension Color Toolkit Image Point)
+	   (javax.imageio ImageIO)
+	   (java.io File)
 	   (org.jfree.data Range)
 	   (org.jfree.chart ChartMouseListener)
 	   (net.miginfocom.swing MigLayout)))
+
+(def glove-image (.getScaledInstance (ImageIO/read (File. "resources/glove.png")) 24 24 Image/SCALE_DEFAULT))
 
 (defn not-dragging-anything [editor]
   (dosync
@@ -103,6 +107,17 @@
    #(let [chart (:chart @editor)]
       (reset chart))))
 
+(defn init-points-button [editor]
+  (create-points-button
+   #(let [chart (:chart @editor)]
+      (toggle-points chart))))
+
+(defn init-pan-button [editor]
+  (create-pan-button
+   #(let [chart (:chart @editor)]
+      (.setCursor (:chart-panel @chart)
+		  (.createCustomCursor (Toolkit/getDefaultToolkit) glove-image (Point. 2 2) "glove")))))
+
 (defn init-left-toolbar [editor]
   (let [toolbar (JToolBar. JToolBar/HORIZONTAL)]
     (doto toolbar
@@ -113,16 +128,21 @@
 	zoom-button (init-zoom-button editor)
 	edit-button (init-edit-button editor)
 	reset-button (init-reset-button editor)
+	points-button (init-points-button editor)
+	pan-button (init-pan-button editor)
 	button-group (ButtonGroup.)]
     (.setSelected edit-button true)
     (doto button-group
       (.add zoom-button)
-      (.add edit-button))
+      (.add edit-button)
+      (.add pan-button))
     (doto toolbar
       (.setFloatable false)
       (.add zoom-button)
       (.add edit-button)
-      (.add reset-button))))
+      (.add pan-button)
+      (.add reset-button)
+      (.add points-button))))
 
 (defn open-curve-editor [lasfile curve]   
   (let [frame (init-frame lasfile curve)
