@@ -35,22 +35,26 @@
   (let [panel (JPanel. (MigLayout. "ins 0"))]
     (doto panel
       (.add (:widget @slider) "pushy, growy")
-      (.add (:pane @table) "pushy, growy, spanx 2, wrap"))))
+      (.add (:pane @table) "push, grow"))))
 
-(defn init-main-panel [chart table-panel toolbar]
-  (let [cpanel (JPanel. (MigLayout. "ins 0"))
-	panel (doto (JPanel. (MigLayout. "ins 0")))]
+(defn init-main-panel [chart table-panel left-toolbar right-toolbar]
+  (let [left-panel (JPanel. (MigLayout. "ins 0"))
+	right-panel (JPanel. (MigLayout. "ins 0"))
+	main-panel (JPanel. (MigLayout. "ins 0"))]
     (swing 
-     (doto cpanel
-       (.setBackground Color/white))
+     (doto left-panel
+       (.add table-panel "push, grow"))
+
      (let [chart-panel (:chart-panel @chart)]
-       (.add cpanel chart-panel "push, grow"))
-     (doto panel
+       (doto right-panel
+	 (.add right-toolbar "pushx, growx, wrap")
+	 (.add chart-panel "push, grow")))
+
+     (doto main-panel
        (.setPreferredSize (Dimension. 700 900))
-       (.add toolbar "pushx, growx, wrap")
-       (.add table-panel "push, grow")
-       (.add cpanel "push, grow")))
-    panel))
+       (.add left-panel "width 35%, pushy, growy")
+       (.add right-panel "width 65%, pushy, growy")))
+    main-panel))
 
 (def slider-watcher (agent nil))
 (def chart-watcher (agent []))
@@ -114,21 +118,31 @@
    #(let [chart (:chart @editor)]
       (enable-dragging chart))))
 
-(defn init-toolbar [editor]
+(defn init-reset-button [editor]
+  (create-reset-button
+   #(let [chart (:chart @editor)]
+      (reset chart))))
+
+(defn init-left-toolbar [editor]
+  (let [toolbar (JToolBar. JToolBar/HORIZONTAL)]
+    (doto toolbar
+      (.setFloatable false))))
+
+(defn init-right-toolbar [editor]
   (let [toolbar (JToolBar. JToolBar/HORIZONTAL)
-	save-button (init-save-button editor)
 	zoom-button (init-zoom-button editor)
 	edit-button (init-edit-button editor)
+	reset-button (init-reset-button editor)
 	button-group (ButtonGroup.)]
     (.setSelected edit-button true)
-    (doto button-group 
+    (doto button-group
       (.add zoom-button)
       (.add edit-button))
     (doto toolbar
       (.setFloatable false)
-      (.add save-button)
       (.add zoom-button)
-      (.add edit-button))))
+      (.add edit-button)
+      (.add reset-button))))
 
 (defn open-curve-editor [lasfile curve]   
   (let [frame (init-frame lasfile curve)
@@ -147,9 +161,10 @@
 		       :slider slider
 		       :table table
 		       :chart chart)
-	tool-bar (init-toolbar editor)
+	left-tool-bar (init-left-toolbar editor)
+	right-tool-bar (init-right-toolbar editor)
 	table-panel (init-table-panel slider table)
-	main-panel (init-main-panel chart table-panel tool-bar)]
+	main-panel (init-main-panel chart table-panel left-tool-bar right-tool-bar)]
 
     (dosync (ref-set editor editor-props))
     (chart-controller/enable-dragging chart)

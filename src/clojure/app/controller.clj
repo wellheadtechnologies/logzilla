@@ -2,10 +2,11 @@
   (:require sources.controller inspector.controller)
   (:use app.view app.model gutil global util)
   (:import (java.awt.event WindowAdapter)
-	   (java.awt Dimension)
+	   (java.awt Dimension Color)
 	   (javax.swing UIManager)))
 
 (System/setProperty "apple.laf.useScreenMenuBar" "true")
+(UIManager/put "Table.alternateRowColor" Color/BLUE)
 ;(UIManager/setLookAndFeel (UIManager/getSystemLookAndFeelClassName))
 
 (def exit-on-close 

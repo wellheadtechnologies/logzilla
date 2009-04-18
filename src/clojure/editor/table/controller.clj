@@ -4,6 +4,8 @@
   (:import (javax.swing.event TableModelListener)
 	   (javax.swing JScrollPane)))
 
+(def error (ref nil))
+
 (defn show-cell [widget row col]
   (swing-io!
    (let [rect (.getCellRect widget row col true)]

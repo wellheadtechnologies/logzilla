@@ -1,10 +1,24 @@
 (ns editor.table.view
-  (:import (javax.swing JTable JScrollPane)
-	   (javax.swing.table DefaultTableModel)))
+  (:import (javax.swing JTable JScrollPane DefaultListSelectionModel)
+	   (javax.swing.table DefaultTableModel DefaultTableCellRenderer TableCellRenderer)
+	   (java.awt Color)
+	   (org.jdesktop.swingx.decorator HighlighterFactory)
+	   (org.jdesktop.swingx JXTable)))
+
+(defn custom-table-model []
+  (proxy [DefaultTableModel] []
+    (isCellEditable [r c] (not= c 0))))
+
+(defn single-selection-model []
+  (doto (DefaultListSelectionModel.)
+    (.setSelectionMode DefaultListSelectionModel/SINGLE_SELECTION)))
 
 (defn create-table-widget [index curves]
-  (let [model (DefaultTableModel.)
-	widget (JTable. model)]    
+  (let [model (custom-table-model)
+	widget (JXTable. model)]    
+    (doto widget
+      (.setSelectionModel (single-selection-model))
+      (.addHighlighter (HighlighterFactory/createSimpleStriping)))
     (.addColumn model "x" (into-array Object (reverse (:data index))))
     (doseq [curve curves]
       (.addColumn model 
