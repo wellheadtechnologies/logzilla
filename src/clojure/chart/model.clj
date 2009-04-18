@@ -51,4 +51,5 @@
   :dragged-entity
   :dragging-enabled
   :zooming-enabled
-  :showing-points)
+  :showing-points
+  :percentage)

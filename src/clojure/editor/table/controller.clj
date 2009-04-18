@@ -11,14 +11,15 @@
    (let [rect (.getCellRect widget row col true)]
      (.scrollRectToVisible widget rect))))
 
-(defn show-percentage [widget n]
-  (let [n (abs (- 1 n))]
-    (swing-io!   
-      (guard (not (or (> n 1) (< n 0)))
-	     (str "invalid n must be from 0.0 to 1.0: " n))
-      (let [rows (dec (.getRowCount widget))
-	    row (* n rows)]
-	(show-cell widget row 0)))))
+(defn show-percentage [table percentage]
+  (let [widget (:widget @table)
+	n (abs (- 1 percentage))]
+    (swing-io!
+     (guard (not (or (> n 1) (< n 0)))
+	    (str "invalid n must be from 0.0 to 1.0: " n))
+     (let [rows (dec (.getRowCount widget))
+	   row (* n rows)]
+       (show-cell widget row 0)))))
 
 (defn init-listener [table]
   (proxy [TableModelListener] []

@@ -58,6 +58,12 @@
      (io! 
       ~@body)))
 
+(defn swing-event [& body]
+  `(if (not (javax.swing.SwingUtilities/isEventDispatchThread))
+     (throw (RuntimeException. "Not in swing event dispatch thread!!!"))
+     (do
+       ~@body)))
+
 (defn on-click [widget fun]
   (.addMouseListener widget
 		     (proxy [MouseAdapter] []

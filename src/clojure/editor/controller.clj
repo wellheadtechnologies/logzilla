@@ -2,8 +2,7 @@
   (:require lasso
 	    [editor.slider.controller :as slider-controller]
 	    [editor.table.controller :as table-controller]
-	    [chart.controller :as chart-controller]
-	    chart.panel)
+	    [chart.controller :as chart-controller])
   (:use editor.model editor.view util global gutil curves chart.controller)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
@@ -59,15 +58,15 @@
 (def slider-watcher (agent nil))
 (def chart-watcher (agent []))
 (def table-watcher (agent []))
+(def percentage-watcher (agent nil))
 
 (defn scroll-table-and-chart [editor old-value slider]
   (dosync 
    (let [{:keys [table chart]} @editor
-	 table-widget (:widget @table)
 	 new-value (:value @slider)]
      (when (not= new-value old-value)
        (swing 
-	(table-controller/show-percentage table-widget new-value)
+	(table-controller/show-percentage table new-value)
 	(chart-controller/show-percentage chart new-value)))
      new-value)))
 
@@ -87,7 +86,8 @@
 	      row (index-to-row data-index table-widget)]
 	  (when (or (not= old-index data-index)
 		    (not= old-value value)) 
-	    (.setValueAt model value row 1)))))
+	    (.setValueAt model value row 1)
+	    (table-controller/show-cell table-widget row 1)))))
      [data-index value])))
 
 (defn sync-chart-with-table [editor [old-row old-val] table]
@@ -102,7 +102,7 @@
 	 (swing
 	  (let [index (row-to-index new-row (:widget @table))
 		new-val (convert-to-double new-val)]
-	    (chart.panel/set-chart-value chart 0 index new-val))))
+	    (chart-controller/set-chart-value chart 0 index new-val))))
        [new-row old-val]))))
 
 (defn init-save-button [editor]
@@ -173,7 +173,7 @@
     (add-watcher chart :send chart-watcher (partial sync-table-with-chart editor))
 
     (swing
-     (table-controller/show-percentage (:widget @table) 0)
+     (table-controller/show-percentage table 0)
      (doto frame
        (.add main-panel)
        (.pack)
