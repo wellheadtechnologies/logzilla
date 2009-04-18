@@ -3,6 +3,5 @@
 (defstruct Table 
   :pane
   :widget
-  :altered-row
-  :altered-col
-  :altered-val)
+  :percentage
+  :value-change-listeners)

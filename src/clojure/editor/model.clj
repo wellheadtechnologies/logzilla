@@ -3,11 +3,11 @@
   (:import (org.jfree.ui RectangleEdge)))
 
 ;impure
-(defn index-to-row [index table]
+(defn index-to-row [table index]
   (- (dec (.getRowCount table)) index))
 
 ;impure
-(defn row-to-index [row table]
+(defn row-to-index [table row]
   (- (dec (.getRowCount table)) row))
 
 (defn convert-to-double [value]

@@ -8,6 +8,8 @@
 
 ;; panel 
 
+(declare update-percentage fire-value-change-event)
+
 (defn delta [x y entity]
   (let [bounds (.. entity (getArea) (getBounds))
 	bx (. bounds x)
@@ -61,7 +63,7 @@
    (let [chart-panel (:chart-panel @chart)
 	 curves (:curves @chart)]
      (alter chart assoc-in [:dirty-curves curve-index :data data-index] new-value)
-     (alter chart assoc :changes [curve-index data-index])
+     (fire-value-change-event chart curve-index data-index new-value)
      (swing
       (let [series (retrieve-series chart-panel curve-index)]
 	(.updateByIndex series data-index new-value))))))
@@ -85,14 +87,26 @@
 (defn custom-chart-panel [chart jfree-chart]
   (let [chart-panel (proxy [ChartPanel] [jfree-chart false false false false false]
 		      (zoom [rect]
-			    (println "zooming to " rect)
-			    (proxy-super zoom rect)))]
+			    (proxy-super zoom rect)
+			    (update-percentage chart)))]
     (doto chart-panel
       (.setMouseZoomable false)
       (.addMouseListener (chart-press-listener chart))
       (.addMouseMotionListener (chart-drag-listener chart)))))
 
 ;; main controller
+
+(defn update-percentage [chart]
+  (swing
+   (dosync
+    (let [{:keys [chart-panel dirty-curves]} @chart
+	  xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	  exemplar (first dirty-curves)
+	  mind (min-depth exemplar)
+	  depth-range (get-depth-range exemplar)
+	  percentage (get-percentage xaxis mind depth-range)]
+      (alter chart assoc :percentage percentage)))))
+
 
 (defmulti show-percentage (fn [x y] 
 			    (cond 
@@ -116,10 +130,10 @@
 	 lower (+ mind (* percentage depth-range))
 	 upper (+ lower unit)]
      (when (not= percentage (:percentage @chart))
-       (alter chart assoc :percentage percentage))
-     (swing 
-       (.setRange xaxis (Range. lower upper))
-       (.repaint chart-panel)))))
+       (alter chart assoc :percentage percentage)
+       (swing 
+	 (.setRange xaxis (Range. lower upper))
+	 (.repaint chart-panel))))))
 
 (defmulti init-chart-panel (fn [x y] 
 			     (cond 
@@ -163,7 +177,8 @@
 	props (struct-map Chart 
 		:chart-panel chart-panel
 		:curves curves
-		:dirty-curves dirty-curves)]
+		:dirty-curves dirty-curves
+		:value-change-listeners [])]
     (dosync (ref-set chart props))
     (reset chart)
     chart))
@@ -274,3 +289,13 @@
      (doseq [[c d] (tuplize curves dirty-curves)]
        (alter c assoc :data (:data d))))))
 
+(defn fire-value-change-event [chart curve-index data-index value]
+  (let [event {:curve-index curve-index :data-index data-index :value value}
+	listeners (:value-change-listeners @chart)]
+    (fire-event listeners event)))
+
+(defn add-value-change-listener [chart listener]
+  (add-listener :value-change-listeners chart listener))
+
+(defn remove-value-change-listener [chart listener]
+  (remove-listener :value-change-listeners chart listener))

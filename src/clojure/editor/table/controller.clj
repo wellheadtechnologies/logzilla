@@ -4,7 +4,7 @@
   (:import (javax.swing.event TableModelListener)
 	   (javax.swing JScrollPane)))
 
-(def error (ref nil))
+(declare fire-value-change-event)
 
 (defn show-cell [widget row col]
   (swing-io!
@@ -14,12 +14,15 @@
 (defn show-percentage [table percentage]
   (let [widget (:widget @table)
 	n (abs (- 1 percentage))]
-    (swing-io!
-     (guard (not (or (> n 1) (< n 0)))
-	    (str "invalid n must be from 0.0 to 1.0: " n))
-     (let [rows (dec (.getRowCount widget))
-	   row (* n rows)]
-       (show-cell widget row 0)))))
+    (dosync 
+     (when (not= (:percentage @table) percentage)
+       (alter table assoc :percentage percentage)
+       (swing
+	 (guard (not (or (> n 1) (< n 0)))
+		(str "invalid n must be from 0.0 to 1.0: " n))
+	 (let [rows (dec (.getRowCount widget))
+	       row (* n rows)]
+	   (show-cell widget row 0)))))))
 
 (defn init-listener [table]
   (proxy [TableModelListener] []
@@ -29,10 +32,7 @@
 		  (let [row (.getFirstRow e)
 			col (.getColumn e)
 			val (.. (:widget @table) (getModel) (getValueAt row col))]
-		    (dosync 
-		     (alter table assoc :altered-row row)
-		     (alter table assoc :altered-col col)
-		     (alter table assoc :altered-val val))))))
+		    (fire-value-change-event table row col val)))))
 
 (defn init-table [index dirty-curve]
   (let [widget (create-table-widget index [dirty-curve])
@@ -40,7 +40,19 @@
 	model (.getModel widget)
 	table (ref (struct-map Table
 		     :pane pane
-		     :widget widget))]
+		     :widget widget
+		     :value-change-listeners []))]
     (.addTableModelListener model (init-listener table))
     table))
 
+
+(defn fire-value-change-event [table row col value]
+  (let [event {:row row :col col :value value}
+	listeners (:value-change-listeners @table)]
+    (fire-event listeners event)))
+
+(defn add-value-change-listener [table listener]
+  (add-listener :value-change-listeners table listener))
+
+(defn remove-value-change-listener [table listener]
+  (remove-listener :value-change-listeners table listener))

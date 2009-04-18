@@ -55,55 +55,34 @@
        (.add right-panel "width 65%, pushy, growy")))
     main-panel))
 
-(def slider-watcher (agent nil))
-(def chart-watcher (agent []))
-(def table-watcher (agent []))
-(def percentage-watcher (agent nil))
-
-(defn scroll-table-and-chart [editor old-value slider]
+(defn scroll-table-and-chart [table chart event]
   (dosync 
-   (let [{:keys [table chart]} @editor
-	 new-value (:value @slider)]
-     (when (not= new-value old-value)
-       (swing 
-	(table-controller/show-percentage table new-value)
-	(chart-controller/show-percentage chart new-value)))
-     new-value)))
+   (let [{:keys [percentage]} event]
+     (swing 
+       (table-controller/show-percentage table percentage)
+       (chart-controller/show-percentage chart percentage)))))
 
-(defn sync-table-with-chart [editor [old-index old-value] chart]
+(defn update-table [table event]
   (dosync
-   (let [table (:table @editor)
-	 table-widget (:widget @table)
-	 [curve-index data-index] (:changes @chart)
-	 dirty-curve (only (:dirty-curves @chart))
-	 value (get-in dirty-curve [:data data-index])]
-     (when (and (not= nil data-index) 
-		(not= nil value))
-       (guard (= curve-index 0) 
-	      "curve index must be zero, as the editor only edits one curve at a time")
-       (swing 
-	(let [model (.getModel table-widget)
-	      row (index-to-row data-index table-widget)]
-	  (when (or (not= old-index data-index)
-		    (not= old-value value)) 
-	    (.setValueAt model value row 1)
-	    (table-controller/show-cell table-widget row 1)))))
-     [data-index value])))
+   (let [{:keys [row value]} event
+	 table-widget (:widget @table)]
+     (swing 
+       (suppress-events
+	(let [model (.getModel table-widget)]
+	  (.setValueAt model value row 1)
+	  (table-controller/show-cell table-widget row 1)))))))
 
-(defn sync-chart-with-table [editor [old-row old-val] table]
+(defn update-slider [slider event]
   (dosync 
-   (when (not-dragging-anything editor)
-     (let [new-row (:altered-row @table)
-	   new-val (:altered-val @table)
-	   chart (:chart @editor)]
-       (when (and (not-any? nil? [new-row new-val])
-		  (or (not= old-row new-row)
-		      (not= old-val new-val)))
-	 (swing
-	  (let [index (row-to-index new-row (:widget @table))
-		new-val (convert-to-double new-val)]
-	    (chart-controller/set-chart-value chart 0 index new-val))))
-       [new-row old-val]))))
+   (let [{:keys [percentage]} event]
+     (slider-controller/set-percentage slider percentage))))
+
+(defn update-chart [chart event]
+  (dosync 
+   (let [{:keys [index value]} event]
+     (swing
+       (let [value (convert-to-double value)]
+	 (chart-controller/set-chart-value chart 0 index value))))))
 
 (defn init-save-button [editor]
   (create-save-button #(save editor)))
@@ -168,14 +147,24 @@
 
     (dosync (ref-set editor editor-props))
     (chart-controller/enable-dragging chart)
-    (add-watcher slider :send slider-watcher (partial scroll-table-and-chart editor))
-    (add-watcher table :send table-watcher (partial sync-chart-with-table editor))
-    (add-watcher chart :send chart-watcher (partial sync-table-with-chart editor))
 
+    (slider-controller/add-percentage-change-listener slider (partial scroll-table-and-chart table chart))
+    (chart-controller/add-value-change-listener chart 
+						(fn [event] 
+						  (dosync
+						   (let [{:keys [data-index value]} event
+							 row (index-to-row (:widget @table) data-index)]
+						     (update-table table {:row row :value value})))))
+    (table-controller/add-value-change-listener table 
+						(fn [event]
+						  (dosync
+						   (let [{:keys [row value]} event
+							 index (row-to-index (:widget @table) row)]
+						     (update-chart chart {:index index :value value})))))
     (swing
-     (table-controller/show-percentage table 0)
-     (doto frame
-       (.add main-panel)
-       (.pack)
-       (.setVisible true)))
+      (table-controller/show-percentage table 0)
+      (doto frame
+	(.add main-panel)
+	(.pack)
+	(.setVisible true)))
     editor))

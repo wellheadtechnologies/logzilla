@@ -125,3 +125,8 @@
 
 (defn tree [hierarchy]
   (MacWidgetFactory/createSourceList (DefaultTreeModel. (tree-node hierarchy))))
+
+(defmacro animate-swing [n t & body]
+  `(doseq [i# (range 0 ~n)]
+     (swing ~@body)
+     (Thread/sleep ~t)))

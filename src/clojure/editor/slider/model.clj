@@ -1,6 +1,7 @@
 (ns editor.slider.model)
 
 (defstruct Slider
-  :slider
-  :value
-  :notches)
+  :widget
+  :percentage
+  :notches
+  :percentage-listeners)
