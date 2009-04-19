@@ -4,7 +4,10 @@
 	   (org.jfree.data Range)
 	   (org.jfree.chart.renderer.xy XYDifferenceRenderer StandardXYItemRenderer)
 	   (java.awt.event MouseAdapter MouseMotionAdapter)
-	   (java.awt.geom Point2D Point2D$Double)))
+	   (java.awt.geom Point2D Point2D$Double)
+	   (javax.imageio ImageIO)
+	   (java.io File)
+	   (java.awt Toolkit Image Point Cursor)))
 
 ;; panel 
 
@@ -40,23 +43,38 @@
        (mousePressed [event]
 		     (swing-io! 
 		      (dosync 
-		       (when (:dragging-enabled @chart)
-			 (let [chart-panel (:chart-panel @chart)
-			       insets (.getInsets chart-panel)
-			       x (/ (- (.getX event) (. insets left)) (.getScaleX chart-panel))
-			       y (/ (- (.getY event) (. insets top)) (.getScaleY chart-panel))
-			       entities (.. chart-panel (getChartRenderingInfo) (getEntityCollection) (getEntities))
-			       nearest-entities (if (:showing-points @chart)
-						  (filter #(in-range y x %) entities)
-						  (filter #(in-range x y %) entities))
-			       chosen (if (:showing-points @chart)
-					(closest y x nearest-entities)
-					(closest x y nearest-entities))]
-			   (alter chart assoc :dragged-entity chosen))))))
+		       (when
+			(:dragging-enabled @chart)
+			(let [chart-panel (:chart-panel @chart)
+			      insets (.getInsets chart-panel)
+			      x (/ (- (.getX event) (. insets left)) (.getScaleX chart-panel))
+			      y (/ (- (.getY event) (. insets top)) (.getScaleY chart-panel))
+			      entities (.. chart-panel (getChartRenderingInfo) (getEntityCollection) (getEntities))
+			      nearest-entities (if (:showing-points @chart)
+						 (filter #(in-range y x %) entities)
+						 (filter #(in-range x y %) entities))
+			      chosen (if (:showing-points @chart)
+				       (closest y x nearest-entities)
+				       (closest x y nearest-entities))]
+			  (alter chart assoc :dragged-entity chosen)))
+		       (when (:panning-enabled @chart)
+			(let [chart-panel (:chart-panel @chart)
+			      plot (.. chart-panel (getChart) (getPlot))]
+			  (println "setting anchor point to " [(.getX event) (.getY event)])
+			  (alter chart assoc :anchor 
+				 [(.getX event) (.getY event) 
+				  (.. plot (getRangeAxis) (getRange))
+				  (.. plot (getDomainAxis) (getRange))]))))))
        (mouseReleased [event]
-		      (dosync 
-		       (when (:dragging-enabled @chart)
-			 (alter chart assoc :dragged-entity nil))))))
+		      (swing-io!
+		       (dosync 
+			(when
+			 (:dragging-enabled @chart)
+			 (alter chart assoc :dragged-entity nil))
+			(when (:panning-enabled @chart)
+			  (do
+			    (println "unsetting anchor point")
+			    (alter chart assoc :anchor nil))))))))
 
 (defn set-chart-value [chart curve-index data-index new-value]
   (dosync 
@@ -68,21 +86,38 @@
       (let [series (retrieve-series chart-panel curve-index)]
 	(.updateByIndex series data-index new-value))))))
 
+(defn center-on [chart x y]
+  (swing
+   (let [{:keys [chart-panel dirty-curves anchor]} @chart]
+     (when anchor
+       (let [[anchor-x anchor-y anchor-xrange anchor-yrange] anchor
+	     yaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	     ydelta (- (yjava-2D-to-value chart-panel anchor-y) 
+		       (yjava-2D-to-value chart-panel y))]
+	 (println "anchor-y = " (yjava-2D-to-value chart-panel anchor-y))
+	 (println "java-2d-to-value = " (yjava-2D-to-value chart-panel y))
+	 (println "ydelta = " ydelta)
+	 (.setRange yaxis (Range/shift anchor-yrange ydelta)))))))
+
 (defn chart-drag-listener [chart]
   (proxy [MouseMotionAdapter] []
     (mouseDragged [event]
 		  (dosync
-		   (when (and (:dragging-enabled @chart) (:dragged-entity @chart))
-		     (let [dragged-entity (:dragged-entity @chart)
-			   chart-panel (:chart-panel @chart)
-			   curve-index (.getSeriesIndex dragged-entity)]
-		       (when dragged-entity
-			 (swing
-			  (let [series (retrieve-series chart-panel curve-index)
-				data-index (.getItem dragged-entity)
-				new-value (java-2D-to-value chart-panel (.getX event))]
-			    (when (not (or (.isNaN new-value) (.isInfinite new-value)))
-			      (set-chart-value chart curve-index data-index new-value)))))))))))
+		   (cond
+		    (and (:dragging-enabled @chart) (:dragged-entity @chart))
+		    (let [dragged-entity (:dragged-entity @chart)
+			  chart-panel (:chart-panel @chart)
+			  curve-index (.getSeriesIndex dragged-entity)]
+		      (when dragged-entity
+			(swing
+			 (let [series (retrieve-series chart-panel curve-index)
+			       data-index (.getItem dragged-entity)
+			       new-value (xjava-2D-to-value chart-panel (.getX event))]
+			   (when (not (or (.isNaN new-value) (.isInfinite new-value)))
+			     (set-chart-value chart curve-index data-index new-value))))))
+		    
+		    (:panning-enabled @chart)
+		    (center-on chart (.getX event) (.getY event)))))))
 
 (defn custom-chart-panel [chart jfree-chart]
   (let [chart-panel (proxy [ChartPanel] [jfree-chart false false false false false]
@@ -120,7 +155,7 @@
 
 (defmethod show-percentage :chart [chart percentage]
   (dosync 
-   (let [{:keys [chart-panel dirty-curves]} @chart
+   (let [{:keys [chart-panel dirty-curves percentage]} @chart
 	 xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
 	 exemplar (first dirty-curves)
 	 chart-range (get-chart-range xaxis)
@@ -134,8 +169,8 @@
        (alter chart assoc :percentage percentage)
        (fire-percentage-change-event chart percentage)
        (swing 
-	 (.setRange xaxis (Range. lower upper))
-	 (.repaint chart-panel))))))
+	(.setRange xaxis (Range. lower upper))
+	(.repaint chart-panel))))))
 
 (defmulti init-chart-panel (fn [x y] 
 			     (cond 
@@ -292,6 +327,28 @@
    (if (:showing-points @chart)
      (hide-points chart)
      (show-points chart))))
+
+
+(def glove-image (.getScaledInstance (ImageIO/read (File. "resources/glove.png")) 24 24 Image/SCALE_DEFAULT))
+
+(defn enable-panning [chart]
+  (dosync
+   (alter chart assoc :panning-enabled true)
+   (swing
+    (.setCursor (:chart-panel @chart)
+		(.createCustomCursor (Toolkit/getDefaultToolkit) glove-image (Point. 2 2) "glove")))))
+
+(defn disable-panning [chart]
+  (dosync 
+   (alter chart assoc :panning-enabled false)
+   (swing
+    (.setCursor (:chart-panel @chart) (Cursor/getDefaultCursor)))))
+
+(defn toggle-panning [chart]
+  (dosync
+   (if (:panning-enabled @chart)
+     (disable-panning chart)
+     (enable-panning chart))))
 
 (defn save-chart [chart]
   (dosync

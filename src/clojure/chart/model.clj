@@ -2,11 +2,18 @@
   (:use gutil util curves)
   (:import (org.jfree.ui RectangleEdge)))
 
-(defn java-2D-to-value [chart-panel x]
+(defn xjava-2D-to-value [chart-panel x]
   (swing-io! 
    (let [chart (.getChart chart-panel)
 	 xaxis (.. chart (getPlot) (getRangeAxis))
 	 value (.java2DToValue xaxis x (.getScreenDataArea chart-panel) RectangleEdge/TOP)]
+     value)))
+
+(defn yjava-2D-to-value [chart-panel y]
+  (swing-io! 
+   (let [chart (.getChart chart-panel)
+	 yaxis (.. chart (getPlot) (getDomainAxis))
+	 value (.java2DToValue yaxis y (.getScreenDataArea chart-panel) RectangleEdge/TOP)]
      value)))
 
 (defn retrieve-series [chart-panel curve-index]

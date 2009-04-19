@@ -41,8 +41,11 @@
 	province-state (get-in semantics [:province-state :data])
 	county (get-in semantics [:county :data])
 	country (get-in semantics [:country :data])
-	well-id (get-in semantics [:well-id :data])]
+	well-id (get-in semantics [:well-id :data])
+	width 300
+	height (+ 200 (* (count semantics) (.. (JTextField.) (getPreferredSize) (getHeight))))]
     (doto panel
+      (.setPreferredSize (Dimension. width height))
       (add-field "Name" name)
       (add-field "Location" location)
       (add-field "Depth Start" depth-start)

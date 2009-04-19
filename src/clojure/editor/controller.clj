@@ -15,8 +15,6 @@
 	   (org.jfree.chart ChartMouseListener)
 	   (net.miginfocom.swing MigLayout)))
 
-(def glove-image (.getScaledInstance (ImageIO/read (File. "resources/glove.png")) 24 24 Image/SCALE_DEFAULT))
-
 (defn not-dragging-anything [editor]
   (dosync
    (let [chart (:chart @editor)
@@ -32,7 +30,6 @@
   (dosync
    (let [chart (:chart @editor)]
      (chart-controller/save-chart chart))))
-
 
 (defn init-table-panel [slider table]
   (let [panel (JPanel. (MigLayout. "ins 0"))]
@@ -115,8 +112,7 @@
 (defn init-pan-button [editor]
   (create-pan-button
    #(let [chart (:chart @editor)]
-      (.setCursor (:chart-panel @chart)
-		  (.createCustomCursor (Toolkit/getDefaultToolkit) glove-image (Point. 2 2) "glove")))))
+      (toggle-panning chart))))
 
 (defn init-left-toolbar [editor]
   (let [toolbar (JToolBar. JToolBar/HORIZONTAL)]

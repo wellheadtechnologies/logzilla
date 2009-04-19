@@ -9,9 +9,12 @@
    (let [{:keys [log-tab content-panel]} @inspector]
      (alter inspector assoc :selected :log)
      (swing
+      (doto (:frame @inspector)
+	(.setSize (.getPreferredSize log-tab)))
       (doto content-panel
 	(.removeAll)
 	(.add log-tab "push, grow")
+	(.setSize (.getPreferredSize log-tab))
 	(.revalidate)
 	(.repaint))))))
 
