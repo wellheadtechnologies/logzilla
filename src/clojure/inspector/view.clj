@@ -1,64 +1,91 @@
 (ns inspector.view
-  (:use global gutil)
+  (:use global gutil semantics inspector.model)
   (:import (javax.swing JFrame JPanel JLabel JTextArea
-			JTextField JTabbedPane JButton) 
-	   (java.awt Dimension)
+			JTextField JTabbedPane JButton
+			JToolBar ButtonGroup JButton 
+			JToggleButton Box) 
+	   (java.awt Dimension Color)
 	   (net.miginfocom.swing MigLayout)))
 
-(defn create-app-tab []
-  (let [panel (JPanel. (MigLayout.))
-	width-field (JTextField. (:width @app))
-	height-field (JTextField. (:height @app))]
+(defn add-field [panel name value]
+  (let [label (JLabel. name)
+	field (JTextField. value)]
+    (doto label
+      (.putClientProperty "JComponent.sizeVariant" "small"))
+    (doto field 
+      (.putClientProperty "JComponent.sizeVariant" "small"))
     (doto panel
-      (.add (JLabel. "Width"))
-      (.add width-field "pushx, growx, wrap")
+      (.add label)
+      (.add field "pushx, growx, wrap"))))
 
-      (.add (JLabel. "Height"))
-      (.add height-field "pushx, growx, wrap"))))
-
-(defn create-curves-tab [curves]
+(defn create-log-tab [log]
   (let [panel (JPanel. (MigLayout.))
-	curve-ref (first curves)
-	curve @curve-ref
-	icon (:icon curve)
-	from-descriptor #(get-in curve [:descriptor %])
-	mnemonic-field (JTextField. (from-descriptor :mnemonic))
-	unit-field (JTextField. (from-descriptor :unit))
-	description-area (JTextArea. (from-descriptor :description))
-	change-button (JButton. "Change")]
-    (doto description-area
-      (.setLineWrap true))
-    (doto change-button
-      (.putClientProperty "JButton.buttonType" "textured")
-      (on-action 
-	  (let [m (.getText mnemonic-field)
-		u (.getText unit-field)
-		d (.getText description-area)]
-	    (dosync 
-	     (alter curve-ref assoc-in [:descriptor :mnemonic] m)
-	     (alter curve-ref assoc-in [:descriptor :unit] u)
-	     (alter curve-ref assoc-in [:descriptor :description] d)))))
+	semantics (get-semantics @log)
+	name (get-in semantics [:name :data])
+	location (get-in semantics [:location :data])
+	depth-panel (JPanel. (MigLayout.))
+	depth-start (get-in semantics [:depth-start :data])
+	depth-end (get-in semantics [:depth-end :data])
+	company (get-in semantics [:company :data])
+	well (get-in semantics [:well :data])
+	field (get-in semantics [:field :data])
+	province-state (get-in semantics [:province-state :data])
+	county (get-in semantics [:county :data])
+	country (get-in semantics [:country :data])
+	well-id (get-in semantics [:well-id :data])]
+    (println "semantics = " semantics)
     (doto panel
-      (.add icon "spanx 2, wrap")
+      (add-field "Name" name)
+      (add-field "Location" location)
+      (add-field "Start" depth-start)
+      (add-field "End" depth-end)
+      (add-field "Company" company)
+      (add-field "Well" well)
+      (add-field "Field" field)
+      (add-field "Province/State" province-state)
+      (add-field "County" county)
+      (add-field "Country" country)
+      (add-field "Well ID" well-id))))
 
-      (.add (JLabel. "Mnemonic"))
-      (.add mnemonic-field "pushx, growx, wrap")
-      
-      (.add (JLabel. "Unit"))
-      (.add unit-field "pushx, growx, wrap")
-      
-      (.add (JLabel. "Description") "spanx 2, wrap")
-      (.add description-area "spanx 2, push, grow, wrap")
-      (.add change-button "align 50%, spanx 2, wrap"))
-    ))
+(defn tab-button [name action]
+  (let [button (JToggleButton. name)]
+    (on-action button (action))
+    (doto button
+      (.putClientProperty "JComponent.sizeVariant" "small")
+      (.putClientProperty "JButton.buttonType" "segmentedGradient")
+      (.setPreferredSize (Dimension. 100 10)))))
 
-(defn create-inspector-window [width height]
+(defn init-tab-bar [log-action format-action parameter-action]
+  (let [panel (JPanel. (MigLayout. "ins 0, gapx 0"))
+	button-group (ButtonGroup.)
+	log-button (tab-button "Log" log-action)
+	format-button (tab-button "Format" format-action)
+	parameter-button (tab-button "Params" parameter-action)]
+    (doto button-group
+      (.add log-button)
+      (.add format-button)
+      (.add parameter-button))
+    (doto panel
+      (.add (doto log-button (.putClientProperty "JButton.segmentPosition" "first")))
+      (.add (doto format-button (.putClientProperty "JButton.segmentPosition" "middle")))
+      (.add (doto parameter-button (.putClientProperty "JButton.segmentPosition" "last"))))))
+
+(defn create-inspector-window [log-action format-action parameter-action]
   (let [frame (JFrame. "Inspector")
-	panel (JTabbedPane.)]
-    (doto panel
-      (.addTab "App" (create-app-tab)))
+	panel (JPanel. (MigLayout. "ins 0, gapx 100:100:100"))
+	content-panel (JPanel. (MigLayout. "ins 0"))
+	tab-bar (init-tab-bar log-action format-action parameter-action)]
+    (.. frame (getRootPane) (putClientProperty "Window.style" "small"))
+    (doto panel 
+      (.add tab-bar "wrap")
+      (.add content-panel "push, grow"))
     (doto frame
       (.add panel)
-      (.setSize (Dimension. width height)))
-    {:frame frame
-     :panel panel}))
+      (.setSize (Dimension. 300 400)))
+    (struct-map Inspector
+      :frame frame
+      :tab-bar tab-bar
+      :content-panel content-panel
+      :log-tab (JPanel.)
+      :format-tab (JPanel.)
+      :parameters-tab (JPanel.))))

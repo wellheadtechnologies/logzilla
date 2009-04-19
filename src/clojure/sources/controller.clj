@@ -15,8 +15,6 @@
 
 (declare init-curve-list init-curve-list-view init-file init-context-menu-listener)
 
-(def curve-watcher (agent nil))
-
 (defn update-curve-icon [curve-list old-descriptor curve]
   (dosync 
    (let [icon (:icon @curve)
@@ -30,13 +28,8 @@
 (defn get-selected-curves [curve-list]
   (swing-io! (doall (map #(.getCurve %) (.getSelectedValues curve-list)))))
 
-(defn init-inspector-listener [curve-list]
-  (proxy [ListSelectionListener] []
-    (valueChanged [e] (switch-inspector-tab :curves (get-selected-curves curve-list)))))
-
 (defn get-selected-source [source-manager]
   (:selected-source @source-manager))
-
 
 (defn add-lasfile [source-manager lasfile]
   (dosync 
@@ -53,7 +46,6 @@
   (let [icon (curve-to-icon curve)]
     (dosync 
      (alter curve assoc :icon icon)
-     (add-watcher curve :send curve-watcher (partial update-curve-icon curve-list))
      (swing 
       (.addElement (.getModel curve-list) icon)
       (.repaint curve-list)))))
@@ -84,7 +76,6 @@
 
 (defn init-curve-list [source-manager curves]
   (let [curve-list (create-curve-list)]
-    (.addListSelectionListener curve-list (init-inspector-listener curve-list))
     (long-task
       (doseq [curve curves]
 	(add-curve-to-gui curve-list curve)))
@@ -133,7 +124,8 @@
 			leaf (.getLastPathComponent path)
 			payload (.getUserObject leaf)
 			file (.getFile payload)]
-		    (display-curves-for source-manager file)))))
+		    (display-curves-for source-manager file)
+		    (update-log-tab (:lasfile @file))))))
 
 
 (defn init-source-tree [source-manager]
