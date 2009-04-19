@@ -74,6 +74,10 @@
 	     (= (.getClickCount e) 2))
     (open-curve-editor source-manager)))
 
+(defn init-inspector-listener [curve-list]
+  (proxy [ListSelectionListener] []
+    (valueChanged [e] (update-parameters-tab :curve (first (get-selected-curves curve-list))))))
+
 (defn init-curve-list [source-manager curves]
   (let [curve-list (create-curve-list)]
     (long-task
@@ -81,7 +85,8 @@
 	(add-curve-to-gui curve-list curve)))
     (doto curve-list
       (.addMouseListener (click-listener (partial open-curve-editor-action source-manager)))
-      (.addMouseListener (init-context-menu-listener source-manager curve-list)))
+      (.addMouseListener (init-context-menu-listener source-manager curve-list))
+      (.addListSelectionListener (init-inspector-listener curve-list)))
     curve-list))
 
 (defn init-curve-list-view [curve-list]

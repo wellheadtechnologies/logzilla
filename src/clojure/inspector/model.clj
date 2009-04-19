@@ -6,4 +6,5 @@
   :content-panel
   :log-tab
   :format-tab
-  :parameters-tab)
+  :parameters-tab
+  :selected)

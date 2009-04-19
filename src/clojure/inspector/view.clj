@@ -18,10 +18,20 @@
       (.add label)
       (.add field "pushx, growx, wrap"))))
 
+(defn add-text-area [panel name value]
+  (let [label (JLabel. name)
+	area (JTextArea.)]
+    (doto area
+      (.setLineWrap true)
+      (.setText value))
+    (doto panel
+      (.add label)
+      (.add area "push, grow"))))
+
 (defn create-log-tab [log]
   (let [panel (JPanel. (MigLayout.))
 	semantics (get-semantics @log)
-	name (get-in semantics [:name :data])
+	name (:name semantics)
 	location (get-in semantics [:location :data])
 	depth-panel (JPanel. (MigLayout.))
 	depth-start (get-in semantics [:depth-start :data])
@@ -33,7 +43,6 @@
 	county (get-in semantics [:county :data])
 	country (get-in semantics [:country :data])
 	well-id (get-in semantics [:well-id :data])]
-    (println "semantics = " semantics)
     (doto panel
       (add-field "Name" name)
       (add-field "Location" location)
@@ -47,13 +56,21 @@
       (add-field "Country" country)
       (add-field "Well ID" well-id))))
 
+(defn create-curve-params-tab [curve]
+  (let [panel (JPanel. (MigLayout.))]
+    (dosync
+     (doto panel
+       (add-field "Name" (get-in @curve [:descriptor :mnemonic]))
+       (add-field "Unit" (get-in @curve [:descriptor :unit]))
+       (add-text-area "Description" (get-in @curve [:descriptor :description]))))))
+
 (defn tab-button [name action]
   (let [button (JToggleButton. name)]
     (on-action button (action))
     (doto button
       (.putClientProperty "JComponent.sizeVariant" "small")
       (.putClientProperty "JButton.buttonType" "segmentedGradient")
-      (.setPreferredSize (Dimension. 100 10)))))
+      (.setPreferredSize (Dimension. 200 10)))))
 
 (defn init-tab-bar [log-action format-action parameter-action]
   (let [panel (JPanel. (MigLayout. "ins 0, gapx 0"))
@@ -66,13 +83,13 @@
       (.add format-button)
       (.add parameter-button))
     (doto panel
-      (.add (doto log-button (.putClientProperty "JButton.segmentPosition" "first")))
+      (.add (doto log-button (.putClientProperty "JButton.segmentPosition" "first") (.setSelected true)))
       (.add (doto format-button (.putClientProperty "JButton.segmentPosition" "middle")))
       (.add (doto parameter-button (.putClientProperty "JButton.segmentPosition" "last"))))))
 
 (defn create-inspector-window [log-action format-action parameter-action]
   (let [frame (JFrame. "Inspector")
-	panel (JPanel. (MigLayout. "ins 0, gapx 100:100:100"))
+	panel (JPanel. (MigLayout. "ins 0"))
 	content-panel (JPanel. (MigLayout. "ins 0"))
 	tab-bar (init-tab-bar log-action format-action parameter-action)]
     (.. frame (getRootPane) (putClientProperty "Window.style" "small"))
@@ -88,4 +105,5 @@
       :content-panel content-panel
       :log-tab (JPanel.)
       :format-tab (JPanel.)
-      :parameters-tab (JPanel.))))
+      :parameters-tab (JPanel.)
+      :selected :log)))

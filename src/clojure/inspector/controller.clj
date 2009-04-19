@@ -7,6 +7,7 @@
 (defn switch-to-log [] 
   (dosync
    (let [{:keys [log-tab content-panel]} @inspector]
+     (alter inspector assoc :selected :log)
      (swing
       (doto content-panel
 	(.removeAll)
@@ -17,6 +18,7 @@
 (defn switch-to-format [] 
   (dosync 
    (let [{:keys [format-tab content-panel]} @inspector]
+     (alter inspector assoc :selected :format)
      (swing 
       (doto content-panel
 	(.removeAll)
@@ -27,6 +29,7 @@
 (defn switch-to-parameters [] 
   (dosync
    (let [{:keys [parameters-tab content-panel]} @inspector]
+     (alter inspector assoc :selected :parameters)
      (swing
       (doto content-panel
 	(.removeAll)
@@ -45,4 +48,15 @@
 (defn update-log-tab [log]
   (let [tab (create-log-tab log)]
     (dosync
-     (alter inspector assoc :log-tab tab))))
+     (alter inspector assoc :log-tab tab)
+     (when (= :log (:selected @inspector))
+       (switch-to-log)))))
+
+(defn update-parameters-tab [type obj]
+  (cond 
+   (= type :curve)
+   (let [tab (create-curve-params-tab obj)]
+     (dosync
+      (alter inspector assoc :parameters-tab tab)
+      (when (= :parameters (:selected @inspector))
+	(switch-to-parameters))))))
