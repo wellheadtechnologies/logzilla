@@ -33,7 +33,6 @@
 	semantics (get-semantics @log)
 	name (:name semantics)
 	location (get-in semantics [:location :data])
-	depth-panel (JPanel. (MigLayout.))
 	depth-start (get-in semantics [:depth-start :data])
 	depth-end (get-in semantics [:depth-end :data])
 	company (get-in semantics [:company :data])
@@ -46,8 +45,8 @@
     (doto panel
       (add-field "Name" name)
       (add-field "Location" location)
-      (add-field "Start" depth-start)
-      (add-field "End" depth-end)
+      (add-field "Depth Start" depth-start)
+      (add-field "Depth End" depth-end)
       (add-field "Company" company)
       (add-field "Well" well)
       (add-field "Field" field)

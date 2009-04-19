@@ -20,17 +20,6 @@
        (.setSize width height)
        (.repaint)))))
 
-(defstruct App 
-  :width
-  :height
-  :frame
-  :panel
-  :menu-bar
-  :file-menu
-  :window-menu
-  :sources-widget
-  :window-listeners)
-
 (def size-watcher (agent []))
 
 (defn resize [[old-width old-height] app]

@@ -2,7 +2,7 @@
   (:use util gutil global
 	editor.table.view editor.table.model)
   (:import (javax.swing.event TableModelListener)
-	   (javax.swing JScrollPane)))
+	   (javax.swing JScrollPane JOptionPane)))
 
 (declare fire-value-change-event)
 
@@ -32,6 +32,11 @@
 		  (let [row (.getFirstRow e)
 			col (.getColumn e)
 			val (.. (:widget @table) (getModel) (getValueAt row col))]
+		    (try (Double/valueOf val) 
+			 (catch NumberFormatException e 
+			   (JOptionPane/showMessageDialog 
+			    (:widget @table) (str val " doesn't appear to be properly formatted")
+			    "Number Format Error" JOptionPane/ERROR_MESSAGE)))
 		    (fire-value-change-event table row col val)))))
 
 (defn init-table [index dirty-curve]

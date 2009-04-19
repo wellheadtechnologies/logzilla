@@ -1,5 +1,6 @@
 (ns sources.model
-  (:use gutil))
+  (:use gutil global)
+  (:import (javax.swing JOptionPane)))
 
 (defstruct File
   :lasfile
@@ -17,7 +18,13 @@
 ;; file-menu
 
 (defn open-file [file]
-  (lasso/load-lasfile (.getPath file)))
+  (try 
+   (lasso/load-lasfile (.getPath file))
+   (catch Exception e 
+     (JOptionPane/showMessageDialog 
+      (:frame @app) (str "There was an error reading file " (.getPath file))
+      "Read Error" JOptionPane/ERROR_MESSAGE)
+     (throw (RuntimeException. "Open File Failed")))))
 
 (defn open-files [files]
   (doall (map open-file files)))
