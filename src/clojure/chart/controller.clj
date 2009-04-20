@@ -153,7 +153,7 @@
   (doseq [chart charts]
     (show-percentage chart percentage)))
 
-(defmethod show-percentage :chart [chart percentage]
+(defmethod show-percentage :chart [chart new-percentage]
   (dosync 
    (let [{:keys [chart-panel dirty-curves percentage]} @chart
 	 xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
@@ -163,11 +163,11 @@
 	 mind (min-depth exemplar)
 	 scale (get-scale depth-range chart-range)
 	 unit (get-unit depth-range scale)
-	 lower (+ mind (* percentage depth-range))
+	 lower (+ mind (* new-percentage depth-range))
 	 upper (+ lower unit)]
-     (when (not= percentage (:percentage @chart))
-       (alter chart assoc :percentage percentage)
-       (fire-percentage-change-event chart percentage)
+     (when (not= new-percentage (:percentage @chart))
+       (alter chart assoc :percentage new-percentage)
+       (fire-percentage-change-event chart new-percentage)
        (swing 
 	(.setRange xaxis (Range. lower upper))
 	(.repaint chart-panel))))))
