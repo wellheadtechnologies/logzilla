@@ -11,8 +11,8 @@
    (let [widget (:widget @slider)
 	 notches (:notches @slider)
 	 value (* percentage notches)]
-     (when (not= (:percentage @slider)
-		 percentage)
+     (when (and (not= (:percentage @slider) percentage)
+		(<= percentage 1) (>= percentage 0))
        (alter slider assoc :percentage percentage)
        (swing
 	(ignore :percentage-change slider

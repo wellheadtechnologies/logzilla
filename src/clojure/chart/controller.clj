@@ -60,7 +60,6 @@
 		       (when (:panning-enabled @chart)
 			(let [chart-panel (:chart-panel @chart)
 			      plot (.. chart-panel (getChart) (getPlot))]
-			  (println "setting anchor point to " [(.getX event) (.getY event)])
 			  (alter chart assoc :anchor 
 				 [(.getX event) (.getY event) 
 				  (.. plot (getRangeAxis) (getRange))
@@ -73,7 +72,6 @@
 			 (alter chart assoc :dragged-entity nil))
 			(when (:panning-enabled @chart)
 			  (do
-			    (println "unsetting anchor point")
 			    (alter chart assoc :anchor nil))))))))
 
 (defn set-chart-value [chart curve-index data-index new-value]
@@ -83,7 +81,7 @@
      (alter chart assoc-in [:dirty-curves curve-index :data data-index] new-value)
      (fire :value-change chart {:curve-index curve-index
 				:data-index data-index
-				:new-value new-value})
+				:value new-value})
      (swing
       (let [series (retrieve-series chart-panel curve-index)]
 	(.updateByIndex series data-index new-value))))))
@@ -99,9 +97,13 @@
 
 	     xaxis (.. chart-panel (getChart) (getPlot) (getRangeAxis))
 	     xdelta (- (xjava-2D-to-value chart-panel anchor-x)
-		       (xjava-2D-to-value chart-panel x))]
-	 (.setRange yaxis (Range/shift anchor-yrange ydelta))
-	 (.setRange xaxis (Range/shift anchor-xrange xdelta))
+		       (xjava-2D-to-value chart-panel x))
+	     new-xrange (Range. (+ (.getLowerBound anchor-xrange) xdelta)
+				(+ (.getUpperBound anchor-xrange) xdelta))
+	     new-yrange (Range. (+ (.getLowerBound anchor-yrange) ydelta)
+				(+ (.getUpperBound anchor-yrange) ydelta))]
+	 (.setRange yaxis new-yrange)
+	 (.setRange xaxis new-xrange)
 	 (update-percentage chart))))))
 
 (defn chart-drag-listener [chart]
@@ -339,14 +341,18 @@
   (dosync
    (alter chart assoc :panning-enabled true)
    (swing
-    (.setCursor (:chart-panel @chart)
-		(.createCustomCursor (Toolkit/getDefaultToolkit) glove-image (Point. 2 2) "glove")))))
+    (let [chart-panel (:chart-panel @chart)
+	  plot (.. chart-panel (getChart) (getPlot))]
+      (.setCursor (:chart-panel @chart)
+		  (.createCustomCursor (Toolkit/getDefaultToolkit) glove-image (Point. 2 2) "glove"))))))
 
 (defn disable-panning [chart]
   (dosync 
    (alter chart assoc :panning-enabled false)
    (swing
-    (.setCursor (:chart-panel @chart) (Cursor/getDefaultCursor)))))
+    (let [chart-panel (:chart-panel @chart)
+	  plot (.. chart-panel (getChart) (getPlot))]
+      (.setCursor chart-panel (Cursor/getDefaultCursor))))))
 
 (defn toggle-panning [chart]
   (dosync

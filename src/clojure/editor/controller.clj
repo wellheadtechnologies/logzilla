@@ -72,7 +72,7 @@
 	 table-widget (:widget @table)]
      (swing 
       (let [model (.getModel table-widget)]
-	(.setValueAt model value row 1)
+	(ignore :value-change table (.setValueAt model value row 1))
 	(table-controller/show-cell table-widget row 1))))))
 
 (defn update-chart [chart event]
@@ -80,7 +80,7 @@
    (let [{:keys [index value]} event]
      (swing
        (let [value (convert-to-double value)]
-	 (chart-controller/set-chart-value chart 0 index value))))))
+	 (ignore :value-change chart (chart-controller/set-chart-value chart 0 index value)))))))
 
 (defn init-save-button [editor]
   (create-save-button #(save editor)))
