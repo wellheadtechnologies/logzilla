@@ -135,22 +135,3 @@
   `(doseq [i# (range 0 ~n)]
      ~@body
      (Thread/sleep ~t)))
-
-(defn fire-event [listeners event]
-  (doseq [listener listeners]
-    (listener event)))
-
-(defn add-listener [type object listener]
-  (dosync
-   (let [old-listeners (type @object)]
-      (alter object assoc type (conj old-listeners listener)))))
-
-(defn remove-listener [type object listener]
-  (dosync
-   (let [old-listeners (type @object)]
-     (alter object assoc type 
-	    (remove #(= listener %) old-listeners)))))
-
-(defmacro suppress-events [& body]
-  `(binding [fire-event (fn [a# b#] nil)]
-     ~@body))

@@ -1,5 +1,5 @@
 (ns chart.controller
-  (:use chart.model chart.view curves gutil util global lasso)
+  (:use chart.model chart.view curves gutil util global lasso messages)
   (:import (org.jfree.chart ChartMouseListener ChartPanel)
 	   (org.jfree.data Range)
 	   (org.jfree.chart.renderer.xy XYDifferenceRenderer StandardXYItemRenderer)
@@ -9,9 +9,9 @@
 	   (java.io File)
 	   (java.awt Toolkit Image Point Cursor)))
 
-;; panel 
+(declare update-percentage)
 
-(declare update-percentage fire-value-change-event fire-percentage-change-event)
+;; panel 
 
 (defn delta [x y entity]
   (let [bounds (.. entity (getArea) (getBounds))
@@ -81,7 +81,9 @@
    (let [chart-panel (:chart-panel @chart)
 	 curves (:curves @chart)]
      (alter chart assoc-in [:dirty-curves curve-index :data data-index] new-value)
-     (fire-value-change-event chart curve-index data-index new-value)
+     (fire :value-change chart {:curve-index curve-index
+				:data-index data-index
+				:new-value new-value})
      (swing
       (let [series (retrieve-series chart-panel curve-index)]
 	(.updateByIndex series data-index new-value))))))
@@ -92,12 +94,15 @@
      (when anchor
        (let [[anchor-x anchor-y anchor-xrange anchor-yrange] anchor
 	     yaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
-	     ydelta (- (yjava-2D-to-value chart-panel anchor-y) 
-		       (yjava-2D-to-value chart-panel y))]
-	 (println "anchor-y = " (yjava-2D-to-value chart-panel anchor-y))
-	 (println "java-2d-to-value = " (yjava-2D-to-value chart-panel y))
-	 (println "ydelta = " ydelta)
-	 (.setRange yaxis (Range/shift anchor-yrange ydelta)))))))
+	     ydelta (- (yjava-2D-to-value chart-panel y)
+		       (yjava-2D-to-value chart-panel anchor-y))
+
+	     xaxis (.. chart-panel (getChart) (getPlot) (getRangeAxis))
+	     xdelta (- (xjava-2D-to-value chart-panel anchor-x)
+		       (xjava-2D-to-value chart-panel x))]
+	 (.setRange yaxis (Range/shift anchor-yrange ydelta))
+	 (.setRange xaxis (Range/shift anchor-xrange xdelta))
+	 (update-percentage chart))))))
 
 (defn chart-drag-listener [chart]
   (proxy [MouseMotionAdapter] []
@@ -141,8 +146,7 @@
 	  depth-range (get-depth-range exemplar)
 	  percentage (get-percentage xaxis mind depth-range)]
       (alter chart assoc :percentage percentage)
-      (fire-percentage-change-event chart percentage)))))
-
+      (fire :percentage-change chart {:percentage percentage})))))
 
 (defmulti show-percentage (fn [x y] 
 			    (cond 
@@ -167,7 +171,7 @@
 	 upper (+ lower unit)]
      (when (not= new-percentage (:percentage @chart))
        (alter chart assoc :percentage new-percentage)
-       (fire-percentage-change-event chart new-percentage)
+       (fire :percentage-change chart {:percentage percentage})
        (swing 
 	(.setRange xaxis (Range. lower upper))
 	(.repaint chart-panel))))))
@@ -197,7 +201,7 @@
      (guard (all-same depth-ranges)
 	    "all depth ranges must be equal to scale chart")
      (alter chart assoc :percentage 0)
-     (fire-percentage-change-event chart 0)
+     (fire :percentage-change chart {:percentage 0})
      (swing 
        (.restoreAutoRangeBounds chart-panel)
        (doto (.. chart-panel (getChart) (getPlot) (getDomainAxis))
@@ -355,25 +359,3 @@
    (let [{:keys [curves dirty-curves]} @chart]
      (doseq [[c d] (tuplize curves dirty-curves)]
        (alter c assoc :data (:data d))))))
-
-(defn fire-value-change-event [chart curve-index data-index value]
-  (let [event {:curve-index curve-index :data-index data-index :value value}
-	listeners (:value-change-listeners @chart)]
-    (fire-event listeners event)))
-
-(defn add-value-change-listener [chart listener]
-  (add-listener :value-change-listeners chart listener))
-
-(defn remove-value-change-listener [chart listener]
-  (remove-listener :value-change-listeners chart listener))
-
-(defn fire-percentage-change-event [chart percentage]
-  (let [event {:percentage percentage}
-	listeners (:percentage-change-listeners @chart)]
-    (fire-event listeners event)))
-
-(defn add-percentage-change-listener [chart listener]
-  (add-listener :percentage-change-listeners chart listener))
-
-(defn remove-percentage-change-listener [chart listener]
-  (remove-listener :percentage-change-listeners chart listener))

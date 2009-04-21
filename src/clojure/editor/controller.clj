@@ -3,7 +3,7 @@
 	    [editor.slider.controller :as slider-controller]
 	    [editor.table.controller :as table-controller]
 	    [chart.controller :as chart-controller])
-  (:use editor.model editor.view util global gutil curves chart.controller)
+  (:use editor.model editor.view util global gutil curves chart.controller messages)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
 			ButtonGroup ImageIcon JPanel
@@ -56,28 +56,24 @@
        (.add right-panel "width 65%, pushy, growy")))
     main-panel))
 
-(defn scroll-table-and-chart [table chart event]
-  (dosync 
-   (let [{:keys [percentage]} event]
-     (swing 
-       (suppress-events
-	(table-controller/show-percentage table percentage)
-	(chart-controller/show-percentage chart percentage))))))
+(defn update-canonical-percentage [editor percentage]
+  (dosync
+   (let [{:keys [slider table chart canonical-percentage]} @editor]
+     (when (not= canonical-percentage percentage)
+       (alter editor assoc :canonical-percentage percentage)
+       (swing 
+	(ignore :percentage-change slider (slider-controller/set-percentage slider percentage))
+	(ignore :percentage-change table (table-controller/show-percentage table percentage))
+	(ignore :percentage-change chart (chart-controller/show-percentage chart percentage)))))))
 
 (defn update-table [table event]
   (dosync
    (let [{:keys [row value]} event
 	 table-widget (:widget @table)]
      (swing 
-       (suppress-events
-	(let [model (.getModel table-widget)]
-	  (.setValueAt model value row 1)
-	  (table-controller/show-cell table-widget row 1)))))))
-
-(defn update-slider [slider event]
-  (dosync 
-   (let [{:keys [percentage]} event]
-     (slider-controller/set-percentage slider percentage))))
+      (let [model (.getModel table-widget)]
+	(.setValueAt model value row 1)
+	(table-controller/show-cell table-widget row 1))))))
 
 (defn update-chart [chart event]
   (dosync 
@@ -92,12 +88,18 @@
 (defn init-zoom-button [editor]
   (create-zoom-button
    #(let [chart (:chart @editor)]
-      (enable-zooming chart))))
+      (dosync
+       (disable-panning chart)
+       (disable-dragging chart)
+       (enable-zooming chart)))))
 
 (defn init-edit-button [editor]
   (create-edit-button
    #(let [chart (:chart @editor)]
-      (enable-dragging chart))))
+      (dosync
+       (disable-panning chart)
+       (disable-zooming chart)
+       (enable-dragging chart)))))
 
 (defn init-reset-button [editor]
   (create-reset-button
@@ -112,7 +114,10 @@
 (defn init-pan-button [editor]
   (create-pan-button
    #(let [chart (:chart @editor)]
-      (toggle-panning chart))))
+      (dosync
+       (disable-zooming chart)
+       (disable-dragging chart)
+       (toggle-panning chart)))))
 
 (defn init-left-toolbar [editor]
   (let [toolbar (JToolBar. JToolBar/HORIZONTAL)]
@@ -165,25 +170,31 @@
     (dosync (ref-set editor editor-props))
     (chart-controller/enable-dragging chart)
 
-    (slider-controller/add-percentage-change-listener slider (partial scroll-table-and-chart table chart))
-    (chart-controller/add-value-change-listener chart 
-						(fn [event] 
-						  (dosync
-						   (let [{:keys [data-index value]} event
-							 row (index-to-row (:widget @table) data-index)]
-						     (update-table table {:row row :value value})))))
-    (table-controller/add-value-change-listener table 
-						(fn [event]
-						  (dosync
-						   (let [{:keys [row value]} event
-							 index (row-to-index (:widget @table) row)]
-						     (update-chart chart {:index index :value value})))))
-    (chart-controller/add-percentage-change-listener chart (partial update-slider slider))
+    (add-listener :percentage-change slider 
+		  (fn [event]
+		    (update-canonical-percentage editor (:percentage event))))
+
+    (add-listener :percentage-change chart 
+		  (fn [event]
+		    (update-canonical-percentage editor (:percentage event))))
+
+    (add-listener :value-change chart 
+		  (fn [event] 
+		    (dosync
+		     (let [{:keys [data-index value]} event
+			   row (index-to-row (:widget @table) data-index)]
+		       (update-table table {:row row :value value})))))
+    (add-listener :value-change table 
+		  (fn [event]
+		    (dosync
+		     (let [{:keys [row value]} event
+			   index (row-to-index (:widget @table) row)]
+		       (update-chart chart {:index index :value value})))))
 
     (swing
-      (table-controller/show-percentage table 0)
-      (doto frame
-	(.add main-panel)
-	(.pack)
-	(.setVisible true)))
+     (update-canonical-percentage editor 0)
+     (doto frame
+       (.add main-panel)
+       (.pack)
+       (.setVisible true)))
     editor))

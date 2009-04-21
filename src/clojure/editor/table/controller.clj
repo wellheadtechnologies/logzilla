@@ -1,10 +1,9 @@
 (ns editor.table.controller
   (:use util gutil global
-	editor.table.view editor.table.model)
+	editor.table.view editor.table.model
+	messages)
   (:import (javax.swing.event TableModelListener)
 	   (javax.swing JScrollPane JOptionPane)))
-
-(declare fire-value-change-event)
 
 (defn show-cell [widget row col]
   (swing-io!
@@ -37,7 +36,9 @@
 			   (JOptionPane/showMessageDialog 
 			    (:widget @table) (str val " doesn't appear to be properly formatted")
 			    "Number Format Error" JOptionPane/ERROR_MESSAGE)))
-		    (fire-value-change-event table row col val)))))
+		    (fire :value-change table {:row row
+					       :col col
+					       :value val})))))
 
 (defn init-table [index dirty-curve]
   (let [widget (create-table-widget index [dirty-curve])
@@ -49,15 +50,3 @@
 		     :value-change-listeners []))]
     (.addTableModelListener model (init-listener table))
     table))
-
-
-(defn fire-value-change-event [table row col value]
-  (let [event {:row row :col col :value value}
-	listeners (:value-change-listeners @table)]
-    (fire-event listeners event)))
-
-(defn add-value-change-listener [table listener]
-  (add-listener :value-change-listeners table listener))
-
-(defn remove-value-change-listener [table listener]
-  (remove-listener :value-change-listeners table listener))

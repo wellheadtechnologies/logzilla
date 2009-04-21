@@ -23,4 +23,5 @@
   :table
   :chart
   :width
-  :height)
+  :height
+  :canonical-percentage)

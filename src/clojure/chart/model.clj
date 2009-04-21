@@ -59,6 +59,4 @@
   :dragging-enabled
   :zooming-enabled
   :showing-points
-  :percentage
-  :value-change-listeners
-  :percentage-change-listeners)
+  :percentage)
