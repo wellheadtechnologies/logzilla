@@ -221,15 +221,21 @@
 	props (struct-map Chart 
 		:chart-panel chart-panel
 		:curves curves
-		:dirty-curves dirty-curves
-		:value-change-listeners []
-		:percentage-change-listeners [])]
+		:dirty-curves dirty-curves)]
     (dosync (ref-set chart props))
     (reset chart)
     chart))
 
 (defmethod init-chart :single [curve dirty-curve]
-  (init-chart [curve] [dirty-curve]))
+  (let [chart (ref nil)
+	chart-panel (init-chart-panel chart dirty-curve)
+	props (struct-map Chart
+		:chart-panel chart-panel
+		:curves [curve]
+		:dirty-curves [dirty-curve])]
+    (dosync (ref-set chart props))
+    (reset chart)
+    chart))
 
 (defn set-scale [chart scale]
   (binding [default-scale scale]
@@ -335,8 +341,6 @@
      (show-points chart))))
 
 
-(def glove-image (.getScaledInstance (ImageIO/read (File. "resources/glove.png")) 24 24 Image/SCALE_DEFAULT))
-
 (defn enable-panning [chart]
   (dosync
    (alter chart assoc :panning-enabled true)
@@ -344,7 +348,7 @@
     (let [chart-panel (:chart-panel @chart)
 	  plot (.. chart-panel (getChart) (getPlot))]
       (.setCursor (:chart-panel @chart)
-		  (.createCustomCursor (Toolkit/getDefaultToolkit) glove-image (Point. 2 2) "glove"))))))
+		  (Cursor. Cursor/HAND_CURSOR))))))
 
 (defn disable-panning [chart]
   (dosync 

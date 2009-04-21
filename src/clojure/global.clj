@@ -1,5 +1,8 @@
 (ns global
-  (:import (java.util.concurrent Executors)))
+  (:import (java.util.concurrent Executors)
+	   (javax.imageio ImageIO)
+	   (java.io File)
+	   (java.awt Image)))
 
 (def task-executor (agent nil))
 (def short-task-executor (agent nil))
@@ -27,3 +30,5 @@
 (def app (ref nil))
 
 (def copied-curves (ref []))
+
+(def glove-image (.getScaledInstance (ImageIO/read (File. "resources/glove.png")) 24 24 Image/SCALE_DEFAULT))

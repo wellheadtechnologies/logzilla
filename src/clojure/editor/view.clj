@@ -37,8 +37,7 @@
       (on-action (points-action)))))
 
 (defn create-pan-button [pan-action]
-  (let [glove (.getScaledInstance (ImageIO/read (File. "resources/glove.png")) 24 24 Image/SCALE_DEFAULT)
-	button (JToggleButton. (ImageIcon. glove))]
+  (let [button (JToggleButton. (ImageIcon. glove-image))]
     (doto button
       (.putClientProperty "JButton.buttonType" "textured")
       (on-action (pan-action)))))

@@ -33,7 +33,7 @@
 
 (defmethod create-dataset :single [curve]
   (io!
-    (let [series (XYSeries. "Series")
+    (let [series (XYSeries. "Series" false)
 	  dataset (XYSeriesCollection.)
 	  index (:index curve)
 	  cdata (:data curve)
