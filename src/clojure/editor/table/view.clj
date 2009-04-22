@@ -1,4 +1,5 @@
 (ns editor.table.view
+  (:use gutil)
   (:import (javax.swing JTable JScrollPane DefaultListSelectionModel)
 	   (javax.swing.table DefaultTableModel DefaultTableCellRenderer TableCellRenderer)
 	   (java.awt Color)
@@ -8,10 +9,6 @@
 (defn custom-table-model []
   (proxy [DefaultTableModel] []
     (isCellEditable [r c] (not= c 0))))
-
-(defn single-selection-model []
-  (doto (DefaultListSelectionModel.)
-    (.setSelectionMode DefaultListSelectionModel/SINGLE_SELECTION)))
 
 (defn create-table-widget [index curves]
   (let [model (custom-table-model)

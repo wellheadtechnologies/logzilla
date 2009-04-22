@@ -57,12 +57,11 @@
 		 (:name @lasfile))))
     (getFile [] file)))
 
-(defn create-file-view [curve-list-view header-edit-button save-lasfile-button]
+(defn create-file-view [curve-list-view header-edit-button]
   (let [panel (JPanel. (MigLayout. "ins 0, nogrid"))]
     (doto panel
       (.add curve-list-view "push, grow, spanx 2, wrap")
-      (.add header-edit-button "alignx 50%")
-      (.add save-lasfile-button "wrap"))))
+      (.add header-edit-button "alignx 50%, wrap"))))
 
 ;; file-menu
 (defn create-file-menu [open save-all quit]

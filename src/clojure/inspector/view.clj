@@ -17,11 +17,7 @@
 	  (.putClientProperty "JComponent.sizeVariant" "small"))
 	(doto field 
 	  (.putClientProperty "JComponent.sizeVariant" "small")
-	  (on-action 
-	      (do
-		(println "here we are")
-		(behavior (.getText field))
-		(println "there we go"))))
+	  (on-action (behavior (.getText field))))
 	(doto panel
 	  (.add label)
 	  (.add field "pushx, growx, wrap")))))

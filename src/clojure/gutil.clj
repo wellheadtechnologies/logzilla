@@ -1,6 +1,7 @@
 (ns gutil
   (:import (java.awt.event ActionListener)
-	   (javax.swing JPanel JLabel JButton JTextArea
+	   (javax.swing JTable JScrollPane DefaultListSelectionModel
+			JPanel JLabel JButton JTextArea
 			JFileChooser JMenu JPopupMenu 
 			SwingUtilities JList DefaultListModel
 			JTabbedPane BorderFactory JTextField JSplitPane
@@ -130,3 +131,8 @@
   `(doseq [i# (range 0 ~n)]
      (swing ~@body)
      (Thread/sleep ~t)))
+
+(defn single-selection-model []
+  (doto (DefaultListSelectionModel.)
+    (.setSelectionMode DefaultListSelectionModel/SINGLE_SELECTION)))
+

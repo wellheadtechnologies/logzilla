@@ -2,26 +2,28 @@
   (:use util gutil global)
   (:import (javax.swing JTable JScrollPane JButton JPanel JDialog JTabbedPane)
 	   (org.jdesktop.swingx JXTable)
+	   (javax.swing.event TableModelListener)
 	   (javax.swing.table DefaultTableModel)
+	   (org.jdesktop.swingx.decorator HighlighterFactory)
 	   (java.awt Dimension)
 	   (net.miginfocom.swing MigLayout)))
 
-(defn init-save-button [header table]
-  (let [button (JButton. "Save Changes")]
-    (on-click button
-      (fn [e]
-	(dosync 
-	 (alter header assoc :descriptors
-		(for [row (range 0 (count (:descriptors @header)))]
-		  (let [mnemonic (.getValueAt table row 0)
-			unit (.getValueAt table row 1)
-			data (.getValueAt table row 2)
-			description (.getValueAt table row 3)]
-		    {:mnemonic mnemonic
-		     :unit unit
-		     :data data
-		     :description description}))))))
-    button))
+(defn save-header [header table]
+  (dosync 
+   (alter header assoc :descriptors
+	  (for [row (range 0 (count (:descriptors @header)))]
+	    (let [mnemonic (.getValueAt table row 0)
+		  unit (.getValueAt table row 1)
+		  data (.getValueAt table row 2)
+		  description (.getValueAt table row 3)]
+	      {:mnemonic mnemonic
+	       :unit unit
+	       :data data
+	       :description description})))))
+
+(defn init-table-listener [table header]
+  (proxy [TableModelListener] []
+      (tableChanged [e] (save-header header table))))
 
 (defn init-header-tab [header]
   (swing-io!
@@ -29,16 +31,18 @@
 	 table (JXTable. model)
 	 pane (JScrollPane. table)
 	 panel (JPanel. (MigLayout.))
-	 save-button (init-save-button header table)
 	 descriptors (:descriptors @header)]
+     (doto table
+       (.setSelectionModel (single-selection-model))
+       (.addHighlighter (HighlighterFactory/createSimpleStriping)))
      (doto model
        (.addColumn "mnemonic" (into-array Object (map :mnemonic descriptors)))
        (.addColumn "unit" (into-array Object (map :unit descriptors)))
        (.addColumn "data" (into-array Object (map :data descriptors)))
-       (.addColumn "description" (into-array Object (map :description descriptors))))
+       (.addColumn "description" (into-array Object (map :description descriptors)))
+       (.addTableModelListener (init-table-listener table header)))
      (doto panel
-       (.add pane "push, grow, wrap")
-       (.add save-button "align 50%")))))
+       (.add pane "push, grow, wrap")))))
 
 (defn- find-header [lasfile type]
   (find-first #(= type (:type (deref %))) (:headers @lasfile)))

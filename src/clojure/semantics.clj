@@ -17,21 +17,16 @@
   (let [wh @(well-header lasfile)
 	ds (:descriptors wh)
 	dfind #(find-descriptor-by-name % ds)]
-    {:name (:name lasfile)
-     :location (dfind "LOC")
-     :depth-start (dfind "STRT")
-     :depth-end (dfind "STOP")
-     :company (dfind "COMP")
-     :well (dfind "WELL")
-     :field (dfind "FLD")
-     :province-state (dfind "PROV")
-     :county (dfind "COUNTY")
-     :country (dfind "COUNTRY")
-     :well-id (dfind "UWI")
-     }))
+    (assoc (apply hash-map
+		  (apply concat
+			 (remove nil? 
+				 (for [[k v] standard-mapping]
+				   (let [descriptor (dfind v)]
+				     (when descriptor
+				       [k descriptor]))))))
+      :name (:name lasfile))))
 
 (defn update-descriptor [lasfile name new-val]
-  (println "update-semantics " name " " new-val)
   (dosync
    (let [wh (well-header @lasfile)
 	 old-descriptors (:descriptors @wh)
@@ -39,11 +34,7 @@
 	 old-descriptor (find-first #(= mnemonic (:mnemonic %)) old-descriptors)
 	 new-descriptor (assoc old-descriptor :data new-val)
 	 new-descriptors (replace {old-descriptor new-descriptor} old-descriptors)]
-     (println "old-descriptors = " old-descriptors)
-     (println "old-descriptor = " old-descriptor)
-     (println "new-descriptor = " new-descriptor)
-     (alter wh assoc :descriptors new-descriptors)))
-  (println (well-header @lasfile)))
+     (alter wh assoc :descriptors new-descriptors))))
 
 (defn name-to-mnemonic [name]
   (get standard-mapping name))

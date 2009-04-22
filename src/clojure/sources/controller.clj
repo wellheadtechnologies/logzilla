@@ -92,19 +92,11 @@
 (defn init-curve-list-view [curve-list]
   (create-curve-list-view curve-list))
 
-(defn init-save-lasfile-button [lasfile]
-  (let [button (JButton. "Save Lasfile")]
-    (.putClientProperty button "JButton.buttonType" "textured")
-    (on-action button
-      (lasso/save-lasfile lasfile))
-    button))
-
 (defn init-file [source-manager lasfile]
   (let [curve-list (init-curve-list source-manager (:curves @lasfile))
 	curve-list-view (create-curve-list-view curve-list)
 	edit-headers-button (header-dialog/init-edit-button lasfile)
-	save-button (init-save-lasfile-button lasfile)
-	panel (create-file-view curve-list-view edit-headers-button save-button)
+	panel (create-file-view curve-list-view edit-headers-button)
 	file (struct-map File
 	       :lasfile lasfile
 	       :curve-list curve-list
@@ -125,12 +117,13 @@
 (defn init-source-tree-selection-listener [source-manager]
   (proxy [TreeSelectionListener] []
     (valueChanged [e]
-		  (let [path (.getNewLeadSelectionPath e)
-			leaf (.getLastPathComponent path)
-			payload (.getUserObject leaf)
-			file (.getFile payload)]
-		    (display-curves-for source-manager file)
-		    (update-log-tab (:lasfile @file))))))
+		  (let [path (.getNewLeadSelectionPath e)]
+		    (when path
+		      (let [leaf (.getLastPathComponent path)
+			    payload (.getUserObject leaf)
+			    file (.getFile payload)]
+			(display-curves-for source-manager file)
+			(update-log-tab (:lasfile @file))))))))
 
 
 (defn init-source-tree [source-manager]
