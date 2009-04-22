@@ -79,7 +79,8 @@
    (let [{:keys [index value]} event]
      (swing
        (let [value (convert-to-double value)]
-	 (ignore :value-change chart (chart-controller/set-chart-value chart 0 index value)))))))
+	 (ignore :value-change chart (chart-controller/set-chart-value chart 0 index value)
+	 (chart-controller/save-chart chart)))))))
 
 (defn init-save-button [editor]
   (create-save-button #(save editor)))
@@ -188,7 +189,8 @@
 		    (dosync
 		     (let [{:keys [row value]} event
 			   index (row-to-index (:widget @table) row)]
-		       (update-chart chart {:index index :value value})))))
+		       (update-chart chart {:index index :value value})
+		       ))))
 
     (swing
      (update-canonical-percentage editor 0)
