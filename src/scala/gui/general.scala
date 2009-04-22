@@ -30,16 +30,51 @@ object ChartUtil {
   val currentTheme = new StandardChartTheme("JFree")
   def createXYLineChart(title:String,xAxisLabel:String,yAxisLabel:String, dataset:XYDataset,orientation:PlotOrientation,legend:Boolean) = {
     if (orientation == null) throw new IllegalArgumentException("Null 'orientation' argument.")
-    val xAxis = new CustomNumberAxis(xAxisLabel)
+    val xAxis = new NumberAxis(xAxisLabel)
     xAxis.setAutoRangeIncludesZero(false)
     xAxis.setInverted(true)
-    val yAxis = new CustomNumberAxis(yAxisLabel)
+    val yAxis = new NumberAxis(yAxisLabel)
     val renderer = new XYLineAndShapeRenderer(true, false)
     val plot = new XYPlot(dataset, xAxis, yAxis, renderer)
     plot.setOrientation(orientation);
     val chart = new JFreeChart(title, JFreeChart.DEFAULT_TITLE_FONT, plot, legend)
     currentTheme.apply(chart)
     chart
+  }
+
+  def mergeData(left:java.lang.Iterable[Double], right:java.lang.Iterable[Double]):List[Double] = {
+    println("left = " + left.getClass)
+    println("right = " + right.getClass)
+    val result = new ArrayList[Double]()
+    val lefti = left.iterator
+    val righti = right.iterator
+    val nan = Double.box(java.lang.Double.NaN)
+    def isNaN(x:Double) = Double.box(x) == nan
+    var count = 0
+
+    while(lefti.hasNext && righti.hasNext){
+      val a = lefti.next
+      val b = righti.next
+      if(isNaN(a) && isNaN(b))
+	result.add(java.lang.Double.NaN)
+      else if(isNaN(a))
+	result.add(b)
+      else if(isNaN(b))
+	result.add(a)
+      else 
+	result.add((a + b)/2)
+    }
+    result
+  }
+
+  def addToSeries(series:XYSeries, idata:java.lang.Iterable[Double], cdata:java.lang.Iterable[Double]) { 
+    val idataIt = idata.iterator
+    val cdataIt = cdata.iterator
+    while(idataIt.hasNext && cdataIt.hasNext){
+      val x = idataIt.next
+      val y = cdataIt.next
+      series.add(x,y)
+    }
   }
 }
 

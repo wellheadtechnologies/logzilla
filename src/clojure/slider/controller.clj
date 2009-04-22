@@ -1,6 +1,6 @@
-(ns editor.slider.controller
+(ns slider.controller
   (:use util gutil global
-	editor.slider.view editor.slider.model
+	slider.view slider.model
 	messages)
   (:import (javax.swing.event ChangeListener)))
 

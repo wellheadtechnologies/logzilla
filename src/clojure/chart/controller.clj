@@ -1,7 +1,9 @@
 (ns chart.controller
   (:use chart.model chart.view curves gutil util global lasso messages)
   (:import (org.jfree.chart ChartMouseListener ChartPanel)
+	   (gui ChartUtil)
 	   (org.jfree.data Range)
+	   (org.jfree.data.xy XYSeries)
 	   (org.jfree.chart.renderer.xy XYDifferenceRenderer StandardXYItemRenderer)
 	   (java.awt.event MouseAdapter MouseMotionAdapter)
 	   (java.awt.geom Point2D Point2D$Double)
@@ -370,3 +372,17 @@
    (let [{:keys [curves dirty-curves]} @chart]
      (doseq [[c d] (tuplize curves dirty-curves)]
        (alter c assoc :data (:data d))))))
+
+(defn update-curve [chart curve-index curve]
+  (swing
+   (let [chart-panel (:chart-panel @chart)
+	 old-series (retrieve-series chart-panel curve-index)
+	 new-series (XYSeries. "Series")
+	 dataset (retrieve-dataset chart-panel)
+	 index (:index curve)
+	 cdata (:data curve)
+	 idata (:data index)]
+     (.removeSeries dataset old-series)
+     (ChartUtil/addToSeries new-series idata cdata)
+     (.addSeries dataset new-series)
+     (.repaint chart-panel))))

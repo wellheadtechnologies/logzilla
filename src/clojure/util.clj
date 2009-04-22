@@ -141,3 +141,9 @@
 
 (defn reverse-map [map]
   (apply hash-map (apply concat (for [[k v] map] [v k]))))
+
+(defn average2 [#^Double a, #^Double b]
+  (/ (+ a b) 2))
+
+(defn average [& values]
+  (/ (apply + values) (count values)))

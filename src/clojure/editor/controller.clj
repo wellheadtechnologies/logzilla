@@ -1,6 +1,6 @@
 (ns editor.controller
   (:require lasso
-	    [editor.slider.controller :as slider-controller]
+	    [slider.controller :as slider-controller]
 	    [editor.table.controller :as table-controller]
 	    [chart.controller :as chart-controller])
   (:use editor.model editor.view util global gutil curves chart.controller messages)
@@ -60,7 +60,7 @@
    (let [{:keys [slider table chart canonical-percentage]} @editor]
      (when (not= canonical-percentage percentage)
        (alter editor assoc :canonical-percentage percentage)
-       (swing 
+       (short-task
 	(ignore :percentage-change slider (slider-controller/set-percentage slider percentage))
 	(ignore :percentage-change table (table-controller/show-percentage table percentage))
 	(ignore :percentage-change chart (chart-controller/show-percentage chart percentage)))))))

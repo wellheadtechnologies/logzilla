@@ -1,4 +1,4 @@
-(ns editor.slider.model)
+(ns slider.model)
 
 (defstruct Slider
   :widget

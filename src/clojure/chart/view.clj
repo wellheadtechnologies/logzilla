@@ -66,7 +66,7 @@
 	curve-name (get-in curve [:descriptor :mnemonic])
 	index-name (get-in curve [:index :descriptor :mnemonic])
 	chart (ChartUtil/createXYLineChart
-	       (str curve-name " Chart")
+	       curve-name
 	       index-name curve-name
 	       dataset PlotOrientation/HORIZONTAL
 	       false)

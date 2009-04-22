@@ -16,9 +16,13 @@
 	 value (.java2DToValue yaxis y (.getScreenDataArea chart-panel) RectangleEdge/TOP)]
      value)))
 
+(defn retrieve-dataset [chart-panel]
+  (swing-io!
+   (.. chart-panel (getChart) (getPlot) (getDataset))))
+
 (defn retrieve-series [chart-panel curve-index]
   (swing-io! 
-    (let [series (.. chart-panel (getChart) (getPlot) (getDataset) (getSeries))]
+    (let [series (. (retrieve-dataset chart-panel) (getSeries))]
       (nth series curve-index))))
 
 (defn get-chart-range [xaxis]
