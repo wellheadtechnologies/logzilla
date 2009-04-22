@@ -1,6 +1,7 @@
 (ns sources.controller
   (:require [sources.headerdialog.controller :as header-dialog]
-	    editor.controller)
+	    editor.controller
+	    merger.controller)
   (:use sources.view sources.model gutil util curves global inspector.controller)
   (:import (javax.swing JFileChooser JLabel JList DefaultListModel JScrollPane
 			JSplitPane JTabbedPane JToggleButton JPanel JButton JDialog
@@ -67,7 +68,12 @@
       (editor.controller/open-curve-editor lasfile curve)))))
 
 (defn open-curve-merger [source-manager]
-  (throw (RuntimeException. "THIS NOT IN!")))
+  (swing
+   (let [file @(get-selected-source source-manager)
+	 curves (get-selected-curves (:curve-list file))
+	 lasfile (:lasfile file)]
+     (long-task
+      (merger.controller/open-curve-merger lasfile curves)))))
 
 (defn open-curve-editor-action [source-manager e]
   (when (and (= (.getButton e) MouseEvent/BUTTON1)

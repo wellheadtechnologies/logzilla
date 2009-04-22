@@ -41,19 +41,18 @@
   (let [left-panel (JPanel. (MigLayout. "ins 0"))
 	right-panel (JPanel. (MigLayout. "ins 0"))
 	main-panel (JPanel. (MigLayout. "ins 0"))]
-    (swing 
-     (doto left-panel
-       (.add table-panel "push, grow"))
+    (doto left-panel
+      (.add table-panel "push, grow"))
+    
+    (let [chart-panel (:chart-panel @chart)]
+      (doto right-panel
+	(.add right-toolbar "pushx, growx, wrap")
+	(.add chart-panel "push, grow")))
 
-     (let [chart-panel (:chart-panel @chart)]
-       (doto right-panel
-	 (.add right-toolbar "pushx, growx, wrap")
-	 (.add chart-panel "push, grow")))
-
-     (doto main-panel
-       (.setPreferredSize (Dimension. 700 900))
-       (.add left-panel "width 35%, pushy, growy")
-       (.add right-panel "width 65%, pushy, growy")))
+    (doto main-panel
+      (.setPreferredSize (Dimension. 700 900))
+      (.add left-panel "width 35%, pushy, growy")
+      (.add right-panel "width 65%, pushy, growy"))
     main-panel))
 
 (defn update-canonical-percentage [editor percentage]
