@@ -12,7 +12,7 @@
 
 (defn show-percentage [table percentage]
   (let [widget (:widget @table)
-	n (abs (- 1 percentage))]
+	n percentage]
     (dosync 
      (when (not= (:percentage @table) percentage)
        (alter table assoc :percentage percentage)

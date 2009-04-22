@@ -10,7 +10,7 @@
   (dosync 
    (let [widget (:widget @slider)
 	 notches (:notches @slider)
-	 value (* percentage notches)]
+	 value (* (invert percentage) notches)]
      (when (and (not= (:percentage @slider) percentage)
 		(<= percentage 1) (>= percentage 0))
        (alter slider assoc :percentage percentage)
@@ -25,7 +25,7 @@
 		   (dosync 
 		    (let [value (.getValue (:widget @slider))
 			  notches (:notches @slider)
-			  percentage (/ value notches)]
+			  percentage (invert (/ value notches))]
 		      (when (not= (:percentage @slider) percentage)
 			(alter slider assoc :percentage percentage)
 			(fire :percentage-change slider {:percentage percentage}))
@@ -37,7 +37,7 @@
 	listener (init-slider-listener slider)
 	props (struct-map Slider
 		:widget widget
-		:percentage 0
+		:percentage 1
 		:notches notches)]
     (dosync (ref-set slider props))
     (doto widget

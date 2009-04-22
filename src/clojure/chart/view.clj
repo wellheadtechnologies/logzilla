@@ -1,8 +1,8 @@
 (ns chart.view
   (:require lasso)
   (:use util)
-  (:import (org.jfree.chart ChartFactory)
-	   (gui ImageUtil CurveLabel)
+  (:import
+	   (gui ImageUtil CurveLabel ChartUtil)
 	   (org.jfree.chart.plot PlotOrientation)
 	   (org.jfree.data.xy XYSeries XYSeriesCollection)
 	   (org.jfree.ui RectangleEdge)
@@ -33,28 +33,28 @@
 
 (defmethod create-dataset :single [curve]
   (io!
-    (let [series (XYSeries. "Series" false)
-	  dataset (XYSeriesCollection.)
-	  index (:index curve)
-	  cdata (:data curve)
-	  idata (:data index)]
-      (doseq [[x y] (tuplize idata cdata)]
-	(.add series x y))
-      (.addSeries dataset series)
-      dataset)))
+   (let [series (XYSeries. "Series" false)
+	 dataset (XYSeriesCollection.)
+	 index (:index curve)
+	 cdata (:data curve)
+	 idata (:data index)]
+     (doseq [[x y] (tuplize idata cdata)]
+       (.add series x y))
+     (.addSeries dataset series)
+     dataset)))
 
 (defmethod create-dataset :multi [curves]
   (io!
-    (let [dataset (XYSeriesCollection.)]
-      (doseq [curve curves]
-	(let [series (XYSeries. "Series")
-	      index (:index curve)
-	      cdata (:data curve)
-	      idata (:data index)]
-	  (doseq [[x y] (tuplize idata cdata)]
-	    (.add series x y))
-	  (.addSeries dataset series)))
-      dataset)))
+   (let [dataset (XYSeriesCollection.)]
+     (doseq [curve curves]
+       (let [series (XYSeries. "Series")
+	     index (:index curve)
+	     cdata (:data curve)
+	     idata (:data index)]
+	 (doseq [[x y] (tuplize idata cdata)]
+	   (.add series x y))
+	 (.addSeries dataset series)))
+     dataset)))
 
 (defmulti create-chart (fn [x] 
 			 (cond 
@@ -65,11 +65,11 @@
   (let [dataset (create-dataset curve)
 	curve-name (get-in curve [:descriptor :mnemonic])
 	index-name (get-in curve [:index :descriptor :mnemonic])
-	chart (ChartFactory/createXYLineChart
+	chart (ChartUtil/createXYLineChart
 	       (str curve-name " Chart")
 	       index-name curve-name
 	       dataset PlotOrientation/HORIZONTAL
-	       false false false)
+	       false)
 	plot (.getPlot chart)]
     (.setRenderer plot (create-std-renderer))
     (.setBackgroundPaint plot Color/white)
@@ -79,11 +79,11 @@
   (guard (all-same (map :index curves))
 	 "indices of curves for multi-chart must be equal")
   (let [dataset (create-dataset curves)
-	chart (ChartFactory/createXYLineChart
+	chart (ChartUtil/createXYLineChart
 	       "Chart" 
 	       "x" "y"
 	       dataset PlotOrientation/HORIZONTAL
-	       false false false)
+	       false)
 	plot (.getPlot chart)]
     (.setRenderer plot (create-std-renderer))
     (.setBackgroundPaint plot Color/white)

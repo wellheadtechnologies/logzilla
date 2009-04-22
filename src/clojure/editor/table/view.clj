@@ -19,11 +19,11 @@
     (doto widget
       (.setSelectionModel (single-selection-model))
       (.addHighlighter (HighlighterFactory/createSimpleStriping)))
-    (.addColumn model "x" (into-array Object (reverse (:data index))))
+    (.addColumn model "x" (into-array Object (:data index)))
     (doseq [curve curves]
       (.addColumn model 
 		  (get-in curve [:descriptor :mnemonic])
-		  (into-array Object (reverse (:data curve)))))
+		  (into-array Object (:data curve))))
     widget))
 
 (defn create-table-pane [table] (JScrollPane. table))

@@ -135,3 +135,6 @@
   `(doseq [i# (range 0 ~n)]
      ~@body
      (Thread/sleep ~t)))
+
+(defn invert [percentage]
+  (abs (- 1 percentage)))
