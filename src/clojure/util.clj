@@ -138,3 +138,6 @@
 
 (defn invert [percentage]
   (abs (- 1 percentage)))
+
+(defn reverse-map [map]
+  (apply hash-map (apply concat (for [[k v] map] [v k]))))

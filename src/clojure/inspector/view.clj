@@ -7,16 +7,24 @@
 	   (java.awt Dimension Color)
 	   (net.miginfocom.swing MigLayout)))
 
-(defn add-field [panel name value]
-  (let [label (JLabel. name)
-	field (JTextField. value)]
-    (doto label
-      (.putClientProperty "JComponent.sizeVariant" "small"))
-    (doto field 
-      (.putClientProperty "JComponent.sizeVariant" "small"))
-    (doto panel
-      (.add label)
-      (.add field "pushx, growx, wrap"))))
+(defn add-field 
+  ([panel name value]
+     (add-field panel name value (fn [f] nil)))
+  ([panel name value behavior]
+      (let [label (JLabel. name)
+	    field (JTextField. value)]
+	(doto label
+	  (.putClientProperty "JComponent.sizeVariant" "small"))
+	(doto field 
+	  (.putClientProperty "JComponent.sizeVariant" "small")
+	  (on-action 
+	      (do
+		(println "here we are")
+		(behavior (.getText field))
+		(println "there we go"))))
+	(doto panel
+	  (.add label)
+	  (.add field "pushx, growx, wrap")))))
 
 (defn add-text-area [panel name value]
   (let [label (JLabel. name)
@@ -27,36 +35,6 @@
     (doto panel
       (.add label)
       (.add area "push, grow"))))
-
-(defn create-log-tab [log]
-  (let [panel (JPanel. (MigLayout.))
-	semantics (get-semantics @log)
-	name (:name semantics)
-	location (get-in semantics [:location :data])
-	depth-start (get-in semantics [:depth-start :data])
-	depth-end (get-in semantics [:depth-end :data])
-	company (get-in semantics [:company :data])
-	well (get-in semantics [:well :data])
-	field (get-in semantics [:field :data])
-	province-state (get-in semantics [:province-state :data])
-	county (get-in semantics [:county :data])
-	country (get-in semantics [:country :data])
-	well-id (get-in semantics [:well-id :data])
-	width 300
-	height (+ 200 (* (count semantics) (.. (JTextField.) (getPreferredSize) (getHeight))))]
-    (doto panel
-      (.setPreferredSize (Dimension. width height))
-      (add-field "Name" name)
-      (add-field "Location" location)
-      (add-field "Depth Start" depth-start)
-      (add-field "Depth End" depth-end)
-      (add-field "Company" company)
-      (add-field "Well" well)
-      (add-field "Field" field)
-      (add-field "Province/State" province-state)
-      (add-field "County" county)
-      (add-field "Country" country)
-      (add-field "Well ID" well-id))))
 
 (defn create-curve-params-tab [curve]
   (let [panel (JPanel. (MigLayout.))]

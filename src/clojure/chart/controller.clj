@@ -9,7 +9,7 @@
 	   (java.io File)
 	   (java.awt Toolkit Image Point Cursor)))
 
-(declare update-percentage)
+(declare update-percentage save-chart)
 
 ;; panel 
 
@@ -72,7 +72,8 @@
 			 (alter chart assoc :dragged-entity nil))
 			(when (:panning-enabled @chart)
 			  (do
-			    (alter chart assoc :anchor nil))))))))
+			    (alter chart assoc :anchor nil)))
+			(save-chart chart))))))
 
 (defn set-chart-value [chart curve-index data-index new-value]
   (dosync 
