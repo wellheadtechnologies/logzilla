@@ -1,5 +1,6 @@
 <project xmlns:ivy="antlib:org.apache.ivy.ant" name="logzilla" default="build">
   <property name="src.dir" value="src" />
+  <property name="java.src.dir" value="${src.dir}/java" />
   <property name="scala.src.dir" value="${src.dir}/scala" />
   <property name="clojure.src.dir" value="${src.dir}/clojure" />
   <property name="build.dir" value="build" />
@@ -29,7 +30,7 @@
 
   <target name="build-scala" depends="clean,init">
     <echo>compiling scala sources</echo>
-    <scalac srcdir="${scala.src.dir}" destdir="${classes.dir}">
+    <scalac srcdir="${src.dir}" destdir="${classes.dir}">
       <classpath>
 	<fileset dir="${lib.dir}">
 	  <include name="**/*.jar" />
@@ -38,7 +39,26 @@
 	  <include name="**/*.class" />
 	</fileset>
       </classpath>
+      <include name="scala/**/*.scala" />
+      <include name="java/**/*.java" />
     </scalac>
+
+    <javac srcdir="${java.src.dir}" destdir="${classes.dir}">
+      <classpath>
+	<fileset dir="${lib.dir}">
+	  <include name="**/*.jar" />
+	</fileset>
+	<fileset dir="${build.dir}">
+	  <include name="**/*.class" />
+	</fileset>
+      </classpath>
+    </javac>
+
+    <copy todir="${classes.dir}">
+      <fileset dir="${java.src.dir}">
+	<exclude name="**/*.java" />
+      </fileset>
+    </copy>
   </target>    
 
   <target name="build-clojure" depends="build-scala">

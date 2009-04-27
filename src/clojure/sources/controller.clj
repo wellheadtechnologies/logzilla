@@ -145,7 +145,7 @@
     (dosync 
      (ref-set source-manager
 	      (struct-map SourceManager
-		:files []
+		:sources []
 		:source-tree source-tree
 		:curve-panel curve-panel
 		:widget (create-manager-widget source-tree curve-panel))))
@@ -166,14 +166,18 @@
     (doseq [file files] 
       (long-task (add-lasfile source-manager (open-file file))))))
 
-(defn file-menu-save-all [e] nil)
+(defn file-menu-save-all [source-manager e] 
+  (println "file-menu-save-all")
+  (doseq [file (:sources @source-manager)]
+    (println "doseq ")
+    (save-file file)))
 
 (defn file-menu-quit [e] (System/exit 0))
 
 (defn init-file-menu [source-manager]
   (create-file-menu 
    (partial file-menu-open source-manager)
-   file-menu-save-all
+   (partial file-menu-save-all source-manager)
    file-menu-quit))
 
 ;; context-menu
