@@ -17,6 +17,7 @@
 (def band-height (int (/ icon-height 5)))
 (def band-y (- (half icon-height)
 	       (half band-height)))
+(def string-length 10)
 (defn string-y [font string font-render-context]
   (let [bounds (.getStringBounds font string 0 (.length string) font-render-context)
 	font-height (.getHeight bounds)]
@@ -52,15 +53,18 @@
     (.dispose graphics)
     (let [final-image (render-shadow (fast-scale image icon-width icon-height))
 	  graphics (.createGraphics final-image)
-	  font (Font. "Helvetica" Font/BOLD 10)]
+	  font (Font. "Helvetica" Font/BOLD 10)
+	  truncated-name (if (> (.length name) string-length)
+			   (.substring name 0 string-length)
+			   name)]
       (doto graphics
 	(.setColor Color/black)
 	(.fillRect 0 band-y band-width band-height)
 	(.setColor Color/white)
 	(.setFont font)
-	(.drawString name 
-		     (string-x font name (.getFontRenderContext graphics))
-		     (string-y font name (.getFontRenderContext graphics)))
+	(.drawString truncated-name
+		     (string-x font truncated-name (.getFontRenderContext graphics))
+		     (string-y font truncated-name (.getFontRenderContext graphics)))
 	(.dispose))
       (CurveIcon. curve-ref
 		   (ImageIcon. final-image)))))

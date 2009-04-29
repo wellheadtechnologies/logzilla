@@ -1,14 +1,24 @@
-(use 'curves 'lasso)
-(import '(javax.swing JFrame JPanel)
+(use 'curves 'lasso 'global 'util 'gutil)
+(require 'sources.view)
+(import '(javax.swing JFrame JPanel JScrollPane JList)
+	'(java.awt Dimension)
+	'(java.awt.event ComponentAdapter)
 	'(net.miginfocom.swing MigLayout))
 
-(def test1 (load-lasfile "las_files/test.las"))
-(def curve1 (first (:curves @test1)))
+(def lasfile (load-lasfile "las_files/dollie.las"))
+
+(def curve-list (sources.view/create-curve-list))
 
 (let [frame (JFrame.)
-      panel (JPanel. (MigLayout. "wrap 1"))]
-  (doseq [curve (:curves @test1)]
-    (.add panel (curve-to-icon curve)))
+      panel (JPanel. (MigLayout. "ins 0"))]
+  (doto panel 
+    (.add curve-list "push, grow"))
+  (long-task
+   (doseq [curve (:curves @lasfile)]
+     (let [icon (curve-to-icon curve)]
+       (swing
+	(.addElement (.getModel curve-list) icon)
+	(.repaint curve-list)))))
   (doto frame
     (.add panel)
     (.pack)
