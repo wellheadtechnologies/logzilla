@@ -2,7 +2,7 @@
   (:require lasso)
   (:use util)
   (:import
-	   (gui ImageUtil CurveLabel ChartUtil)
+	   (gui ImageUtil ChartUtil)
 	   (org.jfree.chart.plot PlotOrientation)
 	   (org.jfree.data.xy XYSeries XYSeriesCollection)
 	   (org.jfree.ui RectangleEdge)

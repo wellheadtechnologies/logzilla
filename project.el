@@ -26,4 +26,4 @@
      (unless 1)
      (wait-for 1)
      (defprobe 1)
-     (switch 1))
+     (switch 1)))

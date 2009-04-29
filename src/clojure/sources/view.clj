@@ -46,8 +46,8 @@
   (let [panel (JPanel. (MigLayout. "ins 0"))
 	source-panel (MacWidgetFactory/createSourceListScrollPane source-tree)]
     (doto panel
-      (.add source-panel "width 35%, height 100%")
-      (.add curve-panel "width 65%, height 100%"))))
+      (.add source-panel "width 40%, height 100%")
+      (.add curve-panel "width 60%, height 100%"))))
 
 (defn custom-tree-payload [file]
   (proxy [NodePayload] []

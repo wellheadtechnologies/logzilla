@@ -60,7 +60,7 @@
   (init-header-tab (find-header lasfile "ParameterHeader")))
 
 (defn open-headers-editor [lasfile]
-  (let [dialog (JDialog. (:frame @app) "Edit Headers")
+  (let [dialog (JDialog. (:sources-frame @app) "Edit Headers")
 	panel (JPanel. (MigLayout.))
 	pane (JTabbedPane.)]
     (doto pane

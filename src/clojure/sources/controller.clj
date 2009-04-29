@@ -154,7 +154,7 @@
 ;;file-menu 
 
 (defn run-file-selection-dialog [cwd]
-  (let [frame (:frame @app)
+  (let [frame (:sources-frame @app)
 	dialog (create-file-selection-dialog cwd)
 	result (.showOpenDialog dialog frame)]
     (if (= JFileChooser/APPROVE_OPTION result)
@@ -167,9 +167,7 @@
       (long-task (add-lasfile source-manager (open-file file))))))
 
 (defn file-menu-save-all [source-manager e] 
-  (println "file-menu-save-all")
   (doseq [file (:sources @source-manager)]
-    (println "doseq ")
     (save-file file)))
 
 (defn file-menu-quit [e] (System/exit 0))

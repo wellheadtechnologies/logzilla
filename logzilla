@@ -32,13 +32,12 @@ script = false
   
 if tests 
   script = """
-(require 'tests.tgui)
-(tests.tgui/run-tests)
+(load-file \\\"test-draw.clj\\\")
 """
 elsif gui
   script = """
 (use 'app.controller)
-(run-main)
+(start-application)
 """
 elsif logscript
   script = """

@@ -147,3 +147,5 @@
 
 (defn average [& values]
   (/ (apply + values) (count values)))
+
+(defn half [x] (/ x 2))

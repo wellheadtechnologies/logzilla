@@ -43,8 +43,6 @@ object ChartUtil {
   }
 
   def mergeData(left:java.lang.Iterable[Double], right:java.lang.Iterable[Double]):List[Double] = {
-    println("left = " + left.getClass)
-    println("right = " + right.getClass)
     val result = new ArrayList[Double]()
     val lefti = left.iterator
     val righti = right.iterator
@@ -256,8 +254,17 @@ class CustomNumberAxis(label:String) extends NumberAxis(label) {
 
 }
 
-class CurveLabel(curve: Object, name:String, icon:ImageIcon, orientation:Int) extends JLabel(name, icon, orientation){
+class CurveIcon(curve: Object, icon:ImageIcon) extends JComponent {
   def getCurve:Object = curve
+  def getIcon = icon
+  override def paint(graphics:Graphics) {
+    icon.paintIcon(this, graphics, 0, 0)
+    super.paint(graphics)
+  }
+
+  override def getPreferredSize = new Dimension(icon.getIconWidth, icon.getIconHeight)
+  override def getMinimumSize = getPreferredSize
+  override def getMaximumSize = getPreferredSize
 }
 
 trait NodePayload {
@@ -266,12 +273,10 @@ trait NodePayload {
 
 class IconListCellRenderer extends JLabel with ListCellRenderer {
 
-  override def getListCellRendererComponent(list:JList, value:Object, index:int, isSelected:boolean, hasFocus:boolean) = {
-    val jlabel = value.asInstanceOf[JLabel]
+  override def getListCellRendererComponent(list:JList, _value:Object, index:int, isSelected:boolean, hasFocus:boolean) = {
+    val value = _value.asInstanceOf[CurveIcon]
+    setIcon(value.getIcon)
     setOpaque(true)
-    setText(jlabel.getText)
-    setIcon(jlabel.getIcon)
-    setComponentOrientation(list.getComponentOrientation)
     if(isSelected){
       setBackground(list.getSelectionBackground)
       setForeground(list.getSelectionForeground)

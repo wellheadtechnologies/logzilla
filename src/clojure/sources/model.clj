@@ -22,7 +22,7 @@
    (lasso/load-lasfile (.getPath file))
    (catch Exception e 
      (JOptionPane/showMessageDialog 
-      (:frame @app) (str "There was an error reading file " (.getPath file))
+      (:sources-frame @app) (str "There was an error reading file " (.getPath file))
       "Read Error" JOptionPane/ERROR_MESSAGE)
      (throw e))))
 
@@ -35,6 +35,6 @@
      (lasso/save-lasfile lasfile)
      (catch Exception e
        (JOptionPane/showMessageDialog
-	(:frame @app) (str "There was an error saving " (:name @lasfile))
+	(:sources-frame @app) (str "There was an error saving " (:name @lasfile))
 	"Save Error" JOptionPane/ERROR_MESSAGE)
        (throw e)))))
