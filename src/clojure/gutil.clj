@@ -9,6 +9,7 @@
 	   (javax.swing.tree DefaultMutableTreeNode DefaultTreeModel)
 	   (javax.swing.plaf.basic BasicSplitPaneUI)
 	   (java.awt Dimension)
+	   (java.awt.datatransfer DataFlavor)
 	   (java.awt.event MouseAdapter)
 	   (gui IconListCellRenderer)
 	   (net.miginfocom.swing MigLayout)	   
@@ -136,3 +137,4 @@
   (doto (DefaultListSelectionModel.)
     (.setSelectionMode DefaultListSelectionModel/SINGLE_SELECTION)))
 
+(def ref-data-flavor (DataFlavor. (str DataFlavor/javaJVMLocalObjectMimeType ";class=clojure.lang.Ref")))

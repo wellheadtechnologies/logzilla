@@ -3,11 +3,12 @@
 	    [slider.controller :as slider-controller]
 	    [editor.table.controller :as table-controller]
 	    [chart.controller :as chart-controller])
-  (:use editor.model editor.view util global gutil curves chart.controller messages)
+  (:use util global gutil chart.controller messages)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
 			ButtonGroup ImageIcon JPanel
-			ScrollPaneConstants)
+			ScrollPaneConstants
+			JSlider JTable JToggleButton ImageIcon)
 	   (java.awt Dimension Color Toolkit Image Point)
 	   (javax.imageio ImageIO)
 	   (java.io File)
@@ -15,29 +16,38 @@
 	   (org.jfree.chart ChartMouseListener)
 	   (net.miginfocom.swing MigLayout)))
 
+(defstruct Editor
+  :frame 
+  :lasfile
+  :index
+  :slider
+  :table
+  :chart
+  :width
+  :height
+  :canonical-percentage)
+
+(defn index-to-row [table index] index)
+
+(defn row-to-index [table row] row)
+
+(defn convert-to-double [value]
+  (if (string? value)
+    (Double/valueOf value)
+    (double value)))
+
 (defn not-dragging-anything [editor]
   (dosync
    (let [chart (:chart @editor)
 	 dragged-entity (:dragged-entity @chart)]
      (nil? dragged-entity))))
 
-(defn init-frame [lasfile curve]
-  (let [name (get-in @curve [:descriptor :mnemonic])
-	frame (new JFrame (str (:name @lasfile) " " name))]
-    frame))
-
 (defn save [editor]
   (dosync
    (let [chart (:chart @editor)]
      (chart-controller/save-chart chart))))
 
-(defn init-table-panel [slider table]
-  (let [panel (JPanel. (MigLayout. "ins 0"))]
-    (doto panel
-      (.add (:widget @slider) "pushy, growy")
-      (.add (:pane @table) "push, grow"))))
-
-(defn init-main-panel [chart table-panel left-toolbar right-toolbar]
+(defn create-main-panel [chart table-panel left-toolbar right-toolbar]
   (let [left-panel (JPanel. (MigLayout. "ins 0"))
 	right-panel (JPanel. (MigLayout. "ins 0"))
 	main-panel (JPanel. (MigLayout. "ins 0"))]
@@ -82,55 +92,80 @@
 	 (ignore :value-change chart (chart-controller/set-chart-value chart 0 index value)
 	 (chart-controller/save-chart chart)))))))
 
-(defn init-save-button [editor]
-  (create-save-button #(save editor)))
+(defn create-save-button [editor]
+  (let [button (JButton. (ImageIcon. "resources/save.png"))]
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action 
+       (save editor)))))
 
-(defn init-zoom-button [editor]
-  (create-zoom-button
-   #(let [chart (:chart @editor)]
-      (dosync
-       (disable-panning chart)
-       (disable-dragging chart)
-       (enable-zooming chart)))))
+(defn create-edit-button [editor]
+  (let [button (JToggleButton. (ImageIcon. "resources/edit.png"))]
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action
+       (let [chart (:chart @editor)]
+	 (dosync
+	  (disable-panning chart)
+	  (disable-zooming chart)
+	  (enable-dragging chart)))))))
 
-(defn init-edit-button [editor]
-  (create-edit-button
-   #(let [chart (:chart @editor)]
-      (dosync
-       (disable-panning chart)
-       (disable-zooming chart)
-       (enable-dragging chart)))))
+(defn create-zoom-button [editor]
+  (let [button (JToggleButton. (ImageIcon. "resources/zoom.png"))]
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action 
+       (let [chart (:chart @editor)]
+	 (dosync
+	  (disable-panning chart)
+	  (disable-dragging chart)
+	  (enable-zooming chart)))))))
 
-(defn init-reset-button [editor]
-  (create-reset-button
-   #(let [chart (:chart @editor)]
-      (reset chart))))
+(defn create-reset-button [editor]
+  (let [button (JButton. "Reset Scale")]
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action
+       (let [chart (:chart @editor)]
+	 (reset chart))))))
 
-(defn init-points-button [editor]
-  (create-points-button
-   #(let [chart (:chart @editor)]
-      (toggle-points chart))))
+(defn create-points-button [editor]
+  (let [button (JToggleButton. "Points")]
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action
+       (let [chart (:chart @editor)]
+	 (toggle-points chart))))))
 
-(defn init-pan-button [editor]
-  (create-pan-button
-   #(let [chart (:chart @editor)]
-      (dosync
-       (disable-zooming chart)
-       (disable-dragging chart)
-       (toggle-panning chart)))))
+(defn create-pan-button [editor]
+  (let [button (JToggleButton. (ImageIcon. glove-image))]
+    (doto button
+      (.putClientProperty "JButton.buttonType" "textured")
+      (on-action
+       (let [chart (:chart @editor)]
+	 (dosync
+	  (disable-zooming chart)
+	  (disable-dragging chart)
+	  (toggle-panning chart)))))))
 
-(defn init-left-toolbar [editor]
-  (let [toolbar (JToolBar. JToolBar/HORIZONTAL)]
-    (doto toolbar
-      (.setFloatable false))))
+(defn create-frame [lasfile curve]
+  (let [name (get-in @curve [:descriptor :mnemonic])
+	frame (JFrame. (str (:name @lasfile) " " name))]
+    frame))
 
-(defn init-right-toolbar [editor]
+(defn create-table-panel [slider table]
+  (let [panel (JPanel. (MigLayout. "ins 0"))]
+    (doto panel
+      (.add (:widget @slider) "pushy, growy")
+      (.add (:pane @table) "push, grow"))))
+
+(defn create-right-toolbar [editor]
   (let [toolbar (JToolBar. JToolBar/HORIZONTAL)
-	zoom-button (init-zoom-button editor)
-	edit-button (init-edit-button editor)
-	reset-button (init-reset-button editor)
-	points-button (init-points-button editor)
-	pan-button (init-pan-button editor)
+	zoom-button (create-zoom-button editor)
+	edit-button (create-edit-button editor)
+	reset-button (create-reset-button editor)
+	points-button (create-points-button editor)
+	pan-button (create-pan-button editor)
 	button-group (ButtonGroup.)]
     (.setSelected edit-button true)
     (doto button-group
@@ -145,8 +180,13 @@
       (.add reset-button)
       (.add points-button))))
 
+(defn create-left-toolbar [editor]
+  (let [toolbar (JToolBar. JToolBar/HORIZONTAL)]
+    (doto toolbar
+      (.setFloatable false))))
+
 (defn open-curve-editor [lasfile curve]   
-  (let [frame (init-frame lasfile curve)
+  (let [frame (create-frame lasfile curve)
 	dirty-curve (lasso/deref-curve @curve)
 	index (:index dirty-curve)
 	editor (ref {})
@@ -162,10 +202,10 @@
 		       :slider slider
 		       :table table
 		       :chart chart)
-	left-tool-bar (init-left-toolbar editor)
-	right-tool-bar (init-right-toolbar editor)
-	table-panel (init-table-panel slider table)
-	main-panel (init-main-panel chart table-panel left-tool-bar right-tool-bar)]
+	left-tool-bar (create-left-toolbar editor)
+	right-tool-bar (create-right-toolbar editor)
+	table-panel (create-table-panel slider table)
+	main-panel (create-main-panel chart table-panel left-tool-bar right-tool-bar)]
 
     (dosync (ref-set editor editor-props))
     (chart-controller/enable-dragging chart)
@@ -173,11 +213,9 @@
     (add-listener :percentage-change slider 
 		  (fn [event]
 		    (update-canonical-percentage editor (:percentage event))))
-
     (add-listener :percentage-change chart 
 		  (fn [event]
 		    (update-canonical-percentage editor (:percentage event))))
-
     (add-listener :value-change chart 
 		  (fn [event] 
 		    (dosync

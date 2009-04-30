@@ -1,20 +1,191 @@
 (ns sources.controller
   (:require [sources.headerdialog.controller :as header-dialog]
 	    editor.controller
-	    merger.controller)
-  (:use sources.view sources.model gutil util curves global inspector.controller)
+	    merger.controller
+	    chart.controller)
+  (:use gutil util global inspector.controller)
   (:import (javax.swing JFileChooser JLabel JList DefaultListModel JScrollPane
 			JSplitPane JTabbedPane JToggleButton JPanel JButton JDialog
-			JTable)
+			JTable JPopupMenu JMenuItem BorderFactory JTree JMenu
+			JOptionPane TransferHandler)
 	   (java.awt.event MouseEvent MouseAdapter)
+	   (java.awt.datatransfer Transferable DataFlavor)
 	   (java.awt Dimension)
 	   (javax.swing.event ChangeListener ListSelectionListener TreeSelectionListener)
 	   (javax.swing.table DefaultTableModel)
 	   (javax.swing.tree DefaultMutableTreeNode TreeCellRenderer)
-	   (gui IconListCellRenderer)
-	   (net.miginfocom.swing MigLayout)))
+	   (gui IconListCellRenderer NodePayload)
+	   (net.miginfocom.swing MigLayout)
+	   (javax.swing.border BevelBorder)
+	   (javax.swing.tree DefaultTreeModel)
+	   (com.explodingpixels.macwidgets SourceList SourceListModel 
+					   SourceListCategory 
+					   MacWidgetFactory)))
 
 (declare init-curve-list init-curve-list-view init-file init-context-menu-listener)
+
+(defstruct File
+  :lasfile
+  :curve-list
+  :view)
+
+(defstruct SourceManager
+  :sources
+  :selected-source
+  :source-tree
+  :curve-panel
+  :widget)
+
+(defn open-file [file]
+  (try 
+   (lasso/load-lasfile (.getPath file))
+   (catch Exception e 
+     (JOptionPane/showMessageDialog 
+      (:sources-frame @app) (str "There was an error reading file " (.getPath file))
+      "Read Error" JOptionPane/ERROR_MESSAGE)
+     (throw e))))
+
+(defn open-files [files]
+  (doall (map open-file files)))
+
+(defn save-file [file]
+  (let [lasfile (:lasfile @file)]
+    (try 
+     (lasso/save-lasfile lasfile)
+     (catch Exception e
+       (JOptionPane/showMessageDialog
+	(:sources-frame @app) (str "There was an error saving " (:name @lasfile))
+	"Save Error" JOptionPane/ERROR_MESSAGE)
+       (throw e)))))
+
+(defn make-transferable [curve]
+  (proxy [Transferable] []
+    (getTransferData [flavor] curve)
+    (getTransferDataFlavors [] 
+			    (println "getransferflavors")
+			    (try
+			     (let [flavors (into-array DataFlavor [ref-data-flavor])]
+			       (println "flavors = " flavors)
+			       (flush)
+			       flavors)
+			     (catch Exception e
+			       (.printStackTrace e)
+			       (throw e))))
+    (isDataFlavorSupported [flavor]
+			   (println "isdataflavorsupported")
+			   false)))
+
+(defn create-transfer-handler []
+  (proxy [TransferHandler] []
+    (createTransferable [c] 
+			(make-transferable (.getCurve (first (.getSelectedValues c)))))
+    (getSourceActions [c] TransferHandler/COPY)
+    ))
+
+(defn create-curve-list []
+  (let [jlist (JList. (DefaultListModel.))]
+    (doto jlist
+      (.setVisibleRowCount 0)
+      (.setBorder (BorderFactory/createEmptyBorder))
+      (.setCellRenderer (IconListCellRenderer.))
+      (.setBackground (.getBackground (JPanel.)))
+      (.setDragEnabled true)
+      (.setTransferHandler (create-transfer-handler))
+      (.setOpaque false))))
+
+(defn create-curve-list-view [curve-list]
+  (let [inner-panel (JPanel. (MigLayout. "ins 0"))
+	pane (JScrollPane. inner-panel)
+	outer-panel (JPanel. (MigLayout. "ins 0"))]
+    (doto inner-panel
+      (.add curve-list "pushx, growx, pushy, growy, wrap"))
+    (doto outer-panel
+      (.add pane "pushx, pushy, growx, growy, wrap"))))
+
+(defn create-source-tree []
+  (tree 
+   ["" 
+    "Las Files" 
+    "Other"]))
+
+(defn create-curve-panel []
+  (let [panel (JPanel. (MigLayout. "ins 0"))]
+    (doto panel
+      (.setBorder (BorderFactory/createBevelBorder BevelBorder/LOWERED)))))
+
+(defn create-manager-widget [source-tree curve-panel]
+  (let [panel (JPanel. (MigLayout. "ins 0"))
+	source-panel (MacWidgetFactory/createSourceListScrollPane source-tree)]
+    (doto panel
+      (.add source-panel "width 40%, height 100%")
+      (.add curve-panel "width 60%, height 100%"))))
+
+(defn custom-tree-payload [file]
+  (proxy [NodePayload] []
+    (toString [] 
+	      (dosync 
+	       (let [lasfile (:lasfile @file)]
+		 (:name @lasfile))))
+    (getFile [] file)))
+
+(defn create-file-view [curve-list-view header-edit-button]
+  (let [panel (JPanel. (MigLayout. "ins 0, nogrid"))]
+    (doto panel
+      (.add curve-list-view "push, grow, spanx 2, wrap")
+      (.add header-edit-button "alignx 50%, wrap"))))
+
+(defn create-file-menu [open save-all quit]
+  (let [menu (new JMenu "File")]
+    (actions menu
+      ["Open" open]
+      ["Save All" save-all]
+      ["Quit" quit])
+    menu))
+
+(defn create-file-selection-dialog [cwd]
+  (let [chooser (new JFileChooser cwd)]
+    (.setMultiSelectionEnabled chooser true)
+    chooser))
+
+(defn create-context-menu [curve-list x y cm-actions]
+  (let [m (JPopupMenu.)
+	edit (JMenuItem. "Edit")
+	merge (JMenuItem. "Merge")
+	copy (JMenuItem. "Copy")
+	paste (JMenuItem. "Paste")
+	remove (JMenuItem. "Remove")]
+
+    (swing
+     (set-action edit (:edit cm-actions))
+     (set-action merge (:merge cm-actions))
+     (set-action copy (:copy cm-actions))
+     (set-action paste (:paste cm-actions))
+     (set-action remove (:remove cm-actions))
+     
+     (let [svc (count (.getSelectedValues curve-list))]
+       (cond 
+	(= 0 svc)
+	(do 
+	  (.setEnabled edit false)
+	  (.setEnabled merge false))
+	
+	(= 1 svc)
+	(do 
+	  (.setEnabled edit true)
+	  (.setEnabled merge false))
+	
+	(< 1 svc)
+	(do 
+	  (.setEnabled edit false)
+	  (.setEnabled merge true))))
+
+     (doto m
+       (.add edit)
+       (.add merge)
+       (.add copy)
+       (.add paste)
+       (.add remove)
+       (.show curve-list x y)))))
 
 (defn update-curve-icon [curve-list old-descriptor curve]
   (dosync 
@@ -44,7 +215,7 @@
       (.. source-tree (getModel) (reload lasfiles-node))))))
 
 (defn add-curve-to-gui [curve-list curve]
-  (let [icon (curve-to-icon curve)]
+  (let [icon (chart.controller/curve-to-icon curve)]
     (dosync 
      (alter curve assoc :icon icon)
      (swing 
@@ -151,8 +322,6 @@
 		:widget (create-manager-widget source-tree curve-panel))))
     source-manager))
 
-;;file-menu 
-
 (defn run-file-selection-dialog [cwd]
   (let [frame (:sources-frame @app)
 	dialog (create-file-selection-dialog cwd)
@@ -177,8 +346,6 @@
    (partial file-menu-open source-manager)
    (partial file-menu-save-all source-manager)
    file-menu-quit))
-
-;; context-menu
 
 (defn context-menu-edit [source-manager] 
   (open-curve-editor source-manager))
@@ -214,4 +381,3 @@
 		      :paste (partial context-menu-paste source-manager)
 		      :remove (partial context-menu-remove source-manager)
 		      })))))
-

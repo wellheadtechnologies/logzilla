@@ -1,6 +1,6 @@
 (ns merger.controller
   (:require chart.controller lasso slider.controller)
-  (:use util gutil global messages merger.model merger.view)
+  (:use util gutil global messages)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
 			ButtonGroup ImageIcon JPanel
@@ -8,9 +8,30 @@
 	   (java.awt Dimension Color Toolkit Image Point)
 	   (javax.imageio ImageIO)
 	   (java.io File)
+	   (gui ChartUtil)
 	   (org.jfree.data Range)
 	   (org.jfree.chart ChartMouseListener)
 	   (net.miginfocom.swing MigLayout)))
+
+(defstruct Merger
+  :frame
+  :lasfile 
+  :index
+  :slider
+  :charts
+  :width
+  :height
+  :canonical-percentage)
+
+(defn merge-curves [left right]
+  {:descriptor (:descriptor @left)
+   :index (:index @left)
+   :data (ChartUtil/mergeData (:data @left) (:data @right))
+   })
+
+(defn zero-out [curve]
+  (assoc curve 
+    :data (map (fn [_] Double/NaN) (:data curve))))
 
 (def slider-notches 200)
 

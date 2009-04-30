@@ -1,10 +1,19 @@
 (ns slider.controller
-  (:use util gutil global
-	slider.view slider.model
-	messages)
-  (:import (javax.swing.event ChangeListener)))
+  (:use util gutil global messages)
+  (:import (javax.swing.event ChangeListener)
+	   (javax.swing JSlider)))
 
 (declare fire-percentage-change-event)
+
+(defstruct Slider
+  :widget
+  :percentage
+  :notches)
+
+(defn create-depth-slider [slider-notches]
+  (let [slider (JSlider. 0 slider-notches 0)]
+    (doto slider
+      (.setOrientation JSlider/VERTICAL))))
 
 (defn set-percentage [slider percentage]
   (dosync 
