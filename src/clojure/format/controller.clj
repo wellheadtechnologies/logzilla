@@ -29,14 +29,7 @@
 (defn curve-transfer-handler []
   (proxy [TransferHandler] []
     (canImport [comp transfer-flavors] true)
-    (importData [comp t]
-		(println "comp = " comp)
-		(try
-		 (println "t = " (.getTransferData t ref-data-flavor))
-		 (flush)
-		 (catch Exception e
-		   (.printStackTrace e)
-		   (throw e))))))
+    (importData [comp t] (println "you dropped something!"))))
 
 (defn create-place-holder []
   (doto (JPanel.)

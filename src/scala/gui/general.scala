@@ -3,12 +3,16 @@ package gui
 import java.lang.Math
 import java.util.Collections
 import java.awt._
+import java.awt.dnd._
 import java.awt.event._
+import java.awt.datatransfer._
 import java.awt.image.{BufferedImage}
 import java.awt.geom.{Rectangle2D,Point2D}
 import javax.swing._
 import javax.swing.tree._
 import javax.swing.border._
+import javax.imageio._
+import java.io._
 import java.util.{List,LinkedList,ArrayList}
 import scala.collection.jcl.Conversions._
 import org.jfree.chart._
@@ -76,182 +80,26 @@ object ChartUtil {
   }
 }
 
-class CustomNumberAxis(label:String) extends NumberAxis(label) {
-  override protected def refreshTicksVertical(g2:Graphics2D, dataArea:Rectangle2D, edge:RectangleEdge):List[NumberTick] = {
-    val result = new ArrayList[NumberTick]()
-    result.clear()
-    val tickLabelFont = getTickLabelFont()
-    g2.setFont(tickLabelFont);
-    if (isAutoTickUnitSelection()) {
-      selectAutoTickUnit(g2, dataArea, edge)
-    }
-    val size = getTickUnit().getSize()
-    val count = calculateVisibleTickCount()
-    val lowestTickValue = calculateLowestVisibleTickValue()
-    if (count <= ValueAxis.MAXIMUM_TICK_COUNT) {
-      for(minorTick <- 1 until getMinorTickCount){
-        val minorTickValue = lowestTickValue - getTickUnit().getSize() * minorTick / getMinorTickCount()
-        if (getRange().contains(minorTickValue)){
-          result.add(new NumberTick(TickType.MINOR, minorTickValue,
-				    "", TextAnchor.TOP_CENTER, TextAnchor.CENTER,
-				    0.0));
-        }
-      }
-      for(i <- 1 until count){
-        val currentTickValue = lowestTickValue + (i * size);
-        var tickLabel:String = null
-        val formatter = getNumberFormatOverride()
-        if (formatter != null) {
-          tickLabel = formatter.format(currentTickValue)
-        }
-        else {
-          tickLabel = getTickUnit().valueToString(currentTickValue)
-        }
-        var anchor:TextAnchor = null
-        var rotationAnchor:TextAnchor = null
-        var angle = 0.0
-        if (isVerticalTickLabels()) {
-          if (edge == RectangleEdge.LEFT) {
-            anchor = TextAnchor.BOTTOM_CENTER
-            rotationAnchor = TextAnchor.BOTTOM_CENTER
-            angle = -Math.PI / 2.0
-          }
-          else {
-            anchor = TextAnchor.BOTTOM_CENTER
-            rotationAnchor = TextAnchor.BOTTOM_CENTER
-            angle = Math.PI / 2.0
-          }
-        } else {
-          if (edge == RectangleEdge.LEFT) {
-            anchor = TextAnchor.CENTER_RIGHT
-            rotationAnchor = TextAnchor.CENTER_RIGHT
-          } else {
-            anchor = TextAnchor.CENTER_LEFT
-            rotationAnchor = TextAnchor.CENTER_LEFT
-          }
-        }
+abstract class Dragger(comp:JComponent)
+extends DragGestureListener with DragSourceListener with DragSourceMotionListener {
+  private var dragSource:DragSource = DragSource.getDefaultDragSource
+  dragSource.createDefaultDragGestureRecognizer(comp, DnDConstants.ACTION_COPY, this)
+  dragSource.addDragSourceMotionListener(this)
 
-        val tick = new NumberTick(currentTickValue,  tickLabel, anchor, rotationAnchor, angle)
-        result.add(tick)
-        val nextTickValue = lowestTickValue + ((i + 1)* size)
-	for(minorTick <- 1 until getMinorTickCount){
-          val minorTickValue = currentTickValue + (nextTickValue - currentTickValue) * minorTick / getMinorTickCount()
-          if (getRange().contains(minorTickValue)){
-            result.add(new NumberTick(TickType.MINOR,
-                                      minorTickValue, "", TextAnchor.TOP_CENTER,
-                                      TextAnchor.CENTER, 0.0));
-          }
-        }
-      }
-    }
-    return result
+  override def dragGestureRecognized(dge:DragGestureEvent){
+    dragSource.startDrag(dge, DragSource.DefaultCopyNoDrop,
+			 createIcon(comp), new Point(0,0), createTransferable(comp), this)
   }
-  override protected def refreshTicksHorizontal(g2:Graphics2D, dataArea:Rectangle2D, edge:RectangleEdge):List[NumberTick] = {
-    val result = new ArrayList[NumberTick]
-    val tickLabelFont = getTickLabelFont()
-    g2.setFont(tickLabelFont)
-    
-    if (isAutoTickUnitSelection()) {
-      selectAutoTickUnit(g2, dataArea, edge)
-    }
-    
-    val size = getTickUnit().getSize()
-    val count = calculateVisibleTickCount()
-    val lowestTickValue = calculateLowestVisibleTickValue()
-    
-    if (count <= ValueAxis.MAXIMUM_TICK_COUNT) {
-      for(minorTick <- 1 until getMinorTickCount){
-        val minorTickValue = lowestTickValue - getTickUnit().getSize()  * minorTick / getMinorTickCount()
-        if (getRange().contains(minorTickValue)){
-          result.add(new NumberTick(TickType.MINOR, minorTickValue,
-				    "", TextAnchor.TOP_CENTER, TextAnchor.CENTER,
-				    0.0))
-        }
-      }
-      for(i <- 0 until count){
-        val currentTickValue = lowestTickValue + (i * size)
-        var tickLabel:String = null
-        val formatter = getNumberFormatOverride()
-        if (formatter != null) {
-          tickLabel = formatter.format(currentTickValue)
-        }
-        else {
-          tickLabel = getTickUnit().valueToString(currentTickValue)
-        }
-        var anchor:TextAnchor = null
-        var rotationAnchor:TextAnchor = null
-        var angle = 0.0
-        if (isVerticalTickLabels()) {
-          anchor = TextAnchor.CENTER_RIGHT
-          rotationAnchor = TextAnchor.CENTER_RIGHT
-          if (edge == RectangleEdge.TOP) {
-            angle = Math.PI / 2.0
-          }
-          else {
-            angle = -Math.PI / 2.0
-          }
-        }
-          else {
-            if (edge == RectangleEdge.TOP) {
-              anchor = TextAnchor.BOTTOM_CENTER
-              rotationAnchor = TextAnchor.BOTTOM_CENTER
-            }
-            else {
-              anchor = TextAnchor.TOP_CENTER
-              rotationAnchor = TextAnchor.TOP_CENTER
-            }
-          }
-	
-        val tick = new NumberTick(currentTickValue, tickLabel, anchor, rotationAnchor, angle)
-        result.add(tick)
-        val nextTickValue = lowestTickValue + ((i + 1)* size)
-	for(minorTick <- 1 until getMinorTickCount){
-          val minorTickValue = currentTickValue + (nextTickValue - currentTickValue) * minorTick / getMinorTickCount()
-          if (getRange().contains(minorTickValue)){
-            result.add(new NumberTick(TickType.MINOR,
-				      minorTickValue, "", TextAnchor.TOP_CENTER,
-				      TextAnchor.CENTER, 0.0))
-          }
-        }
-      }
-    }
-    return result
+  def createIcon(comp:JComponent):Image
+  def createTransferable(comp:JComponent):Transferable
+  override def dragDropEnd(dsde:DragSourceDropEvent) {
+    println("drop ended")
   }
-
-  override protected def calculateLowestVisibleTickValue():Double = {
-    val unit = getTickUnit.getSize
-    val index = Math.ceil(getRange.getLowerBound / unit)
-    return index * unit
-  }
-
-  override protected def calculateHighestVisibleTickValue():Double = {
-    val unit = getTickUnit.getSize
-    val index = Math.floor(getRange.getLowerBound / unit)
-    return index * unit
-  }
-
-  override protected def calculateAnchorPoint(tick:ValueTick, cursor:Double, dataArea:Rectangle2D, edge:RectangleEdge) = {
-    val insets = getTickLabelInsets()
-    val result = new Array[Float](2)
-    if (edge == RectangleEdge.TOP) {
-      result(0) = valueToJava2D(tick.getValue(), dataArea, edge).floatValue
-      result(1) = (cursor - insets.getBottom() - 2.0).floatValue
-    }
-    else if (edge == RectangleEdge.BOTTOM) {
-      result(0) = valueToJava2D(tick.getValue(), dataArea, edge).floatValue
-      result(1) = (cursor + insets.getTop() + 2.0).floatValue
-    }
-    else if (edge == RectangleEdge.LEFT) {
-      result(0) = (cursor - insets.getLeft() - 2.0).floatValue
-      result(1) = valueToJava2D(tick.getValue(), dataArea, edge).floatValue
-    }
-    else if (edge == RectangleEdge.RIGHT) {
-      result(0) = (cursor + insets.getRight() + 2.0).floatValue
-      result(1) = valueToJava2D(tick.getValue(), dataArea, edge).floatValue
-    }
-    result
-  }
-
+  override def dragEnter(dsde:DragSourceDragEvent) {}
+  override def dragExit(dse:DragSourceEvent) {}
+  override def dragOver(dsde:DragSourceDragEvent) {}
+  override def dropActionChanged(dsde:DragSourceDragEvent) {}
+  override def dragMouseMoved(dsde:DragSourceDragEvent) {}
 }
 
 class CurveIcon(curve: Object, icon:ImageIcon) extends JComponent {

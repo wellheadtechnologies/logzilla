@@ -11,10 +11,11 @@
 	   (java.awt.event MouseEvent MouseAdapter)
 	   (java.awt.datatransfer Transferable DataFlavor)
 	   (java.awt Dimension)
+	   (java.awt.dnd DragSourceAdapter)
 	   (javax.swing.event ChangeListener ListSelectionListener TreeSelectionListener)
 	   (javax.swing.table DefaultTableModel)
 	   (javax.swing.tree DefaultMutableTreeNode TreeCellRenderer)
-	   (gui IconListCellRenderer NodePayload)
+	   (gui IconListCellRenderer NodePayload CustomTransferHandler Dragger)
 	   (net.miginfocom.swing MigLayout)
 	   (javax.swing.border BevelBorder)
 	   (javax.swing.tree DefaultTreeModel)
@@ -62,35 +63,27 @@
   (proxy [Transferable] []
     (getTransferData [flavor] curve)
     (getTransferDataFlavors [] 
-			    (println "getransferflavors")
-			    (try
-			     (let [flavors (into-array DataFlavor [ref-data-flavor])]
-			       (println "flavors = " flavors)
-			       (flush)
-			       flavors)
-			     (catch Exception e
-			       (.printStackTrace e)
-			       (throw e))))
-    (isDataFlavorSupported [flavor]
-			   (println "isdataflavorsupported")
-			   false)))
+			    (let [flavors (into-array DataFlavor [ref-data-flavor])]
+			      flavors))
+    (isDataFlavorSupported [flavor] false)))
 
 (defn create-transfer-handler []
-  (proxy [TransferHandler] []
+  (proxy [CustomTransferHandler] []
     (createTransferable [c] 
-			(make-transferable (.getCurve (first (.getSelectedValues c)))))
-    (getSourceActions [c] TransferHandler/COPY)
-    ))
+			(make-transferable (first (.getSelectedValues c))))
+    (getSourceActions [c] TransferHandler/COPY)))
 
 (defn create-curve-list []
-  (let [jlist (JList. (DefaultListModel.))]
+  (let [jlist (JList. (DefaultListModel.))
+	dragger (proxy [Dragger] [jlist]
+		  (createTransferable [c]
+				      (make-transferable (first (.getSelectedValues c))))
+		  (createIcon [c] (.. (first (.getSelectedValues c)) (getIcon) (getImage))))]
     (doto jlist
       (.setVisibleRowCount 0)
       (.setBorder (BorderFactory/createEmptyBorder))
       (.setCellRenderer (IconListCellRenderer.))
       (.setBackground (.getBackground (JPanel.)))
-      (.setDragEnabled true)
-      (.setTransferHandler (create-transfer-handler))
       (.setOpaque false))))
 
 (defn create-curve-list-view [curve-list]
