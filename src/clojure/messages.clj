@@ -1,29 +1,26 @@
 (ns messages
-  (:use util))
+  (:use util global))
 
-(def listeners (ref {})) ; [object type] -> listeners
-(def disabled (ref {})) ; [object type] -> true|false
+(def disabled [])
 
-(defmacro ignore [type object & body]
-  `(dosync
-    (alter disabled assoc ~[object type] true)
-    ~@body
-    (alter disabled assoc ~[object type] false)))
+(defmacro ignore [type & body]
+  `(binding [disabled (conj disabled ~type)]
+     ~@body))
 
 (defn fire [type object event]
-  (when (not (get @disabled [object type]))
-    (dosync
-     (let [listeners (get @listeners [object type])]
+  (when (not-any? #(= type %) disabled)
+    (let [listeners (get-in @object [:listeners type])]
+      (short-task
        (doseq [listener listeners]
 	 (listener event))))))
 
+
 (defn add-listener [type object listener]
   (dosync
-   (let [old-listeners (get @listeners [object type])]
-     (alter listeners assoc [object type] (conj old-listeners listener)))))
+   (let [old-listeners (get-in @object [:listeners type])]
+     (alter object assoc-in [:listeners type] (conj old-listeners listener)))))
 
 (defn remove-listener [type object listener]
   (dosync
-   (let [old-listeners (get @listeners [object type])]
-     (alter listeners assoc [object type]
-	    (remove #(= listener %) old-listeners)))))
+   (let [old-listeners (get-in @object [:listeners type])]
+     (alter object assoc-in [:listeners type] (remove #(= listener %) old-listeners)))))

@@ -58,7 +58,7 @@
       (doto right-panel
 	(.add right-toolbar "pushx, growx, wrap")
 	(.add chart-panel "push, grow")))
-
+    
     (doto main-panel
       (.setPreferredSize (Dimension. 700 900))
       (.add left-panel "width 35%, pushy, growy")

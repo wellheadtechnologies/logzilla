@@ -372,24 +372,21 @@
   (doseq [chart charts]
     (show-percentage chart percentage)))
 
-(defmethod show-percentage :chart [chart new-percentage]
-  (dosync 
-   (let [{:keys [chart-panel dirty-curves percentage]} @chart
-	 xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
-	 exemplar (first dirty-curves)
-	 chart-range (get-chart-range xaxis)
-	 depth-range (get-depth-range exemplar)
-	 mind (min-depth exemplar)
-	 scale (get-scale depth-range chart-range)
-	 unit (get-unit depth-range scale)
-	 lower (+ mind (* new-percentage depth-range))
-	 upper (+ lower unit)]
-     (when (not= new-percentage (:percentage @chart))
-       (alter chart assoc :percentage new-percentage)
-       (fire :percentage-change chart {:percentage percentage})
-       (swing 
-	(.setRange xaxis (Range. lower upper))
-	(.repaint chart-panel))))))
+(defmethod show-percentage :chart [chart percentage]
+  (let [{:keys [chart-panel dirty-curves]} @chart
+	xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	exemplar (first dirty-curves)
+	chart-range (get-chart-range xaxis)
+	depth-range (get-depth-range exemplar)
+	mind (min-depth exemplar)
+	scale (get-scale depth-range chart-range)
+	unit (get-unit depth-range scale)
+	lower (+ mind (* percentage depth-range))
+	upper (+ lower unit)]
+    (fire :percentage-change chart {:percentage percentage})
+    (swing 
+     (.setRange xaxis (Range. lower upper))
+     (.repaint chart-panel))))
 
 (defmulti init-chart-panel (fn [x y] 
 			     (cond 
@@ -418,10 +415,10 @@
      (alter chart assoc :percentage 0)
      (fire :percentage-change chart {:percentage 0})
      (swing 
-       (.restoreAutoRangeBounds chart-panel)
-       (doto (.. chart-panel (getChart) (getPlot) (getDomainAxis))
-	 (.setAutoRange false)
-	 (.setRange (Range. mind (+ mind unit))))))))
+      (.restoreAutoRangeBounds chart-panel)
+      (doto (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	(.setAutoRange false)
+	(.setRange (Range. mind (+ mind unit))))))))
 
 (defmulti init-chart (fn [x y] 
 		       (cond 

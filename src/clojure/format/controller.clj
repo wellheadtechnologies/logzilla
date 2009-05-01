@@ -33,12 +33,14 @@
       (.add right-chart "push, grow"))))
 
 (defn update-canonical-percentage [formatter percentage]
-  (let [{:keys [slider charts canonical-percentage]} @formatter]
-    (when (not= canonical-percentage percentage)
-      (short-task
-       (ignore :percentage-change slider (slider.controller/set-percentage slider percentage))
-       (doseq [chart charts]
-	 (ignore :percentage-change chart (chart.controller/show-percentage chart percentage)))))))
+  (dosync
+   (let [{:keys [slider charts canonical-percentage]} @formatter]
+     (when (not= canonical-percentage percentage)
+       (alter formatter assoc :canonical-percentage percentage)
+       (short-task
+	(ignore :percentage-change slider (slider.controller/set-percentage slider percentage))
+	(doseq [chart charts]
+	  (ignore :percentage-change chart (chart.controller/show-percentage chart percentage))))))))
 
 (defn add-chart [formatter panel curve]
   (let [chart (chart.controller/init-chart curve (deref-curve @curve))
@@ -51,7 +53,8 @@
 	(.removeAll)
 	(.add chart-panel "push, grow")
 	(.revalidate)
-	(.repaint))))))
+	(.repaint)
+	(ignore :percentage-change chart (chart.controller/show-percentage chart (:canonical-percentage @formatter))))))))
 
 (defn curve-transfer-handler [formatter]
   (proxy [TransferHandler] []
@@ -82,10 +85,15 @@
 	f (struct-map Formatter
 	    :charts []
 	    :slider slider
-	    :frame frame
-	    :canonical-percentage 0)]
+	    :frame frame)]
     (dosync (ref-set formatter f))
+
+    (add-listener :percentage-change slider
+		  (fn [event]
+		    (update-canonical-percentage formatter (:percentage event))))
+
     (swing
+     (update-canonical-percentage formatter 0)
      (doto frame
        (.add main-panel)
        (.pack)

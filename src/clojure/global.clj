@@ -27,6 +27,10 @@
 	 (fn [_#]
 	   (println ~@body))))
 
+(defmacro once-short [& body] `(short-task ~@body))
+(defmacro once-long [& body] `(long-task ~@body))
+
+
 (def app (ref nil))
 
 (def copied-curves (ref []))
