@@ -55,9 +55,9 @@
   `(swing (dosync ~@body)))
 
 (defmacro swing-io! [& body]
-  `(if (not (javax.swing.SwingUtilities/isEventDispatchThread))
-     (throw (RuntimeException. "Not in swing event dispatch thread!!!"))
-     (io! 
+  `(io!
+    (if (not (javax.swing.SwingUtilities/isEventDispatchThread))
+      (javax.swing.SwingUtilities/invokeLater (fn [] ~@body))
       ~@body)))
 
 (defn swing-event [& body]

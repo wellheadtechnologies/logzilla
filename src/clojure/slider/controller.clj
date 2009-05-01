@@ -15,14 +15,13 @@
     (doto slider
       (.setOrientation JSlider/VERTICAL))))
 
-(defn set-percentage [slider percentage]
+(defn set-percentage [slider new-percentage]
   (dosync 
-   (let [widget (:widget @slider)
-	 notches (:notches @slider)
-	 value (* (invert percentage) notches)]
-     (when (and (not= (:percentage @slider) percentage)
-		(<= percentage 1) (>= percentage 0))
-       (alter slider assoc :percentage percentage)
+   (let [{:keys [widget notches percentage]} @slider
+	 value (* (invert new-percentage) notches)]
+     (when (and (not= percentage new-percentage)
+		(<= new-percentage 1) (>= new-percentage 0))
+       (alter slider assoc :percentage new-percentage)
        (swing
 	(ignore :percentage-change slider
 		(.setValue widget value)))))))

@@ -1,6 +1,6 @@
 (ns format.controller
-  (:require slider.controller)
-  (:use util global gutil messages)
+  (:require slider.controller chart.controller)
+  (:use util global gutil messages lasso)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
 			ButtonGroup ImageIcon JPanel TransferHandler
@@ -12,6 +12,12 @@
 	   (org.jfree.data Range)
 	   (org.jfree.chart ChartMouseListener)
 	   (net.miginfocom.swing MigLayout)))
+
+(defstruct Formatter 
+  :charts
+  :slider
+  :frame
+  :canonical-percentage)
 
 (defn create-frame []
   (let [name "Format Log"
@@ -26,25 +32,59 @@
       (.add middle-chart "push, grow")
       (.add right-chart "push, grow"))))
 
-(defn curve-transfer-handler []
+(defn update-canonical-percentage [formatter percentage]
+  (let [{:keys [slider charts canonical-percentage]} @formatter]
+    (when (not= canonical-percentage percentage)
+      (short-task
+       (ignore :percentage-change slider (slider.controller/set-percentage slider percentage))
+       (doseq [chart charts]
+	 (ignore :percentage-change chart (chart.controller/show-percentage chart percentage)))))))
+
+(defn add-chart [formatter panel curve]
+  (let [chart (chart.controller/init-chart curve (deref-curve @curve))
+	chart-panel (:chart-panel @chart)
+	old-charts (:charts @formatter)]
+    (dosync 
+     (alter formatter assoc :charts (conj old-charts chart))
+     (swing
+      (doto panel
+	(.removeAll)
+	(.add chart-panel "push, grow")
+	(.revalidate)
+	(.repaint))))))
+
+(defn curve-transfer-handler [formatter]
   (proxy [TransferHandler] []
     (canImport [comp transfer-flavors] true)
-    (importData [comp t] (println "you dropped something!"))))
+    (importData [comp t]
+		(try
+		 (let [curve (.getCurve (.getTransferData t ref-data-flavor))]
+		   (add-chart formatter comp curve))
+		 (catch Exception e
+		   (.printStackTrace e)
+		   (throw e))))))
 
-(defn create-place-holder []
-  (doto (JPanel.)
-    (.setTransferHandler (curve-transfer-handler))
+(defn create-empty-panel [formatter]
+  (doto (JPanel. (MigLayout. "ins 0"))
+    (.setTransferHandler (curve-transfer-handler formatter))
     (.add (JLabel. "Drag Curve Here!"))
     (.setBackground Color/white)
     (.setPreferredSize (Dimension. 400 700))))
 
 (defn open-formatter []
-  (let [frame (create-frame)
+  (let [formatter (ref nil)
+	frame (create-frame)
 	slider (slider.controller/init-slider 200)
-	left-chart (create-place-holder)
-	middle-chart (create-place-holder)
-	right-chart (create-place-holder)
-	main-panel (create-main-panel (:widget @slider) left-chart middle-chart right-chart)]
+	left-chart (create-empty-panel formatter)
+	middle-chart (create-empty-panel formatter)
+	right-chart (create-empty-panel formatter)
+	main-panel (create-main-panel (:widget @slider) left-chart middle-chart right-chart)
+	f (struct-map Formatter
+	    :charts []
+	    :slider slider
+	    :frame frame
+	    :canonical-percentage 0)]
+    (dosync (ref-set formatter f))
     (swing
      (doto frame
        (.add main-panel)
