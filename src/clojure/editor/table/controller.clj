@@ -38,7 +38,16 @@
    (let [rect (.getCellRect widget row col true)]
      (.scrollRectToVisible widget rect))))
 
-(defn show-percentage [table percentage]
+(defmulti show-percentage (fn [x y]
+			    (cond 
+			     (number? y) :percentage
+			     (= (class y) clojure.lang.PersistentArrayMap) :event
+			     )))
+
+(defmethod show-percentage :event [table event]
+  (show-percentage table (:percentage event)))
+
+(defmethod show-percentage :percentage [table percentage]
   (let [widget (:widget @table)
 	n percentage]
     (dosync 
@@ -76,4 +85,5 @@
 		     :widget widget
 		     :value-change-listeners []))]
     (.addTableModelListener model (init-listener table))
+    (add-receiver :percentage-change table #(show-percentage table %))
     table))

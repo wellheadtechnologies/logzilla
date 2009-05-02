@@ -42,6 +42,20 @@
 	(doseq [chart charts]
 	  (ignore :percentage-change chart (chart.controller/show-percentage chart percentage))))))))
 
+(defn remove-charts-from-panel [formatter panel]
+  (swing-io!
+   (let [charts (:charts @formatter)]
+     (doseq [chart charts]
+       (let [chart-panel (:chart-panel @chart)
+	     components (.getComponents panel)]
+	 (when (some #(= chart-panel %) components)
+	   (doto panel
+	     (.remove chart-panel)
+	     (.revalidate)
+	     (.repaint))
+	   (dosync 
+	    (alter formatter assoc :charts (remove #(= chart %) (:charts @formatter))))))))))
+
 (defn add-chart [formatter panel curve]
   (let [chart (chart.controller/init-chart curve (deref-curve @curve))
 	chart-panel (:chart-panel @chart)
@@ -49,12 +63,14 @@
     (dosync 
      (alter formatter assoc :charts (conj old-charts chart))
      (swing
-      (doto panel
-	(.removeAll)
-	(.add chart-panel "push, grow")
-	(.revalidate)
-	(.repaint)
-	(ignore :percentage-change chart (chart.controller/show-percentage chart (:canonical-percentage @formatter))))))))
+      (remove-charts-from-panel formatter panel)
+      (let [components (.getComponents panel)]
+	(doto panel
+	  (.removeAll)
+	  (.add chart-panel "push, grow")
+	  (.revalidate)
+	  (.repaint)
+	  (ignore :percentage-change chart (chart.controller/show-percentage chart (:canonical-percentage @formatter)))))))))
 
 (defn curve-transfer-handler [formatter]
   (proxy [TransferHandler] []
@@ -88,7 +104,7 @@
 	    :frame frame)]
     (dosync (ref-set formatter f))
 
-    (add-listener :percentage-change slider
+    (add-listener :percentage-change slider formatter
 		  (fn [event]
 		    (update-canonical-percentage formatter (:percentage event))))
 

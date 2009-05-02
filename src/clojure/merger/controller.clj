@@ -120,7 +120,7 @@
 		       :charts charts
 		       :result-chart result-chart)]
     (dosync (ref-set merger merger-props))
-    (add-listener :percentage-change slider
+    (add-listener :percentage-change slider merger
 		  (fn [event]
 		    (update-canonical-percentage merger (:percentage event))))
     (swing

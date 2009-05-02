@@ -2,7 +2,8 @@
   (:require [sources.headerdialog.controller :as header-dialog]
 	    editor.controller
 	    merger.controller
-	    chart.controller)
+	    chart.controller
+	    chart.render)
   (:use gutil util global inspector.controller)
   (:import (javax.swing JFileChooser JLabel JList DefaultListModel JScrollPane
 			JSplitPane JTabbedPane JToggleButton JPanel JButton JDialog
@@ -208,7 +209,7 @@
       (.. source-tree (getModel) (reload lasfiles-node))))))
 
 (defn add-curve-to-gui [curve-list curve]
-  (let [icon (chart.controller/curve-to-icon curve)]
+  (let [icon (chart.render/curve-to-icon curve)]
     (dosync 
      (alter curve assoc :icon icon)
      (swing 

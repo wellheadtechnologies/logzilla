@@ -13,5 +13,6 @@
     <dependency org="org.xerial" name="sqlite-jdbc" rev="3.6.11" />
     <dependency org="com.wellhead" name="lasso" rev="latest.integration" changing="true"/>
     <dependency org="com.wellhead" name="tabs" rev="latest.integration" changing="true" />
+    <dependency org="com.lowagie" name="itext" rev="2.1.5" />
   </dependencies>
 </ivy-module>

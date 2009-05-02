@@ -24,8 +24,7 @@
   :table
   :chart
   :width
-  :height
-  :canonical-percentage)
+  :height)
 
 (defn index-to-row [table index] index)
 
@@ -65,15 +64,23 @@
       (.add right-panel "width 65%, pushy, growy"))
     main-panel))
 
-(defn update-canonical-percentage [editor percentage]
-  (dosync
-   (let [{:keys [slider table chart canonical-percentage]} @editor]
+(defmulti update-canonical-percentage (fn [editor x] 
+					(cond 
+					 (= (class x) clojure.lang.PersistentArrayMap) :event
+					 (number? x) :percentage)))
+
+(defmethod update-canonical-percentage :percentage [editor percentage]
+  (update-canonical-percentage editor {:source editor :percentage percentage}))
+
+(defmethod update-canonical-percentage :event [editor event]
+  (dosync 
+   (let [{:keys [percentage source]} event
+	 {:keys [slider table chart canonical-percentage]} @editor]
      (when (not= canonical-percentage percentage)
-       (alter editor assoc :canonical-percentage percentage)
-       (short-task
-	(ignore :percentage-change slider (slider-controller/set-percentage slider percentage))
-	(ignore :percentage-change table (table-controller/show-percentage table percentage))
-	(ignore :percentage-change chart (chart-controller/show-percentage chart percentage)))))))
+       (short-task 
+	(receive :percentage-change slider event)
+	(receive :percentage-change table event)
+	(receive :percentage-change chart event))))))
 
 (defn update-table [table event]
   (dosync
@@ -210,19 +217,15 @@
     (dosync (ref-set editor editor-props))
     (chart-controller/enable-dragging chart)
 
-    (add-listener :percentage-change slider 
-		  (fn [event]
-		    (update-canonical-percentage editor (:percentage event))))
-    (add-listener :percentage-change chart 
-		  (fn [event]
-		    (update-canonical-percentage editor (:percentage event))))
-    (add-listener :value-change chart 
+    (add-listener :percentage-change slider editor #(update-canonical-percentage editor %))
+    (add-listener :percentage-change chart editor #(update-canonical-percentage editor %))
+    (add-listener :value-change chart editor
 		  (fn [event] 
 		    (dosync
 		     (let [{:keys [data-index value]} event
 			   row (index-to-row (:widget @table) data-index)]
 		       (update-table table {:row row :value value})))))
-    (add-listener :value-change table 
+    (add-listener :value-change table editor
 		  (fn [event]
 		    (dosync
 		     (let [{:keys [row value]} event

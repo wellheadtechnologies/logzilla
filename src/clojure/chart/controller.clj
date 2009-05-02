@@ -1,5 +1,5 @@
 (ns chart.controller
-  (:use gutil util global lasso messages)
+  (:use gutil util global lasso messages chart.render)
   (:import (org.jfree.chart ChartMouseListener ChartPanel)
 	   (gui ChartUtil ImageUtil CurveIcon)
 	   (org.jfree.chart.plot PlotOrientation)
@@ -16,7 +16,7 @@
 	   (javax.swing JLabel ImageIcon SwingConstants)
 	   (java.awt Toolkit Image Point Cursor Rectangle Color AlphaComposite Font)))
 
-(declare create-chart save-chart update-percentage curve-to-icon)
+(declare save-chart update-percentage)
 
 (defstruct Chart
   :chart-panel
@@ -26,8 +26,7 @@
   :dragged-entity
   :dragging-enabled
   :zooming-enabled
-  :showing-points
-  :percentage)
+  :showing-points)
 
 (defn min-depth [curve]
   (let [index-data (get-in curve [:index :data])]
@@ -50,6 +49,9 @@
 	 yaxis (.. chart (getPlot) (getDomainAxis))
 	 value (.java2DToValue yaxis y (.getScreenDataArea chart-panel) RectangleEdge/TOP)]
      value)))
+
+(defn fire-percentage-change [chart percentage]
+  (fire :percentage-change chart {:percentage percentage :source chart}))
 
 (defn retrieve-dataset [chart-panel]
   (swing-io!
@@ -89,142 +91,6 @@
 (defn dirty-curve [chart]
   (only (:dirty-curves @chart)))
 
-
-(def icon-width 64)
-(def icon-height 64)
-(def band-width icon-width)
-(def band-height (int (/ icon-height 5)))
-(def band-y (- (half icon-height)
-	       (half band-height)))
-(def string-length 10)
-(defn string-y [font string font-render-context]
-  (let [bounds (.getStringBounds font string 0 (.length string) font-render-context)
-	font-height (.getHeight bounds)]
-    (int (dec (+ band-y (half band-height) (half font-height))))))
-
-(defn string-x [font string font-render-context]
-  (let [bounds (.getStringBounds font string 0 (.length string) font-render-context)
-	font-width (.getWidth bounds)]
-    (int (- (half band-width) (half font-width)))))
-
-(defn stack-images [top bottom]
-  (let [graphics (.createGraphics bottom)]
-    (doto graphics
-      (.setComposite (AlphaComposite/getInstance AlphaComposite/SRC_OVER 1.0))
-      (.drawImage top 0 0 nil)
-      (.dispose))
-    bottom))
-
-(defn render-shadow [image]
-  (let [shadow-renderer (new ShadowRenderer)
-	shadow (.createShadow shadow-renderer image)]
-    (stack-images image shadow)))
-
-(defn fast-scale [image x y] (ImageUtil/fastScale image x y))
-
-(defn curve-to-icon [curve-ref]
-  (let [curve @curve-ref
-	name (get-in curve [:descriptor :mnemonic])
-	chart (create-chart (lasso/deref-curve curve))
-	image (BufferedImage. 400 700 BufferedImage/TYPE_INT_ARGB)
-	graphics (.createGraphics image)]
-    (.draw chart graphics (Rectangle. 400 700))
-    (.dispose graphics)
-    (let [final-image (render-shadow (fast-scale image icon-width icon-height))
-	  graphics (.createGraphics final-image)
-	  font (Font. "Helvetica" Font/BOLD 10)
-	  truncated-name (if (> (.length name) string-length)
-			   (.substring name 0 string-length)
-			   name)]
-      (doto graphics
-	(.setColor Color/black)
-	(.fillRect 0 band-y band-width band-height)
-	(.setColor Color/white)
-	(.setFont font)
-	(.drawString truncated-name
-		     (string-x font truncated-name (.getFontRenderContext graphics))
-		     (string-y font truncated-name (.getFontRenderContext graphics)))
-	(.dispose))
-      (CurveIcon. curve-ref
-		   (ImageIcon. final-image)))))
-
-(def default-line-color Color/blue)
-(def default-background-color Color/white)
-
-(defn create-std-renderer []
-  (let [renderer (StandardXYItemRenderer.)]
-    (doto renderer
-      (.setBasePaint Color/blue)
-      (.setSeriesPaint 0 Color/blue)
-      (.setSeriesPaint 1 Color/red))))
-
-(defn create-difference-renderer []
-  (let [renderer (XYDifferenceRenderer.)]
-    renderer))
-
-(defmulti create-dataset (fn [x] 
-			   (cond 
-			     (sequential? x) :multi
-			     :else :single)))
-
-(defmethod create-dataset :single [curve]
-  (io!
-   (let [series (XYSeries. "Series" false)
-	 dataset (XYSeriesCollection.)
-	 index (:index curve)
-	 cdata (:data curve)
-	 idata (:data index)]
-     (doseq [[x y] (tuplize idata cdata)]
-       (.add series x y))
-     (.addSeries dataset series)
-     dataset)))
-
-(defmethod create-dataset :multi [curves]
-  (io!
-   (let [dataset (XYSeriesCollection.)]
-     (doseq [curve curves]
-       (let [series (XYSeries. "Series")
-	     index (:index curve)
-	     cdata (:data curve)
-	     idata (:data index)]
-	 (doseq [[x y] (tuplize idata cdata)]
-	   (.add series x y))
-	 (.addSeries dataset series)))
-     dataset)))
-
-(defmulti create-chart (fn [x] 
-			 (cond 
-			   (sequential? x) :multi
-			   :else :single)))
-
-(defmethod create-chart :single [curve]
-  (let [dataset (create-dataset curve)
-	curve-name (get-in curve [:descriptor :mnemonic])
-	index-name (get-in curve [:index :descriptor :mnemonic])
-	chart (ChartUtil/createXYLineChart
-	       curve-name
-	       index-name curve-name
-	       dataset PlotOrientation/HORIZONTAL
-	       false)
-	plot (.getPlot chart)]
-    (.setRenderer plot (create-std-renderer))
-    (.setBackgroundPaint plot Color/white)
-    chart))
-
-(defmethod create-chart :multi [curves]
-  (guard (all-same (map :index curves))
-	 "indices of curves for multi-chart must be equal")
-  (let [dataset (create-dataset curves)
-	chart (ChartUtil/createXYLineChart
-	       "Chart" 
-	       "x" "y"
-	       dataset PlotOrientation/HORIZONTAL
-	       false)
-	plot (.getPlot chart)]
-    (.setRenderer plot (create-std-renderer))
-    (.setBackgroundPaint plot Color/white)
-    chart))
-
 (defn delta [x y entity]
   (let [bounds (.. entity (getArea) (getBounds))
 	bx (. bounds x)
@@ -250,41 +116,50 @@
 
      (= len 1) (first entities))))
 
+(defn set-dragged-entity [chart event]
+  (let [chart-panel (:chart-panel @chart)
+	insets (.getInsets chart-panel)
+	x (/ (- (.getX event) (. insets left)) (.getScaleX chart-panel))
+	y (/ (- (.getY event) (. insets top)) (.getScaleY chart-panel))
+	entities (.. chart-panel (getChartRenderingInfo) (getEntityCollection) (getEntities))
+	nearest-entities (if (:showing-points @chart)
+			   (filter #(in-range y x %) entities)
+			   (filter #(in-range x y %) entities))
+	chosen (if (:showing-points @chart)
+		 (closest y x nearest-entities)
+		 (closest x y nearest-entities))]
+    (alter chart assoc :dragged-entity chosen)))
+
+(defn set-anchor [chart event]
+  (let [chart-panel (:chart-panel @chart)
+	plot (.. chart-panel (getChart) (getPlot))]
+    (alter chart assoc :anchor 
+	   [(.getX event) (.getY event) 
+	    (.. plot (getRangeAxis) (getRange))
+	    (.. plot (getDomainAxis) (getRange))])))
+
+(defn release-anchor [chart]
+  (alter chart assoc :anchor nil))
+
+(defn release-dragged-entity [chart]
+  (alter chart assoc :dragged-entity nil))
+
 (defn chart-press-listener [chart]
   (proxy [MouseAdapter] []
        (mousePressed [event]
 		     (swing-io! 
 		      (dosync 
-		       (when
-			(:dragging-enabled @chart)
-			(let [chart-panel (:chart-panel @chart)
-			      insets (.getInsets chart-panel)
-			      x (/ (- (.getX event) (. insets left)) (.getScaleX chart-panel))
-			      y (/ (- (.getY event) (. insets top)) (.getScaleY chart-panel))
-			      entities (.. chart-panel (getChartRenderingInfo) (getEntityCollection) (getEntities))
-			      nearest-entities (if (:showing-points @chart)
-						 (filter #(in-range y x %) entities)
-						 (filter #(in-range x y %) entities))
-			      chosen (if (:showing-points @chart)
-				       (closest y x nearest-entities)
-				       (closest x y nearest-entities))]
-			  (alter chart assoc :dragged-entity chosen)))
+		       (when (:dragging-enabled @chart)
+			 (set-dragged-entity chart event))
 		       (when (:panning-enabled @chart)
-			(let [chart-panel (:chart-panel @chart)
-			      plot (.. chart-panel (getChart) (getPlot))]
-			  (alter chart assoc :anchor 
-				 [(.getX event) (.getY event) 
-				  (.. plot (getRangeAxis) (getRange))
-				  (.. plot (getDomainAxis) (getRange))]))))))
+			 (set-anchor chart event)))))
        (mouseReleased [event]
 		      (swing-io!
 		       (dosync 
-			(when
-			 (:dragging-enabled @chart)
-			 (alter chart assoc :dragged-entity nil))
+			(when (:dragging-enabled @chart)
+			  (release-dragged-entity chart))
 			(when (:panning-enabled @chart)
-			  (do
-			    (alter chart assoc :anchor nil)))
+			  (release-anchor chart))
 			(save-chart chart))))))
 
 (defn set-chart-value [chart curve-index data-index new-value]
@@ -353,26 +228,34 @@
 
 (defn update-percentage [chart]
   (swing
-   (dosync
-    (let [{:keys [chart-panel dirty-curves]} @chart
-	  xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
-	  exemplar (first dirty-curves)
-	  mind (min-depth exemplar)
-	  depth-range (get-depth-range exemplar)
-	  percentage (get-percentage xaxis mind depth-range)]
-      (alter chart assoc :percentage percentage)
-      (fire :percentage-change chart {:percentage percentage})))))
+   (let [{:keys [chart-panel dirty-curves]} @chart
+	 xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	 exemplar (first dirty-curves)
+	 mind (min-depth exemplar)
+	 depth-range (get-depth-range exemplar)
+	 percentage (get-percentage xaxis mind depth-range)]
+     (fire-percentage-change chart percentage))))
 
 (defmulti show-percentage (fn [x y] 
 			    (cond 
-			      (sequential? x) :charts
-			      :else :chart)))
+			     (and (sequential? x) (number? y)) [:charts :percentage]
+			     (and (sequential? x) (= (class y) clojure.lang.PersistentArrayMap)) [:charts :event]
+			     (and (not (sequential? x)) (number? y)) [:chart :percentage]
+			     (and (not (sequential? x)) (= (class y) clojure.lang.PersistentArrayMap))  [:chart :event]
+			     )))
 
-(defmethod show-percentage :charts [charts percentage]
+(defmethod show-percentage [:charts :percentage] [charts percentage]
   (doseq [chart charts]
     (show-percentage chart percentage)))
 
-(defmethod show-percentage :chart [chart percentage]
+(defmethod show-percentage [:charts :event] [charts event]
+  (doseq [chart charts]
+    (show-percentage chart event)))
+
+(defmethod show-percentage [:chart :event] [chart event]
+  (show-percentage chart (:percentage event)))
+
+(defmethod show-percentage [:chart :percentage] [chart percentage]
   (let [{:keys [chart-panel dirty-curves]} @chart
 	xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
 	exemplar (first dirty-curves)
@@ -383,7 +266,7 @@
 	unit (get-unit depth-range scale)
 	lower (+ mind (* percentage depth-range))
 	upper (+ lower unit)]
-    (fire :percentage-change chart {:percentage percentage})
+    (fire-percentage-change chart percentage)
     (swing 
      (.setRange xaxis (Range. lower upper))
      (.repaint chart-panel))))
@@ -412,8 +295,7 @@
 	 unit (get-unit depth-range default-scale)]
      (guard (all-same depth-ranges)
 	    "all depth ranges must be equal to scale chart")
-     (alter chart assoc :percentage 0)
-     (fire :percentage-change chart {:percentage 0})
+     (fire-percentage-change chart 0)
      (swing 
       (.restoreAutoRangeBounds chart-panel)
       (doto (.. chart-panel (getChart) (getPlot) (getDomainAxis))
@@ -433,6 +315,7 @@
 		:curves curves
 		:dirty-curves dirty-curves)]
     (dosync (ref-set chart props))
+    (add-receiver :percentage-change chart #(show-percentage chart %))
     (reset chart)
     chart))
 
@@ -444,6 +327,7 @@
 		:curves [curve]
 		:dirty-curves [dirty-curve])]
     (dosync (ref-set chart props))
+    (add-receiver :percentage-change chart #(show-percentage chart %))
     (reset chart)
     chart))
 
