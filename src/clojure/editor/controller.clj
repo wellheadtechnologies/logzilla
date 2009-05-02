@@ -73,31 +73,29 @@
   (update-canonical-percentage editor {:source editor :percentage percentage}))
 
 (defmethod update-canonical-percentage :event [editor event]
-  (dosync 
-   (let [{:keys [percentage source]} event
-	 {:keys [slider table chart canonical-percentage]} @editor]
-     (when (not= canonical-percentage percentage)
-       (short-task 
-	(receive :percentage-change slider event)
-	(receive :percentage-change table event)
-	(receive :percentage-change chart event))))))
+  (let [{:keys [percentage source]} event
+	{:keys [slider table chart canonical-percentage]} @editor]
+    (when (not= canonical-percentage percentage)
+      (short-task 
+       (receive :percentage-change slider event)
+       (receive :percentage-change table event)
+       (receive :percentage-change chart event)))))
 
 (defn update-table [table event]
-  (dosync
-   (let [{:keys [row value]} event
-	 table-widget (:widget @table)]
-     (swing 
-      (let [model (.getModel table-widget)]
-	(ignore :value-change table (.setValueAt model value row 1))
-	(table-controller/show-cell table-widget row 1))))))
+  (let [{:keys [row value]} event
+	table-widget (:widget @table)]
+    (swing 
+     (let [model (.getModel table-widget)]
+       (ignore :value-change table (.setValueAt model value row 1))
+       (table-controller/show-cell table-widget row 1)))))
 
 (defn update-chart [chart event]
-  (dosync 
-   (let [{:keys [index value]} event]
-     (swing
-       (let [value (convert-to-double value)]
-	 (ignore :value-change chart (chart-controller/set-chart-value chart 0 index value)
-	 (chart-controller/save-chart chart)))))))
+  (let [{:keys [index value]} event]
+    (swing
+     (let [value (convert-to-double value)]
+       (ignore :value-change chart 
+	       (chart-controller/set-chart-value chart 0 index value)
+	       (chart-controller/save-chart chart))))))
 
 (defn create-save-button [editor]
   (let [button (JButton. (ImageIcon. "resources/save.png"))]

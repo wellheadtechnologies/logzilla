@@ -1,5 +1,5 @@
 (ns format.controller
-  (:require slider.controller chart.controller)
+  (:require slider.controller chart.controller chart.render)
   (:use util global gutil messages lasso)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
@@ -24,9 +24,17 @@
 	frame (JFrame. name)]
     frame))
 
-(defn create-main-panel [slider-widget left-chart middle-chart right-chart]
-  (let [panel (JPanel. (MigLayout. "ins 0"))]
+(defn create-export-button [formatter]
+  (let [button (JButton. "Export")]
+    (doto button
+      (on-action 
+       (let [chart (first (:charts @formatter))]
+	 (chart.render/export-chart-to-pdf chart 400 300 "export.pdf"))))))
+
+(defn create-main-panel [export-button slider-widget left-chart middle-chart right-chart]
+  (let [panel (JPanel. (MigLayout. "ins 0, nogrid"))]
     (doto panel
+      (.add export-button "wrap")
       (.add left-chart "push, grow")
       (.add slider-widget "pushy, growy")
       (.add middle-chart "push, grow")
@@ -93,11 +101,12 @@
 (defn open-formatter []
   (let [formatter (ref nil)
 	frame (create-frame)
+	export-button (create-export-button formatter)
 	slider (slider.controller/init-slider 200)
 	left-chart (create-empty-panel formatter)
 	middle-chart (create-empty-panel formatter)
 	right-chart (create-empty-panel formatter)
-	main-panel (create-main-panel (:widget @slider) left-chart middle-chart right-chart)
+	main-panel (create-main-panel export-button (:widget @slider) left-chart middle-chart right-chart)
 	f (struct-map Formatter
 	    :charts []
 	    :slider slider

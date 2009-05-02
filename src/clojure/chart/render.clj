@@ -9,12 +9,14 @@
 	   (org.jfree.chart.renderer.xy XYDifferenceRenderer StandardXYItemRenderer)
 	   (org.jdesktop.swingx.graphics ShadowRenderer)
 	   (java.awt.event MouseAdapter MouseMotionAdapter)
-	   (java.awt.geom Point2D Point2D$Double)
+	   (java.awt.geom Point2D Point2D$Double Rectangle2D Rectangle2D$Double)
 	   (javax.imageio ImageIO)
-	   (java.io File)
+	   (java.io File FileOutputStream)
 	   (java.awt.image BufferedImage)
 	   (javax.swing JLabel ImageIcon SwingConstants)
-	   (java.awt Toolkit Image Point Cursor Rectangle Color AlphaComposite Font)))
+	   (java.awt Toolkit Image Point Cursor Rectangle Color AlphaComposite Font)
+	   (com.lowagie.text Document Paragraph PageSize)
+	   (com.lowagie.text.pdf PdfWriter)))
 
 (declare create-chart)
 
@@ -50,14 +52,18 @@
 
 (defn fast-scale [image x y] (ImageUtil/fastScale image x y))
 
+(defn chart-to-image [chart]
+  (let [image (BufferedImage. 400 700 BufferedImage/TYPE_INT_ARGB)
+	graphics (.createGraphics image)]
+    (.draw chart graphics (Rectangle. 400 700))
+    (.dispose graphics)
+    image))
+
 (defn curve-to-icon [curve-ref]
   (let [curve @curve-ref
 	name (get-in curve [:descriptor :mnemonic])
 	chart (create-chart (lasso/deref-curve curve))
-	image (BufferedImage. 400 700 BufferedImage/TYPE_INT_ARGB)
-	graphics (.createGraphics image)]
-    (.draw chart graphics (Rectangle. 400 700))
-    (.dispose graphics)
+	image (chart-to-image chart)]
     (let [final-image (render-shadow (fast-scale image icon-width icon-height))
 	  graphics (.createGraphics final-image)
 	  font (Font. "Helvetica" Font/BOLD 10)
@@ -152,3 +158,18 @@
     (.setRenderer plot (create-std-renderer))
     (.setBackgroundPaint plot Color/white)
     chart))
+
+(defn export-chart-to-pdf [chart width height file-path]
+  (let [chart-panel (:chart-panel @chart)
+	jfree-chart (.getChart chart-panel)
+	page-size (com.lowagie.text.Rectangle. width height)
+	document (Document. PageSize/A4)
+	writer (PdfWriter/getInstance document (FileOutputStream. file-path))
+	image (chart-to-image jfree-chart)]
+    (doto document
+      (.open))
+    (.add document (Paragraph. "Hello World"))
+    (let [itext-image (com.lowagie.text.Image/getInstance writer image (float 1.0))]
+      (.setAbsolutePosition itext-image 15 15)
+      (.add document itext-image))
+    (.close document)))
