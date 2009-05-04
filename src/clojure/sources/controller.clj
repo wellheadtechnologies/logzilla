@@ -24,11 +24,15 @@
 					   SourceListCategory 
 					   MacWidgetFactory)))
 
-(declare init-curve-list init-curve-list-view init-file init-context-menu-listener)
+(declare init-curve-list init-curve-list-view
+	 init-file init-context-menu-listener
+	 display-curves-for)
 
 (load "contextmenu")
 (load "file")
 (load "curvelist")
+(load "filemenu")
+(load "sourcetree")
 
 (defstruct File
   :lasfile
@@ -42,12 +46,6 @@
   :curve-panel
   :widget)
 
-(defn create-source-tree []
-  (tree 
-   ["" 
-    "Las Files" 
-    "Other"]))
-
 (defn create-manager-widget [source-tree curve-panel]
   (let [panel (JPanel. (MigLayout. "ins 0"))
 	source-panel (MacWidgetFactory/createSourceListScrollPane source-tree)]
@@ -55,53 +53,22 @@
       (.add source-panel "width 40%, height 100%")
       (.add curve-panel "width 60%, height 100%"))))
 
-(defn custom-tree-payload [file]
-  (proxy [NodePayload] []
-    (toString [] 
-	      (dosync 
-	       (let [lasfile (:lasfile @file)]
-		 (:name @lasfile))))
-    (getFile [] file)))
+(defn init-inspector-listener [curve-list]
+  (proxy [ListSelectionListener] []
+    (valueChanged [e] (update-parameters-tab :curve (first (get-selected-curves curve-list))))))
 
-(defn create-context-menu [curve-list x y cm-actions]
-  (let [m (JPopupMenu.)
-	edit (JMenuItem. "Edit")
-	merge (JMenuItem. "Merge")
-	copy (JMenuItem. "Copy")
-	paste (JMenuItem. "Paste")
-	remove (JMenuItem. "Remove")]
-
-    (swing
-     (set-action edit (:edit cm-actions))
-     (set-action merge (:merge cm-actions))
-     (set-action copy (:copy cm-actions))
-     (set-action paste (:paste cm-actions))
-     (set-action remove (:remove cm-actions))
-     
-     (let [svc (count (.getSelectedValues curve-list))]
-       (cond 
-	(= 0 svc)
-	(do 
-	  (.setEnabled edit false)
-	  (.setEnabled merge false))
-	
-	(= 1 svc)
-	(do 
-	  (.setEnabled edit true)
-	  (.setEnabled merge false))
-	
-	(< 1 svc)
-	(do 
-	  (.setEnabled edit false)
-	  (.setEnabled merge true))))
-
-     (doto m
-       (.add edit)
-       (.add merge)
-       (.add copy)
-       (.add paste)
-       (.add remove)
-       (.show curve-list x y)))))
+(defn init-source-manager []
+  (let [source-manager (ref nil)
+	source-tree (init-source-tree source-manager)
+	curve-panel (create-curve-panel)]
+    (dosync 
+     (ref-set source-manager
+	      (struct-map SourceManager
+		:sources []
+		:source-tree source-tree
+		:curve-panel curve-panel
+		:widget (create-manager-widget source-tree curve-panel))))
+    source-manager))
 
 (defn get-selected-source [source-manager]
   (:selected-source @source-manager))
@@ -137,63 +104,3 @@
 	(.add (:view @source) "push, grow")
 	(.revalidate)
 	(.repaint))))))
-
-(defn run-file-selection-dialog [cwd]
-  (let [frame (:sources-frame @app)
-	dialog (create-file-selection-dialog cwd)
-	result (.showOpenDialog dialog frame)]
-    (if (= JFileChooser/APPROVE_OPTION result)
-      (.getSelectedFiles dialog)
-      [])))
-
-(defn file-menu-open [source-manager e]
-  (let [files (run-file-selection-dialog ".")]
-    (doseq [file files] 
-      (long-task (add-lasfile source-manager (open-file file))))))
-
-(defn file-menu-save-all [source-manager e] 
-  (doseq [file (:sources @source-manager)]
-    (save-file file)))
-
-(defn file-menu-quit [e] (System/exit 0))
-
-(defn init-inspector-listener [curve-list]
-  (proxy [ListSelectionListener] []
-    (valueChanged [e] (update-parameters-tab :curve (first (get-selected-curves curve-list))))))
-
-(defn init-source-tree-selection-listener [source-manager]
-  (proxy [TreeSelectionListener] []
-    (valueChanged [e]
-		  (let [path (.getNewLeadSelectionPath e)]
-		    (when path
-		      (let [leaf (.getLastPathComponent path)
-			    payload (.getUserObject leaf)
-			    file (.getFile payload)]
-			(display-curves-for source-manager file)
-			(update-log-tab (:lasfile @file))))))))
-
-
-(defn init-source-tree [source-manager]
-  (let [source-tree (create-source-tree)
-	renderer (.getCellRenderer source-tree)]
-    (doto source-tree
-      (.addTreeSelectionListener (init-source-tree-selection-listener source-manager)))))
-
-(defn init-source-manager []
-  (let [source-manager (ref nil)
-	source-tree (init-source-tree source-manager)
-	curve-panel (create-curve-panel)]
-    (dosync 
-     (ref-set source-manager
-	      (struct-map SourceManager
-		:sources []
-		:source-tree source-tree
-		:curve-panel curve-panel
-		:widget (create-manager-widget source-tree curve-panel))))
-    source-manager))
-(defn init-file-menu [source-manager]
-  (create-file-menu 
-   (partial file-menu-open source-manager)
-   (partial file-menu-save-all source-manager)
-   file-menu-quit))
-

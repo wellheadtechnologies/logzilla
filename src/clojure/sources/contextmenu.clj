@@ -26,16 +26,49 @@
 	(add-curve file curve))))))
 
 (defn context-menu-remove [source-manager] nil)
+(defn create-context-menu [source-manager curve-list x y]
+  (let [m (JPopupMenu.)
+	edit (JMenuItem. "Edit")
+	merge (JMenuItem. "Merge")
+	copy (JMenuItem. "Copy")
+	paste (JMenuItem. "Paste")
+	remove (JMenuItem. "Remove")]
+
+    (swing
+     (set-action edit #(context-menu-edit source-manager))
+     (set-action merge #(context-menu-merge source-manager))
+     (set-action copy #(context-menu-copy source-manager))
+     (set-action paste #(context-menu-paste source-manager))
+     (set-action remove #(context-menu-remove source-manager))
+     
+     (let [svc (count (.getSelectedValues curve-list))]
+       (cond 
+	(= 0 svc)
+	(do 
+	  (.setEnabled edit false)
+	  (.setEnabled merge false))
+	
+	(= 1 svc)
+	(do 
+	  (.setEnabled edit true)
+	  (.setEnabled merge false))
+	
+	(< 1 svc)
+	(do 
+	  (.setEnabled edit false)
+	  (.setEnabled merge true))))
+
+     (doto m
+       (.add edit)
+       (.add merge)
+       (.add copy)
+       (.add paste)
+       (.add remove)
+       (.show curve-list x y)))))
 
 (defn init-context-menu-listener [source-manager curve-list]
   (proxy [MouseAdapter] []
     (mouseClicked [e] 
 		  (when (= (.getButton e) MouseEvent/BUTTON3)
-		    (create-context-menu
-		     curve-list (.getX e) (.getY e) 
-		     {:edit (partial context-menu-edit source-manager)
-		      :merge (partial context-menu-merge source-manager)
-		      :copy (partial context-menu-copy source-manager)
-		      :paste (partial context-menu-paste source-manager)
-		      :remove (partial context-menu-remove source-manager)
-		      })))))
+		    (create-context-menu source-manager curve-list (.getX e) (.getY e))))))
+
