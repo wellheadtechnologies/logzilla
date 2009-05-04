@@ -1,5 +1,6 @@
 (ns app.controller
-  (:require sources.controller inspector.controller format.controller)
+  (:require sources.controller inspector.controller
+	    format.controller console.controller)
   (:use gutil global util)
   (:import (javax.swing JFrame JPanel JMenuBar JMenu)
 	   (java.awt.event WindowAdapter)
@@ -18,7 +19,8 @@
   (let [menu (JMenu. "Windows")]
     (actions menu
       ["Inspector" (fn [e] (inspector.controller/open-inspector))]
-      ["Format" (fn [e] (format.controller/open-formatter))])
+      ["Format" (fn [e] (format.controller/open-formatter))]
+      ["Console" (fn [e] (console.controller/open-console))])
     menu))
 
 (defn create-application [{:keys [file-menu window-menu sources-widget]}]

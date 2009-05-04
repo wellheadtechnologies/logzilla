@@ -101,8 +101,10 @@
 	"Save Error" JOptionPane/ERROR_MESSAGE)
        (throw e)))))
 
-(defn get-selected-source [source-manager]
-  (:selected-source @source-manager))
+(defn get-selected-source 
+  ([] (get-selected-source (:source-manager @app)))
+  ([source-manager]
+      (:selected-source @source-manager)))
 
 (defn get-selected-curves [curve-list]
   (swing-io! (doall (map #(.getCurve %) (.getSelectedValues curve-list)))))
@@ -139,13 +141,17 @@
 	(.revalidate)
 	(.repaint))))))
 
-(defn add-curve [file curve]
-  (dosync 
-   (let [lasfile (:lasfile @file)
-	 curves (:curves @lasfile)
-	 curve-list (:curve-list @file)]
-     (alter lasfile assoc :curves (conj curves curve))
-     (long-task (add-curve-to-gui curve-list curve)))))
+(defn add-curve 
+  ([file curve]
+     (dosync 
+      (let [lasfile (:lasfile @file)
+	    curves (:curves @lasfile)
+	    curve-list (:curve-list @file)]
+	(alter lasfile assoc :curves (conj curves curve))
+	(long-task (add-curve-to-gui curve-list curve)))))
+  ([curve]
+     (let [file (get-selected-source)]
+       (add-curve file curve))))
 
 (defmulti open-lasfile (fn [& args]
 			 (cond 
