@@ -1,12 +1,12 @@
 (ns sources.controller)
 
-(defn create-source-tree []
+(defn- create-source-tree []
   (tree 
    ["" 
     "Las Files" 
     "Other"]))
 
-(defn custom-tree-payload [file]
+(defn- custom-tree-payload [file]
   (proxy [NodePayload] []
     (toString [] 
 	      (dosync 
@@ -14,7 +14,7 @@
 		 (:name @lasfile))))
     (getFile [] file)))
 
-(defn init-source-tree-selection-listener [source-manager]
+(defn- init-source-tree-selection-listener [source-manager]
   (proxy [TreeSelectionListener] []
     (valueChanged [e]
 		  (let [path (.getNewLeadSelectionPath e)]
@@ -26,7 +26,7 @@
 			(update-log-tab (:lasfile @file))))))))
 
 
-(defn init-source-tree [source-manager]
+(defn- init-source-tree [source-manager]
   (let [source-tree (create-source-tree)
 	renderer (.getCellRenderer source-tree)]
     (doto source-tree

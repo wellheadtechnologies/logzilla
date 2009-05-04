@@ -5,19 +5,19 @@
 	 open-curve-merger
 	 create-context-menu)
 
-(defn context-menu-edit [source-manager] 
+(defn- context-menu-edit [source-manager] 
   (open-curve-editor source-manager))
 
-(defn context-menu-merge [source-manager]
+(defn- context-menu-merge [source-manager]
   (open-curve-merger source-manager))
 
-(defn context-menu-copy [source-manager]
+(defn- context-menu-copy [source-manager]
   (swing
    (let [file (get-selected-source source-manager)
 	 curves (get-selected-curves (:curve-list @file))]
      (dosync (ref-set copied-curves curves)))))
 
-(defn context-menu-paste [source-manager]
+(defn- context-menu-paste [source-manager]
   (swing
    (let [ccurves @copied-curves
 	 file (get-selected-source source-manager)]
@@ -25,8 +25,8 @@
       (doseq [curve ccurves]
 	(add-curve file curve))))))
 
-(defn context-menu-remove [source-manager] nil)
-(defn create-context-menu [source-manager curve-list x y]
+(defn- context-menu-remove [source-manager] nil)
+(defn- create-context-menu [source-manager curve-list x y]
   (let [m (JPopupMenu.)
 	edit (JMenuItem. "Edit")
 	merge (JMenuItem. "Merge")
@@ -66,9 +66,8 @@
        (.add remove)
        (.show curve-list x y)))))
 
-(defn init-context-menu-listener [source-manager curve-list]
+(defn- init-context-menu-listener [source-manager curve-list]
   (proxy [MouseAdapter] []
     (mouseClicked [e] 
 		  (when (= (.getButton e) MouseEvent/BUTTON3)
 		    (create-context-menu source-manager curve-list (.getX e) (.getY e))))))
-

@@ -1,6 +1,8 @@
 (ns sources.controller)
 
-(defn create-file-menu [open save-all quit]
+(declare open-lasfile open-file save-file)
+
+(defn- create-file-menu [open save-all quit]
   (let [menu (new JMenu "File")]
     (actions menu
       ["Open" open]
@@ -8,12 +10,12 @@
       ["Quit" quit])
     menu))
 
-(defn create-file-selection-dialog [cwd]
+(defn- create-file-selection-dialog [cwd]
   (let [chooser (new JFileChooser cwd)]
     (.setMultiSelectionEnabled chooser true)
     chooser))
 
-(defn run-file-selection-dialog [cwd]
+(defn- run-file-selection-dialog [cwd]
   (let [frame (:sources-frame @app)
 	dialog (create-file-selection-dialog cwd)
 	result (.showOpenDialog dialog frame)]
@@ -21,19 +23,13 @@
       (.getSelectedFiles dialog)
       [])))
 
-(defn file-menu-open [source-manager e]
+(defn- file-menu-open [source-manager e]
   (let [files (run-file-selection-dialog ".")]
     (doseq [file files] 
-      (long-task (add-lasfile source-manager (open-file file))))))
+      (long-task (open-lasfile source-manager (open-file file))))))
 
-(defn file-menu-save-all [source-manager e] 
+(defn- file-menu-save-all [source-manager e] 
   (doseq [file (:sources @source-manager)]
     (save-file file)))
 
-(defn file-menu-quit [e] (System/exit 0))
-
-(defn init-file-menu [source-manager]
-  (create-file-menu 
-   (partial file-menu-open source-manager)
-   (partial file-menu-save-all source-manager)
-   file-menu-quit))
+(defn- file-menu-quit [e] (System/exit 0))

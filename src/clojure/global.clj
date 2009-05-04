@@ -36,3 +36,11 @@
 (def copied-curves (ref []))
 
 (def glove-image (.getScaledInstance (ImageIO/read (File. "resources/glove.png")) 24 24 Image/SCALE_DEFAULT))
+
+(def interactive (ref false))
+
+(defn enable-interaction []
+  (dosync (ref-set interactive true)))
+
+(defn disable-interaction []
+  (dosync (ref-set interactive false)))
