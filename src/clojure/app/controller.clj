@@ -52,7 +52,8 @@
 			:window-menu window-menu
 			:sources-widget sources-widget})]
     (struct-map App
-      :sources-frame sources-frame)))
+      :sources-frame sources-frame
+      :source-manager source-manager)))
 
 (defn start-application []
   (let [my-app (init-app)]
