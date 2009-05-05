@@ -62,14 +62,12 @@ public class JConsole extends JScrollPane implements KeyListener {
     private Boolean ignore = false;
 
     private int lineStart = 0;
-    private int lineEnd = 0;
 
     private List history = new ArrayList();
     private String startedLine;
     private int histLine = 0;
 
     private JTextPane text;
-    private DefaultStyledDocument doc;
 
     public JConsole()
     {
@@ -77,8 +75,7 @@ public class JConsole extends JScrollPane implements KeyListener {
 
 	// Special TextPane which catches for cut and paste, both L&F keys and
 	// programmatic	behaviour
-	doc = new DefaultStyledDocument();
-	text = new JTextPane(doc);
+	text = new JTextPane();
 
 	Font font = new	Font("Monospaced",Font.PLAIN,14);
 	text.setText("");
@@ -88,9 +85,10 @@ public class JConsole extends JScrollPane implements KeyListener {
 	setViewportView(text);
 
 	try {
-	    evalClojure("(require ['sources.controller :as 'source])");
+	    evalClojure("(require ['sources.controller :as 'sources])");
 	    evalClojure("(require ['editor.controller :as 'editor])");
 	    evalClojure("(use 'util 'gutil 'global)");
+	    evalClojure("(enable-interaction)");
 	} catch (Exception e){ 
 	    throw new RuntimeException(e);
 	}
@@ -119,15 +117,18 @@ public class JConsole extends JScrollPane implements KeyListener {
 
     private void press(KeyEvent e){
 	int keyCode = e.getKeyCode();
-	System.out.println("press = " + e.paramString());
 	if(keyCode == KeyEvent.VK_UP){
 	    historyUp();
 	    e.consume();
 	}
 	else if(keyCode == KeyEvent.VK_A && (e.getModifiers() & InputEvent.CTRL_MASK) > 0){
-	    System.out.println("goto beginning");
 	    ignore = true;
 	    forceCaretMoveToStart();
+	    e.consume();
+	}
+	else if(keyCode == KeyEvent.VK_K && (e.getModifiers() & InputEvent.CTRL_MASK) > 0){
+	    ignore = true;
+	    replaceRange("", text.getCaretPosition(), textLength());
 	    e.consume();
 	}
 	else if(keyCode == KeyEvent.VK_DOWN){
@@ -135,20 +136,20 @@ public class JConsole extends JScrollPane implements KeyListener {
 	    e.consume();
 	}
 	else if(keyCode == KeyEvent.VK_LEFT ||
-		keyCode == KeyEvent.VK_BACK_SPACE ||
-		keyCode == KeyEvent.VK_DELETE){
-	    e.consume();
+		keyCode == KeyEvent.VK_BACK_SPACE){
+	    ignore = true;
+	    if(text.getCaretPosition() <= lineStart){
+		e.consume();
+	    }
+	}
+	else if(keyCode == KeyEvent.VK_DELETE){
+	    ignore = true;
 	}
 	else if(keyCode == KeyEvent.VK_RIGHT){
-	    forceCaretMoveToStart();
-	    e.consume();
-	}
-	else if(keyCode == KeyEvent.VK_HOME){
-	    text.setCaretPosition(lineStart);
-	    e.consume();
+	    ignore = true;
 	}
 	else if(keyCode == KeyEvent.VK_ENTER){
-	    System.out.println("enter!");
+	    ignore = true;
 	    enter();
 	    resetCommandStart();
 	    text.setCaretPosition(lineStart);
@@ -164,23 +165,8 @@ public class JConsole extends JScrollPane implements KeyListener {
 	    e.consume();
 	    return;
 	}
-	System.out.println("type = " + e.paramString());
-	System.out.println("plain character");
 	if ((e.getModifiers() & (InputEvent.CTRL_MASK | InputEvent.ALT_MASK | InputEvent.META_MASK)) == 0 ){		
-	    // plain character
-	    forceCaretMoveToEnd();
-	}
-	
-	append(String.valueOf(keyChar));
-	
-	/*
-	  The getKeyCode function always returns VK_UNDEFINED for
-	  keyTyped events, so backspace is not fully consumed.
-	*/
-	if (e.paramString().indexOf("Backspace") != -1){
-	    if (text.getCaretPosition() <= lineStart) {
-		e.consume();
-	    }
+	    append(String.valueOf(keyChar));
 	}
 	e.consume();
     }
@@ -190,13 +176,12 @@ public class JConsole extends JScrollPane implements KeyListener {
     }
 
     private void append(String string) {
-	int slen = textLength();
+	int slen = text.getCaretPosition();
 	text.select(slen, slen);
 	text.replaceSelection(string);
     }
 
     private String replaceRange(Object s, int start, int end) {
-	System.out.println("replacing range start = " + start + ", end = " + end);
 	String st = s.toString();
 	text.select(start, end);
 	text.replaceSelection(st);
@@ -277,7 +262,9 @@ public class JConsole extends JScrollPane implements KeyListener {
     private void acceptLine(String line) {
 	try{
 	    Object result = evalClojure(line);
-	    println(result.toString());
+	    if(result != null){
+		println(result.toString());	    
+	    }
 	    print(">>");
 	} catch (Exception e){
 	    println(e.getMessage());
@@ -311,25 +298,6 @@ public class JConsole extends JScrollPane implements KeyListener {
 
     public void error( Object o ) {
 	print( o, Color.red );
-    }
-
-    public void println(Icon icon) {
-	print(icon);
-	println();
-	text.repaint();
-    }
-
-    public void print(final Icon icon) {
-	if (icon==null) 
-	    return;
-
-	invokeAndWait(new Runnable() {
-		public void run() {
-		    text.insertIcon(icon);
-		    resetCommandStart();
-		    text.setCaretPosition(lineStart);
-		}
-	    });			
     }
 
     public void print(Object s, Font font) {
