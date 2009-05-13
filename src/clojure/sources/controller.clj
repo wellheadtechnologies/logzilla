@@ -26,7 +26,7 @@
 
 (declare init-curve-list init-curve-list-view
 	 init-file init-context-menu-listener
-	 display-curves-for)
+	 set-selected-source)
 
 (load "contextmenu")
 (load "file")
@@ -106,9 +106,20 @@
   ([source-manager]
       (:selected-source @source-manager)))
 
-(defn get-selected-curves [curve-list]
-  (swing-getter
-   (doall (map #(.getCurve %) (.getSelectedValues curve-list)))))
+(defn get-selected-curves 
+  ([] (get-selected-curves (:curve-list @(get-selected-source))))
+  ([curve-list]
+     (swing-getter
+      (doall (map #(.getCurve %) (.getSelectedValues curve-list))))))
+
+(defn get-source-curves 
+  ([] (get-source-curves (:curve-list @(get-selected-source))))
+  ([curve-list]
+     (swing-getter
+      (let [array (.. curve-list (getModel) (toArray))]
+	(doall 
+	 (for [curve-icon array]
+	   (.getCurve curve-icon)))))))
 
 (defn open-curve-editor [source-manager]
   (let [file @(get-selected-source source-manager)
@@ -127,15 +138,21 @@
 	     (= (.getClickCount e) 2))
     (open-curve-editor source-manager)))
 
-(defn display-curves-for [source-manager source]
-  (swing-agent
-   (dosync (alter source-manager assoc :selected-source source)))
-  (let [curve-panel (:curve-panel @source-manager)]
-    (doto curve-panel
-      (.removeAll)
-      (.add (:view @source) "push, grow")
-      (.revalidate)
-      (.repaint))))
+(defn get-source-manager []
+  (:source-manager @app))
+
+(defn set-selected-source 
+  ([source] (set-selected-source (get-source-manager) source))
+  ([source-manager source]
+     (dosync 
+      (alter source-manager assoc :selected-source source)
+      (swing-agent
+       (let [curve-panel (:curve-panel @source-manager)]
+	 (doto curve-panel
+	   (.removeAll)
+	   (.add (:view @source) "push, grow")
+	   (.revalidate)
+	   (.repaint)))))))
 
 (defn add-curve 
   ([file curve]
@@ -170,6 +187,7 @@
       (doto lasfiles-node
 	(.add (DefaultMutableTreeNode. (custom-tree-payload file))))
       (.. source-tree (getModel) (reload lasfiles-node)))
+     (set-selected-source file)
      (when (not @interactive)
        file))))
 

@@ -66,27 +66,35 @@
 	(fun#))
      nil))
 
-(defmacro swing-getter [& body]
+(def *disable-getter-timeout* false)
+
+(defmacro swing-timed-getter [timeout disable-timeout & body]
   `(io!
     (let [result# (ref nil)
-	  fun# (fn [] ~@body)
-	  probe# (fn [] (dosync (ref-set result# (fun#))))]
+	  fun# (fn [] ~@body)]
       (if (javax.swing.SwingUtilities/isEventDispatchThread)
 	(fun#)
-	(do
+	(let [probe# (fn [] 
+		       (let [v# (fun#)]
+			 (dosync (ref-set result# v#))))]
 	  (println "jumping threads")
 	  (javax.swing.SwingUtilities/invokeLater probe#)
 	  (let [start# (System/currentTimeMillis)]
 	    (loop []
 	      (cond 
 	       (not (nil? @result#))
-	       @result#
+	       (do
+		 @result#)
 	     
-	       (>= (System/currentTimeMillis) (+ start# 1000))
-	       (throw (RuntimeException. "Probe Timed Out!!"))
+	       (and (not ~disable-timeout)
+		    (>= (System/currentTimeMillis) (+ start# ~timeout)))
+	       (throw (RuntimeException. "Getter Timed Out!!"))
 	     
 	       :else
 	       (recur)))))))))
+
+(defmacro swing-getter [& body]
+  `(swing-timed-getter 1000 false ~@body))
 
 (defmacro swing-impure [& body]
   `(if (not (javax.swing.SwingUtilities/isEventDispatchThread))

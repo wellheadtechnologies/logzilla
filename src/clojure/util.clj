@@ -156,3 +156,5 @@
     (guard (.isDirectory directory)
 	   (str directory-path " must be a directory"))
     (doall (for [p (.list directory)] p))))
+
+(defn current-time [] (System/currentTimeMillis))

@@ -22,7 +22,7 @@
 		      (let [leaf (.getLastPathComponent path)
 			    payload (.getUserObject leaf)
 			    file (.getFile payload)]
-			(display-curves-for source-manager file)
+			(set-selected-source source-manager file)
 			(update-log-tab (:lasfile @file))))))))
 
 

@@ -32,7 +32,8 @@ script = false
   
 if tests 
   script = """
-(load-file \\\"test-draw.clj\\\")
+(use 'tests.tgui)
+(run-tests)
 """
 elsif gui
   script = """
