@@ -50,7 +50,7 @@
 	(doseq [chart charts]
 	  (ignore :percentage-change chart (chart.controller/show-percentage chart percentage))))))))
 
-(defswing :io remove-charts-from-panel [formatter panel]
+(defswing remove-charts-from-panel :mutator [formatter panel]
   (let [charts (:charts @formatter)]
     (doseq [chart charts]
       (let [chart-panel (:chart-panel @chart)

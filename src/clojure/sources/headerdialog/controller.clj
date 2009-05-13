@@ -25,7 +25,7 @@
   (proxy [TableModelListener] []
       (tableChanged [e] (save-header header table))))
 
-(defswing :io init-header-tab [header]
+(defswing init-header-tab :mutator [header]
   (let [model (DefaultTableModel.)
 	table (JXTable. model)
 	pane (JScrollPane. table)

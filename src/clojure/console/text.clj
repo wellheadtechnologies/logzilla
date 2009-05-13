@@ -43,7 +43,7 @@
       (.setMargin insets))
     text-pane))
 
-(defswing :get text-length [text-pane]
+(defswing text-length :getter [text-pane]
   (let [widget (:widget @text-pane)]
     (.. widget (getDocument) (getLength))))
 

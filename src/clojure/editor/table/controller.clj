@@ -33,7 +33,7 @@
 
 (defn create-table-pane [table] (JScrollPane. table))
 
-(defswing :io show-cell [widget row col]
+(defswing show-cell :mutator [widget row col]
   (let [rect (.getCellRect widget row col true)]
     (.scrollRectToVisible widget rect)))
 

@@ -36,15 +36,13 @@
   (let [index-data (get-in curve [:index :data])]
     (reduce max index-data)))
 
-;impure
-(defswing :get xjava-2D-to-value [chart-panel x]
+(defswing xjava-2D-to-value :getter [chart-panel x]
   (let [chart (.getChart chart-panel)
 	xaxis (.. chart (getPlot) (getRangeAxis))
 	value (.java2DToValue xaxis x (.getScreenDataArea chart-panel) RectangleEdge/TOP)]
     value))
 
-;impure
-(defswing :get yjava-2D-to-value [chart-panel y]
+(defswing yjava-2D-to-value :getter [chart-panel y]
   (let [chart (.getChart chart-panel)
 	yaxis (.. chart (getPlot) (getDomainAxis))
 	value (.java2DToValue yaxis y (.getScreenDataArea chart-panel) RectangleEdge/TOP)]
@@ -53,17 +51,14 @@
 (defn fire-percentage-change [chart percentage]
   (fire :percentage-change chart {:percentage percentage :source chart}))
 
-;impure
-(defswing :get retrieve-dataset [chart-panel]
+(defswing retrieve-dataset :getter [chart-panel]
   (.. chart-panel (getChart) (getPlot) (getDataset)))
 
-;impure
-(defswing :get retrieve-series [chart-panel curve-index]
+(defswing retrieve-series :getter [chart-panel curve-index]
   (let [series (. (retrieve-dataset chart-panel) (getSeries))]
     (nth series curve-index)))
 
-;impure
-(defswing :get get-chart-range [xaxis]
+(defswing get-chart-range :getter [xaxis]
   (let [range (.getRange xaxis)
 	lower (.getLowerBound range)
 	upper (.getUpperBound range)]
@@ -81,11 +76,11 @@
   (/ depth-range scale))
 
 ;impure
-(defswing :get get-extent [xaxis]
+(defswing get-extent :getter [xaxis]
   (.. xaxis (getRange) (getLowerBound)))
 
 ;impure
-(defswing :get get-percentage [xaxis mind depth-range]
+(defswing get-percentage :getter [xaxis mind depth-range]
   (let [lower (.. xaxis (getRange) (getLowerBound))]
     (/ (- lower mind) depth-range)))
 
@@ -95,7 +90,7 @@
   (only (:dirty-curves @chart)))
 
 ;impure
-(defswing :get delta [x y entity]
+(defswing delta :impure [x y entity]
   (let [bounds (.. entity (getArea) (getBounds))
 	bx (. bounds x)
 	by (. bounds y)]
@@ -120,29 +115,29 @@
 
      (= len 1) (first entities))))
 
-;impure
-(defn set-dragged-entity [chart event]
-  (let [chart-panel (:chart-panel @chart)
-	insets (.getInsets chart-panel)
-	x (/ (- (.getX event) (. insets left)) (.getScaleX chart-panel))
-	y (/ (- (.getY event) (. insets top)) (.getScaleY chart-panel))
-	entities (.. chart-panel (getChartRenderingInfo) (getEntityCollection) (getEntities))
-	nearest-entities (if (:showing-points @chart)
-			   (filter #(in-range y x %) entities)
-			   (filter #(in-range x y %) entities))
-	chosen (if (:showing-points @chart)
-		 (closest y x nearest-entities)
-		 (closest x y nearest-entities))]
-    (alter chart assoc :dragged-entity chosen)))
+(defswing set-dragged-entity :observer [chart event]
+  (dosync
+   (let [chart-panel (:chart-panel @chart)
+	 insets (.getInsets chart-panel)
+	 x (/ (- (.getX event) (. insets left)) (.getScaleX chart-panel))
+	 y (/ (- (.getY event) (. insets top)) (.getScaleY chart-panel))
+	 entities (.. chart-panel (getChartRenderingInfo) (getEntityCollection) (getEntities))
+	 nearest-entities (if (:showing-points @chart)
+			    (filter #(in-range y x %) entities)
+			    (filter #(in-range x y %) entities))
+	 chosen (if (:showing-points @chart)
+		  (closest y x nearest-entities)
+		  (closest x y nearest-entities))]
+     (alter chart assoc :dragged-entity chosen))))
 
-;impure
-(defn set-anchor [chart event]
-  (let [chart-panel (:chart-panel @chart)
-	plot (.. chart-panel (getChart) (getPlot))]
-    (alter chart assoc :anchor 
-	   [(.getX event) (.getY event) 
-	    (.. plot (getRangeAxis) (getRange))
-	    (.. plot (getDomainAxis) (getRange))])))
+(defswing set-anchor :observer [chart event]
+  (dosync
+   (let [chart-panel (:chart-panel @chart)
+	 plot (.. chart-panel (getChart) (getPlot))]
+     (alter chart assoc :anchor 
+	    [(.getX event) (.getY event) 
+	     (.. plot (getRangeAxis) (getRange))
+	     (.. plot (getDomainAxis) (getRange))]))))
 
 (defn release-anchor [chart]
   (alter chart assoc :anchor nil))
@@ -180,25 +175,24 @@
       (let [series (retrieve-series chart-panel curve-index)]
 	(.updateByIndex series data-index new-value))))))
 
-(defn center-on [chart x y]
-  (swing-once
-   (let [{:keys [chart-panel dirty-curves anchor]} @chart]
-     (when anchor
-       (let [[anchor-x anchor-y anchor-xrange anchor-yrange] anchor
-	     yaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
-	     ydelta (- (yjava-2D-to-value chart-panel y)
-		       (yjava-2D-to-value chart-panel anchor-y))
+(defswing center-on :agent [chart x y]
+  (let [{:keys [chart-panel dirty-curves anchor]} @chart]
+    (when anchor
+      (let [[anchor-x anchor-y anchor-xrange anchor-yrange] anchor
+	    yaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	    ydelta (- (yjava-2D-to-value chart-panel y)
+		      (yjava-2D-to-value chart-panel anchor-y))
 
-	     xaxis (.. chart-panel (getChart) (getPlot) (getRangeAxis))
-	     xdelta (- (xjava-2D-to-value chart-panel anchor-x)
-		       (xjava-2D-to-value chart-panel x))
-	     new-xrange (Range. (+ (.getLowerBound anchor-xrange) xdelta)
-				(+ (.getUpperBound anchor-xrange) xdelta))
-	     new-yrange (Range. (+ (.getLowerBound anchor-yrange) ydelta)
-				(+ (.getUpperBound anchor-yrange) ydelta))]
-	 (.setRange yaxis new-yrange)
-	 (.setRange xaxis new-xrange)
-	 (update-percentage chart))))))
+	    xaxis (.. chart-panel (getChart) (getPlot) (getRangeAxis))
+	    xdelta (- (xjava-2D-to-value chart-panel anchor-x)
+		      (xjava-2D-to-value chart-panel x))
+	    new-xrange (Range. (+ (.getLowerBound anchor-xrange) xdelta)
+			       (+ (.getUpperBound anchor-xrange) xdelta))
+	    new-yrange (Range. (+ (.getLowerBound anchor-yrange) ydelta)
+			       (+ (.getUpperBound anchor-yrange) ydelta))]
+	(.setRange yaxis new-yrange)
+	(.setRange xaxis new-xrange)
+	(update-percentage chart)))))
 
 (defn chart-drag-listener [chart]
   (proxy [MouseMotionAdapter] []
@@ -232,15 +226,14 @@
 
 ;; main controller
 
-(defn update-percentage [chart]
-  (swing-once
-   (let [{:keys [chart-panel dirty-curves]} @chart
-	 xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
-	 exemplar (first dirty-curves)
-	 mind (min-depth exemplar)
-	 depth-range (get-depth-range exemplar)
-	 percentage (get-percentage xaxis mind depth-range)]
-     (fire-percentage-change chart percentage))))
+(defswing update-percentage :agent [chart]
+  (let [{:keys [chart-panel dirty-curves]} @chart
+	xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	exemplar (first dirty-curves)
+	mind (min-depth exemplar)
+	depth-range (get-depth-range exemplar)
+	percentage (get-percentage xaxis mind depth-range)]
+    (fire-percentage-change chart percentage)))
 
 (defmulti show-percentage (fn [x y] 
 			    (cond 
@@ -261,21 +254,20 @@
 (defmethod show-percentage [:chart :event] [chart event]
   (show-percentage chart (:percentage event)))
 
-(defmethod show-percentage [:chart :percentage] [chart percentage]
+(defswing-method show-percentage :agent [:chart :percentage] [chart percentage]
   (let [{:keys [chart-panel dirty-curves]} @chart]
     (fire-percentage-change chart percentage)
-    (swing-once
-     (let [xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
-	   exemplar (first dirty-curves)
-	   chart-range (get-chart-range xaxis)
-	   depth-range (get-depth-range exemplar)
-	   mind (min-depth exemplar)
-	   scale (get-scale depth-range chart-range)
-	   unit (get-unit depth-range scale)
-	   lower (+ mind (* percentage depth-range))
-	   upper (+ lower unit)]
-       (.setRange xaxis (Range. lower upper))
-       (.repaint chart-panel)))))
+    (let [xaxis (.. chart-panel (getChart) (getPlot) (getDomainAxis))
+	  exemplar (first dirty-curves)
+	  chart-range (get-chart-range xaxis)
+	  depth-range (get-depth-range exemplar)
+	  mind (min-depth exemplar)
+	  scale (get-scale depth-range chart-range)
+	  unit (get-unit depth-range scale)
+	  lower (+ mind (* percentage depth-range))
+	  upper (+ lower unit)]
+      (.setRange xaxis (Range. lower upper))
+      (.repaint chart-panel))))
 
 (defmulti init-chart-panel (fn [x y] 
 			     (cond 
@@ -398,66 +390,54 @@
 	 (doto chart-panel
 	   (.setMouseZoomable false)))))))
 
-(defn shade-difference [chart]
+(defswing shade-difference :reentrant [chart]
   (let [renderer (create-difference-renderer)
 	chart-panel (:chart-panel @chart)
 	plot (.. chart-panel (getChart) (getPlot))]
-    (swing-once
-      (.setRenderer plot renderer)
-      (.repaint chart-panel))))
+    (.setRenderer plot renderer)
+    (.repaint chart-panel)))
 
-(defn unshade-difference [chart]
+(defswing unshade-difference :reentrant [chart]
   (let [renderer (create-std-renderer)
 	chart-panel (:chart-panel @chart)
 	plot (.. chart-panel (getChart) (getPlot))]
-    (swing-once
-      (.setRenderer plot renderer)
-      (.repaint chart-panel))))
+    (.setRenderer plot renderer)
+    (.repaint chart-panel)))
 
-(defn show-points [chart]
-  (dosync 
-   (when (not (:showing-points @chart))
-     (let [chart-panel (:chart-panel @chart)
-	   plot (.. chart-panel (getChart) (getPlot))
-	   renderer (.getRenderer plot)]
-       (alter chart assoc :showing-points true)
-       (swing-once
-	 (.setBaseShapesVisible renderer true))))))
+(defswing show-points :reentrant [chart]
+  (let [chart-panel (:chart-panel @chart)
+	plot (.. chart-panel (getChart) (getPlot))
+	renderer (.getRenderer plot)]
+    (.setBaseShapesVisible renderer true)
+    (dosync (alter chart assoc :showing-points true))))
 
-(defn hide-points [chart]
-  (dosync 
-   (when (:showing-points @chart)
-     (let [chart-panel (:chart-panel @chart)
-	   plot (.. chart-panel (getChart) (getPlot))
-	   renderer (.getRenderer plot)]
-       (alter chart assoc :showing-points false)
-       (swing-once
-	 (.setBaseShapesVisible renderer false))))))
+(defswing hide-points :reentrant [chart]
+  (let [chart-panel (:chart-panel @chart)
+	plot (.. chart-panel (getChart) (getPlot))
+	renderer (.getRenderer plot)]
+    (.setBaseShapesVisible renderer false)
+    (dosync (alter chart assoc :showing-points false))))
 
-(defn toggle-points [chart]
+(defswing toggle-points :agent [chart]
   (dosync 
    (if (:showing-points @chart)
      (hide-points chart)
      (show-points chart))))
 
-(defn enable-panning [chart]
-  (dosync
-   (alter chart assoc :panning-enabled true)
-   (swing-once
-    (let [chart-panel (:chart-panel @chart)
-	  plot (.. chart-panel (getChart) (getPlot))]
-      (.setCursor (:chart-panel @chart)
-		  (Cursor. Cursor/HAND_CURSOR))))))
+(defswing enable-panning :reentrant [chart]
+  (let [chart-panel (:chart-panel @chart)
+	plot (.. chart-panel (getChart) (getPlot))]
+    (.setCursor (:chart-panel @chart)
+		(Cursor. Cursor/HAND_CURSOR))
+    (dosync (alter chart assoc :panning-enabled true))))
 
-(defn disable-panning [chart]
-  (dosync 
-   (alter chart assoc :panning-enabled false)
-   (swing-once
-    (let [chart-panel (:chart-panel @chart)
-	  plot (.. chart-panel (getChart) (getPlot))]
-      (.setCursor chart-panel (Cursor/getDefaultCursor))))))
+(defswing disable-panning :reentrant [chart]
+  (let [chart-panel (:chart-panel @chart)
+	plot (.. chart-panel (getChart) (getPlot))]
+    (.setCursor chart-panel (Cursor/getDefaultCursor))
+    (dosync (alter chart assoc :panning-enabled false))))
 
-(defn toggle-panning [chart]
+(defswing toggle-panning :agent [chart]
   (dosync
    (if (:panning-enabled @chart)
      (disable-panning chart)
@@ -469,7 +449,7 @@
      (doseq [[c d] (tuplize curves dirty-curves)]
        (alter c assoc :data (:data d))))))
 
-(defswing :once update-curve [chart curve-index curve]
+(defswing update-curve :agent [chart curve-index curve]
   (let [chart-panel (:chart-panel @chart)
 	old-series (retrieve-series chart-panel curve-index)
 	new-series (XYSeries. "Series")

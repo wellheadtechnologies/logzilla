@@ -44,14 +44,14 @@
 		      (proxy [ActionListener] []
 			(actionPerformed [e] (fn)))))
 					    
-(def swing-agent (agent nil))
+(def _swing-agent (agent nil))
 		       
-(defmacro swing-once [& body]
-  `(send swing-agent 
+(defmacro swing-agent [& body]
+  `(send _swing-agent 
 	 (fn [_#]
 	   (javax.swing.SwingUtilities/invokeLater (fn [] ~@body)))))
 
-(defmacro swing-io [& body]
+(defmacro swing-mutator [& body]
   `(io!
     (let [fun# (fn [] ~@body)]
       (if (not (javax.swing.SwingUtilities/isEventDispatchThread))
@@ -59,14 +59,14 @@
 	(fun#)))
     nil))
 
-(defmacro swing-read [& body]
+(defmacro swing-observer [& body]
   `(let [fun# (fn [] ~@body)]
      (if (not (javax.swing.SwingUtilities/isEventDispatchThread))
 	(javax.swing.SwingUtilities/invokeLater fun#)
 	(fun#))
      nil))
 
-(defmacro swing-get [& body]
+(defmacro swing-getter [& body]
   `(io!
     (let [result# (ref nil)
 	  fun# (fn [] ~@body)
@@ -88,15 +88,36 @@
 	       :else
 	       (recur)))))))))
 
-(defmacro defswing [mode name args & body]
+(defmacro swing-impure [& body]
+  `(if (not (javax.swing.SwingUtilities/isEventDispatchThread))
+     (throw (RuntimeException. "Not on event dispatch thread!"))
+     (do ~@body)))
+
+(defmacro swing-reentrant [& body]
+  `(let [fun# (fn [] ~@body)]
+    (if (not (javax.swing.SwingUtilities/isEventDispatchThread))
+      (javax.swing.SwingUtilities/invokeLater fun#)
+      (fun#))
+    nil))
+
+(defmacro resolve-mode [mode & body]
+  (cond 
+   (= mode :agent) `(swing-agent ~@body)
+   (= mode :mutator) `(swing-mutator ~@body)
+   (= mode :observer) `(swing-observer ~@body)
+   (= mode :getter) `(swing-getter ~@body)
+   (= mode :impure) `(swing-impure ~@body)
+   (= mode :reentrant) `(swing-reentrant ~@body)
+   :else 
+   (throw (RuntimeException. "defswing mode not recognized"))))
+
+(defmacro defswing [name mode args & body]
   `(defn ~name [~@args]
-     ~(cond 
-       (= mode :once) `(swing-once ~@body)
-       (= mode :io) `(swing-io ~@body)
-       (= mode :read) `(swing-read ~@body)
-       (= mode :get) `(swing-get ~@body)
-       :else 
-       (throw (RuntimeException. "defswing mode not recognized")))))
+     (resolve-mode ~mode ~@body)))
+
+(defmacro defswing-method [name mode dispatch args & body]
+  `(defmethod ~name ~dispatch [~@args]
+     (resolve-mode ~mode ~@body)))
 
 (defn on-click [widget fun]
   (.addMouseListener widget

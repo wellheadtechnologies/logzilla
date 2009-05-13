@@ -106,7 +106,7 @@
   ([source-manager]
       (:selected-source @source-manager)))
 
-(defswing :get get-selected-curves [curve-list]
+(defswing get-selected-curves :getter [curve-list]
   (doall (map #(.getCurve %) (.getSelectedValues curve-list))))
 
 (defn open-curve-editor [source-manager]
@@ -126,7 +126,7 @@
 	     (= (.getClickCount e) 2))
     (open-curve-editor source-manager)))
 
-(defswing :once display-curves-for [source-manager source]
+(defswing display-curves-for :agent [source-manager source]
   (dosync (alter source-manager assoc :selected-source source))
   (let [curve-panel (:curve-panel @source-manager)]
     (doto curve-panel
