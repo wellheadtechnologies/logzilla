@@ -1,6 +1,7 @@
 (ns util)
 
-(import '(java.util List LinkedList))
+(import '(java.util List LinkedList)
+	'(java.io File))
 
 (def white-space "\n\r\t ")
 
@@ -149,3 +150,9 @@
   (/ (apply + values) (count values)))
 
 (defn half [x] (/ x 2))
+
+(defn list-files [directory-path]
+  (let [directory (File. directory-path)]
+    (guard (.isDirectory directory)
+	   (str directory-path " must be a directory"))
+    (doall (for [p (.list directory)] p))))

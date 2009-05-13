@@ -58,7 +58,17 @@
   `(io!
     (if (not (javax.swing.SwingUtilities/isEventDispatchThread))
       (javax.swing.SwingUtilities/invokeLater (fn [] ~@body))
-      ~@body)))
+      (do
+       ~@body))))
+
+(defmacro swing-probe [& body]
+  `(let [result# (ref nil)
+	 probe# (fn [] (dosync (ref-set result# (do ~@body))))]
+     (swing (probe#))))
+
+(defmacro defprobe [name args & body]
+  `(defn ~name [~@args]
+     (swing-probe ~@body)))
 
 (defn swing-event [& body]
   `(if (not (javax.swing.SwingUtilities/isEventDispatchThread))

@@ -32,7 +32,7 @@
  *****************************************************************************/
 
 package	gui;
-
+/*
 import java.awt.Component;
 import java.awt.Font;
 import java.awt.Color;
@@ -48,59 +48,19 @@ import javax.swing.*;
 import clojure.lang.Compiler;
 import clojure.lang.LispReader;
 
-/**
-   A JFC/Swing based console for the BeanShell desktop.
-   This is a descendant of the old AWTConsole.
-
-   Improvements by: Mark Donszelmann <Mark.Donszelmann@cern.ch>
-   including Cut & Paste
-
-   Improvements by: Daniel Leuck
-   including Color and Image support, key press bug workaround
-*/
-public class JConsole extends JScrollPane implements KeyListener {
-    private Boolean ignore = false;
-
-    private int lineStart = 0;
-
-    private List history = new ArrayList();
-    private String startedLine;
-    private int histLine = 0;
-
-    private JTextPane text;
+public class JConsole implements KeyListener {
+    public Boolean ignore = false;
+    public int lineStart = 0;
+    public String startedLine;
+    public History history;
+    public ConsoleTextPane text;
 
     public JConsole()
     {
-	super();
-
-	// Special TextPane which catches for cut and paste, both L&F keys and
-	// programmatic	behaviour
-	text = new JTextPane();
-
-	Font font = new	Font("Monospaced",Font.PLAIN,14);
-	text.setText("");
-	text.setFont( font );
-	text.setMargin(	new Insets(7,5,7,5) );
+	history = new History();
+	text = new ConsoleTextPane();
 	text.addKeyListener(this);
-	setViewportView(text);
-
-	try {
-	    evalClojure("(require ['sources.controller :as 'sources])");
-	    evalClojure("(require ['editor.controller :as 'editor])");
-	    evalClojure("(use 'util 'gutil 'global)");
-	    evalClojure("(enable-interaction)");
-	} catch (Exception e){ 
-	    throw new RuntimeException(e);
-	}
-
-	requestFocus();
-	print(">>");
-    }
-
-    public void requestFocus() 
-    {
-	super.requestFocus();
-	text.requestFocus();
+	initUserEnvironment();
     }
 
     public void keyPressed(KeyEvent e) {
@@ -118,7 +78,7 @@ public class JConsole extends JScrollPane implements KeyListener {
     private void press(KeyEvent e){
 	int keyCode = e.getKeyCode();
 	if(keyCode == KeyEvent.VK_UP){
-	    historyUp();
+	    showHistoryLine(history.historyUp());
 	    e.consume();
 	}
 	else if(keyCode == KeyEvent.VK_A && (e.getModifiers() & InputEvent.CTRL_MASK) > 0){
@@ -128,11 +88,11 @@ public class JConsole extends JScrollPane implements KeyListener {
 	}
 	else if(keyCode == KeyEvent.VK_K && (e.getModifiers() & InputEvent.CTRL_MASK) > 0){
 	    ignore = true;
-	    replaceRange("", text.getCaretPosition(), textLength());
+	    replaceRange("", text.getCaretPosition(), textLength(text));
 	    e.consume();
 	}
 	else if(keyCode == KeyEvent.VK_DOWN){
-	    historyDown();
+	    showHistoryLine(history.historyDown());
 	    e.consume();
 	}
 	else if(keyCode == KeyEvent.VK_LEFT ||
@@ -151,7 +111,6 @@ public class JConsole extends JScrollPane implements KeyListener {
 	else if(keyCode == KeyEvent.VK_ENTER){
 	    ignore = true;
 	    enter();
-	    resetCommandStart();
 	    text.setCaretPosition(lineStart);
 	    e.consume();
 	    text.repaint();
@@ -171,294 +130,76 @@ public class JConsole extends JScrollPane implements KeyListener {
 	e.consume();
     }
 
-    private void resetCommandStart() {
-	lineStart = textLength();
-    }
-
-    private void append(String string) {
-	int slen = text.getCaretPosition();
-	text.select(slen, slen);
-	text.replaceSelection(string);
-    }
-
-    private String replaceRange(Object s, int start, int end) {
-	String st = s.toString();
-	text.select(start, end);
-	text.replaceSelection(st);
-	//text.repaint();
-	return st;
-    }
-
     private void forceCaretMoveToEnd() {
-	text.setCaretPosition(textLength());
+	text.setCaretPosition(textLength(text));
 	text.repaint();
    }
 
-    private  void forceCaretMoveToStart() {
+    private void forceCaretMoveToStart() {
 	text.setCaretPosition(lineStart);
 	text.repaint();
     }
 
-    private	void enter() {
-	String s = getCmd();
-
-	if ( s.length()	== 0 )	// special hack	for empty return!
-	    s = ";\n";
-	else {
-	    history.add( s );
+    private void enter() {
+	String s = getCmd(text, lineStart);
+	if(!s.trim().equals("")){
+	    history.add(s);
 	    s = s +"\n";
+	    append("\n");
+	    acceptLine( s );
+	    text.repaint();
 	}
-
-	append("\n");
-	histLine = 0;
-	acceptLine( s );
-	text.repaint();
-    }
-
-    private String getCmd() {
-	String s = "";
-	try {
-	    s =	text.getText(lineStart, textLength() - lineStart);
-	} catch	(BadLocationException e) {
-	    // should not happen
-	    System.out.println("Internal JConsole Error: "+e);
-	}
-	return s;
-    }
-
-    private void historyUp() {
-	if ( history.size() == 0 )
-	    return;
-	if ( histLine == 0 )  // save current line
-	    startedLine = getCmd();
-	if ( histLine <	history.size() ) {
-	    histLine++;
-	    showHistoryLine();
+	else {
+	    append("\n");
+	    print(this, ">>");
+	    text.repaint();
 	}
     }
-	
-    private void historyDown() {
-	if ( histLine == 0 )
-	    return;
 
-	histLine--;
-	showHistoryLine();
+    private void showHistoryLine(String line) {
+	if(line != null){
+	    replaceRange(line, lineStart, textLength(text));
+	    text.setCaretPosition(textLength(text));
+	    text.repaint();
+	}
     }
-
-    private void showHistoryLine() {
-	String showline;
-	if ( histLine == 0 )
-	    showline = startedLine;
-	else
-	    showline = (String)history.get( history.size() - histLine	);
-
-	replaceRange( showline,	lineStart, textLength() );
-	text.setCaretPosition(textLength());
-	text.repaint();
-    }
-
-    String ZEROS = "000";
 
     private void acceptLine(String line) {
 	try{
-	    Object result = evalClojure(line);
+	    Object result = evalClojureToStr(line);
 	    if(result != null){
-		println(result.toString());	    
+		println(this, result.toString());
 	    }
-	    print(">>");
+	    print(this, ">>");
 	} catch (Exception e){
-	    println(e.getMessage());
-	    print(">>");
+	    println(this, e.getMessage());
+	    print(this, ">>");
 	}
-	//text.repaint();
-    }
-
-    public void println(Object o) {
-	print( String.valueOf(o) + "\n" );
-	text.repaint();
-    }
-
-    public void print(final Object o) {
-	invokeAndWait(new Runnable() {
-		public void run() {
-		    append(String.valueOf(o));
-		    resetCommandStart();
-		    text.setCaretPosition(lineStart);
-		}
-	    });
-    }
-
-    /**
-     * Prints "\\n" (i.e. newline)
-     */
-    public void println() {
-	print("\n");
-	text.repaint();
-    }
-
-    public void error( Object o ) {
-	print( o, Color.red );
-    }
-
-    public void print(Object s, Font font) {
-	print(s, font, null);
-    }
-
-    public void print(Object s, Color color) {
-	print(s, null, color);
-    }
-
-    public void print(final Object o, final Font font, final Color color) {
-	invokeAndWait(new Runnable() {
-		public void run() {
-		    AttributeSet old = getStyle();
-		    setStyle(font, color);
-		    append(String.valueOf(o));
-		    resetCommandStart();
-		    text.setCaretPosition(lineStart);
-		    setStyle(old, true);
-		}
-	    });	
-    }
-
-    public void print(
-		      Object s,
-		      String fontFamilyName,
-		      int	size,
-		      Color color
-		      ) {
-			
-	print(s,fontFamilyName,size,color,false,false,false);
-    }
-
-    public void print(
-		      final Object o,
-		      final String fontFamilyName,
-		      final int	size,
-		      final Color color,
-		      final boolean bold,
-		      final  boolean italic,
-		      final boolean underline
-		      ) 
-    {
-	invokeAndWait(new Runnable() {
-		public void run() {
-		    AttributeSet old = getStyle();
-		    setStyle(fontFamilyName, size, color, bold,	italic,	underline);
-		    append(String.valueOf(o));
-		    resetCommandStart();
-		    text.setCaretPosition(lineStart);
-		    setStyle(old, true);
-		}
-	    });			
-    }
-
-    private AttributeSet setStyle(Font font) {
-	return setStyle(font, null);
-    }
-
-    private AttributeSet setStyle(Color color) {
-	return setStyle(null, color);
-    }
-
-    private AttributeSet setStyle( Font font, Color color) 
-    {
-	if (font!=null)
-	    return setStyle( font.getFamily(), font.getSize(), color, 
-			     font.isBold(), font.isItalic(), 
-			     StyleConstants.isUnderline(getStyle()) );
-	else
-	    return setStyle(null,-1,color);
-    }
-
-    private AttributeSet setStyle (
-				   String fontFamilyName, int	size, Color color) 
-    {
-	MutableAttributeSet attr = new SimpleAttributeSet();
-	if (color!=null)
-	    StyleConstants.setForeground(attr, color);
-	if (fontFamilyName!=null)
-	    StyleConstants.setFontFamily(attr, fontFamilyName);
-	if (size!=-1)
-	    StyleConstants.setFontSize(attr, size);
-
-	setStyle(attr);
-
-	return getStyle();
-    }
-
-    private AttributeSet setStyle(
-				  String fontFamilyName,
-				  int	size,
-				  Color color,
-				  boolean bold,
-				  boolean italic,
-				  boolean underline
-				  ) 
-    {
-	MutableAttributeSet attr = new SimpleAttributeSet();
-	if (color!=null)
-	    StyleConstants.setForeground(attr, color);
-	if (fontFamilyName!=null)
-	    StyleConstants.setFontFamily(attr, fontFamilyName);
-	if (size!=-1)
-	    StyleConstants.setFontSize(attr, size);
-	StyleConstants.setBold(attr, bold);
-	StyleConstants.setItalic(attr, italic);
-	StyleConstants.setUnderline(attr, underline);
-
-	setStyle(attr);
-
-	return getStyle();
-    }
-
-    private void setStyle(AttributeSet attributes) {
-	setStyle(attributes, false);
-    }
-
-    private void setStyle(AttributeSet attributes, boolean overWrite) {
-	text.setCharacterAttributes(attributes,	overWrite);
-    }
-
-    private AttributeSet getStyle() {
-	return text.getCharacterAttributes();
-    }
-
-    public void setFont( Font font ) {
-	super.setFont( font );
-
-	if ( text != null )
-	    text.setFont( font );
     }
 
 
-    /**
-     * If not in the event thread run via SwingUtilities.invokeAndWait()
-     */
-    private void invokeAndWait(Runnable run) {
+    public static void invokeAndWait(Runnable run) {
 	if(!SwingUtilities.isEventDispatchThread()) {
 	    try {
 		SwingUtilities.invokeAndWait(run);
 	    } catch(Exception e) {
-		// shouldn't happen
 		e.printStackTrace();
+		throw new RuntimeException(e);
 	    }
 	} else {
 	    run.run();
 	}
     }
 
-    public void setWaitFeedback( boolean on ) {
-	if ( on )
-	    setCursor( Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) );
-	else
-	    setCursor( Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR) );
+    public static Object evalClojure(String str) throws Exception {
+	PushbackReader reader = new PushbackReader(new StringReader(str));	    
+	Object data = LispReader.read(reader, false, "", false);
+	Object result = Compiler.eval(data);
+	return result;
     }
 
-    private int textLength() { return text.getDocument().getLength(); }
-
-    private Object evalClojure(String str) throws Exception {
-	PushbackReader reader = new PushbackReader(new StringReader(str));	    
+    public static Object evalClojureToStr(String str) throws Exception {
+	PushbackReader reader = new PushbackReader(new StringReader(str));
 	Object data = LispReader.read(reader, false, "", false);
 	Object result = Compiler.eval(data);
 	return result;
@@ -466,3 +207,4 @@ public class JConsole extends JScrollPane implements KeyListener {
 }
 
 
+*/
