@@ -84,14 +84,14 @@
 (defn update-table [table event]
   (let [{:keys [row value]} event
 	table-widget (:widget @table)]
-    (swing-once
+    (swing-agent
      (let [model (.getModel table-widget)]
        (ignore :value-change table (.setValueAt model value row 1))
        (table-controller/show-cell table-widget row 1)))))
 
 (defn update-chart [chart event]
   (let [{:keys [index value]} event]
-    (swing-once
+    (swing-agent
      (let [value (convert-to-double value)]
        (ignore :value-change chart 
 	       (chart-controller/set-chart-value chart 0 index value)
@@ -231,7 +231,7 @@
 		       (update-chart chart {:index index :value value})
 		       ))))
 
-    (swing-once
+    (swing-agent
      (update-canonical-percentage editor 0)
      (doto frame
        (.add main-panel)

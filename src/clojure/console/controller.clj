@@ -60,7 +60,7 @@
 ;
 ;(defn console-print [c string]
 ;  (let [{:keys [text line-start]} @c]
-;    (swing-io!
+;    (swing-mutator!
 ;     (console-append c (String/valueOf string))
 ;     (.setCaretPosition text line-start))))
 ;
@@ -199,7 +199,7 @@
 ;	show-line (if (= hist-line 0)
 ;		    started-line
 ;		    (.get history (- (.size history) hist-line)))]
-;    (swing-io!
+;    (swing-mutator!
 ;     (replace-range show-line line-start (text-length text))
 ;     (doto text
 ;       (.setCaretPosition (text-length text))

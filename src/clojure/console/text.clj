@@ -43,9 +43,10 @@
       (.setMargin insets))
     text-pane))
 
-(defswing text-length :getter [text-pane]
-  (let [widget (:widget @text-pane)]
-    (.. widget (getDocument) (getLength))))
+(defn text-length [text-pane]
+  (swing-getter
+   (let [widget (:widget @text-pane)]
+     (.. widget (getDocument) (getLength)))))
 
 (defn replace-last-line [text-pane obj]
   (dosync
@@ -58,7 +59,7 @@
 	 line-end (count line-value)
 	 line {:start line-start :end line-end :value line-value}]
      (alter text-pane assoc :lines (conj (drop-last lines) line))
-     (swing-once
+     (swing-agent
       (doto widget
 	(.select start end)
 	(.replaceSelection line-value))))))
@@ -71,7 +72,7 @@
 	 line-end (+ line-start (count line-value))
 	 line {:start line-start :end line-end :value line-value}]
      (alter text-pane assoc :lines (conj lines line))
-     (swing-once
+     (swing-agent
       (let [slen (text-length text-pane)]
 	(doto widget
 	  (.select slen slen)

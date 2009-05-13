@@ -28,7 +28,7 @@
   (let [icon (chart.render/curve-to-icon curve)]
     (dosync 
      (alter curve assoc :icon icon)
-     (swing-once
+     (swing-agent
       (.addElement (.getModel curve-list) icon)
       (.repaint curve-list)))))
 
@@ -70,7 +70,7 @@
    (let [icon (:icon @curve)
 	 descriptor (:descriptor @curve)]
      (when (not= descriptor old-descriptor)
-       (swing-once
+       (swing-agent
 	(.setText icon (:mnemonic descriptor))
 	(.repaint curve-list)))
      descriptor)))

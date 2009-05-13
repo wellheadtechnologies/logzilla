@@ -106,8 +106,9 @@
   ([source-manager]
       (:selected-source @source-manager)))
 
-(defswing get-selected-curves :getter [curve-list]
-  (doall (map #(.getCurve %) (.getSelectedValues curve-list))))
+(defn get-selected-curves [curve-list]
+  (swing-getter
+   (doall (map #(.getCurve %) (.getSelectedValues curve-list)))))
 
 (defn open-curve-editor [source-manager]
   (let [file @(get-selected-source source-manager)
@@ -126,8 +127,9 @@
 	     (= (.getClickCount e) 2))
     (open-curve-editor source-manager)))
 
-(defswing display-curves-for :agent [source-manager source]
-  (dosync (alter source-manager assoc :selected-source source))
+(defn display-curves-for [source-manager source]
+  (swing-agent
+   (dosync (alter source-manager assoc :selected-source source)))
   (let [curve-panel (:curve-panel @source-manager)]
     (doto curve-panel
       (.removeAll)
@@ -164,7 +166,7 @@
 	 file (init-file source-manager lasfile)
 	 lasfiles-node (.. source-tree (getModel) (getRoot) (getChildAt 0))]
      (alter source-manager assoc :sources (conj sources file))
-     (swing-once
+     (swing-agent
       (doto lasfiles-node
 	(.add (DefaultMutableTreeNode. (custom-tree-payload file))))
       (.. source-tree (getModel) (reload lasfiles-node)))

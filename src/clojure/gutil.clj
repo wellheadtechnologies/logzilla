@@ -183,7 +183,7 @@
 
 (defmacro animate-swing [n t & body]
   `(doseq [i# (range 0 ~n)]
-     (swing-once ~@body)
+     (swing-agent ~@body)
      (Thread/sleep ~t)))
 
 (defn single-selection-model []

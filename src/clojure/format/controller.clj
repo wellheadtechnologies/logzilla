@@ -50,18 +50,19 @@
 	(doseq [chart charts]
 	  (ignore :percentage-change chart (chart.controller/show-percentage chart percentage))))))))
 
-(defswing remove-charts-from-panel :mutator [formatter panel]
-  (let [charts (:charts @formatter)]
-    (doseq [chart charts]
-      (let [chart-panel (:chart-panel @chart)
-	    components (.getComponents panel)]
-	(when (some #(= chart-panel %) components)
-	  (doto panel
-	    (.remove chart-panel)
-	    (.revalidate)
-	    (.repaint))
-	  (dosync 
-	   (alter formatter assoc :charts (remove #(= chart %) (:charts @formatter)))))))))
+(defn remove-charts-from-panel [formatter panel]
+  (swing-mutator
+   (let [charts (:charts @formatter)]
+     (doseq [chart charts]
+       (let [chart-panel (:chart-panel @chart)
+	     components (.getComponents panel)]
+	 (when (some #(= chart-panel %) components)
+	   (doto panel
+	     (.remove chart-panel)
+	     (.revalidate)
+	     (.repaint))
+	   (dosync 
+	    (alter formatter assoc :charts (remove #(= chart %) (:charts @formatter))))))))))
 
 (defn add-chart [formatter panel curve]
   (let [chart (chart.controller/init-chart curve (deref-curve @curve))
@@ -69,7 +70,7 @@
 	old-charts (:charts @formatter)]
     (dosync 
      (alter formatter assoc :charts (conj old-charts chart))
-     (swing-once
+     (swing-agent
       (remove-charts-from-panel formatter panel)
       (let [components (.getComponents panel)]
 	(doto panel
@@ -116,7 +117,7 @@
 		  (fn [event]
 		    (update-canonical-percentage formatter (:percentage event))))
 
-    (swing-once
+    (swing-agent
      (update-canonical-percentage formatter 0)
      (doto frame
        (.add main-panel)

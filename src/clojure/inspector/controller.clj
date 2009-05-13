@@ -100,7 +100,7 @@
   (dosync
    (let [{:keys [log-tab content-panel]} @inspector]
      (alter inspector assoc :selected :log)
-     (swing-once
+     (swing-agent
       (doto (:frame @inspector)
 	(.setSize (.getPreferredSize log-tab)))
       (doto content-panel
@@ -114,7 +114,7 @@
   (dosync 
    (let [{:keys [format-tab content-panel]} @inspector]
      (alter inspector assoc :selected :format)
-     (swing-once
+     (swing-agent
       (doto content-panel
 	(.removeAll)
 	(.add format-tab "push, grow")
@@ -125,7 +125,7 @@
   (dosync
    (let [{:keys [parameters-tab content-panel]} @inspector]
      (alter inspector assoc :selected :parameters)
-     (swing-once
+     (swing-agent
       (doto content-panel
 	(.removeAll)
 	(.add parameters-tab "push, grow")
@@ -138,7 +138,7 @@
 (def inspector (ref (init-inspector)))
 
 (defn open-inspector []
-  (swing-once (.setVisible (:frame @inspector) true)))
+  (swing-agent (.setVisible (:frame @inspector) true)))
 
 (defn update-log-tab [log]
   (let [tab (init-log-tab log)]

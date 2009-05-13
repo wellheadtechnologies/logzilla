@@ -35,7 +35,7 @@
       (.add file-menu)
       (.add window-menu))
 
-    (swing-once
+    (swing-agent
      (doto sources-frame
        (.add sources-panel)
        (.setJMenuBar sources-menu-bar)

@@ -79,7 +79,7 @@
        (let [charts (:charts @merger)
 	     result-chart (:result-chart @merger)
 	     merged-curve (merge-curves (only (:curves @(first charts))) (only (:curves @(second charts))))]
-	 (swing-once
+	 (swing-agent
 	  (chart.controller/update-curve result-chart 0 (lasso/deref-curve merged-curve))))))))
 
 (defn init-tool-bar [merger]
@@ -123,7 +123,7 @@
     (add-listener :percentage-change slider merger
 		  (fn [event]
 		    (update-canonical-percentage merger (:percentage event))))
-    (swing-once
+    (swing-agent
      (update-canonical-percentage merger 0)
      (doto frame
        (.add main-panel)
