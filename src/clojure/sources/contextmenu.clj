@@ -12,13 +12,13 @@
   (open-curve-merger source-manager))
 
 (defn- context-menu-copy [source-manager]
-  (swing
+  (swing-once
    (let [file (get-selected-source source-manager)
 	 curves (get-selected-curves (:curve-list @file))]
      (dosync (ref-set copied-curves curves)))))
 
 (defn- context-menu-paste [source-manager]
-  (swing
+  (swing-once
    (let [ccurves @copied-curves
 	 file (get-selected-source source-manager)]
      (long-task 
@@ -34,7 +34,7 @@
 	paste (JMenuItem. "Paste")
 	remove (JMenuItem. "Remove")]
 
-    (swing
+    (swing-once
      (set-action edit #(context-menu-edit source-manager))
      (set-action merge #(context-menu-merge source-manager))
      (set-action copy #(context-menu-copy source-manager))

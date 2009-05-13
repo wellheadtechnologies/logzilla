@@ -25,24 +25,23 @@
   (proxy [TableModelListener] []
       (tableChanged [e] (save-header header table))))
 
-(defn init-header-tab [header]
-  (swing-io!
-   (let [model (DefaultTableModel.)
-	 table (JXTable. model)
-	 pane (JScrollPane. table)
-	 panel (JPanel. (MigLayout.))
-	 descriptors (:descriptors @header)]
-     (doto table
-       (.setSelectionModel (single-selection-model))
-       (.addHighlighter (HighlighterFactory/createSimpleStriping)))
-     (doto model
-       (.addColumn "mnemonic" (into-array Object (map :mnemonic descriptors)))
-       (.addColumn "unit" (into-array Object (map :unit descriptors)))
-       (.addColumn "data" (into-array Object (map :data descriptors)))
-       (.addColumn "description" (into-array Object (map :description descriptors)))
-       (.addTableModelListener (init-table-listener table header)))
-     (doto panel
-       (.add pane "push, grow, wrap")))))
+(defswing :io init-header-tab [header]
+  (let [model (DefaultTableModel.)
+	table (JXTable. model)
+	pane (JScrollPane. table)
+	panel (JPanel. (MigLayout.))
+	descriptors (:descriptors @header)]
+    (doto table
+      (.setSelectionModel (single-selection-model))
+      (.addHighlighter (HighlighterFactory/createSimpleStriping)))
+    (doto model
+      (.addColumn "mnemonic" (into-array Object (map :mnemonic descriptors)))
+      (.addColumn "unit" (into-array Object (map :unit descriptors)))
+      (.addColumn "data" (into-array Object (map :data descriptors)))
+      (.addColumn "description" (into-array Object (map :description descriptors)))
+      (.addTableModelListener (init-table-listener table header)))
+    (doto panel
+      (.add pane "push, grow, wrap"))))
 
 (defn- find-header [lasfile type]
   (find-first #(= type (:type (deref %))) (:headers @lasfile)))

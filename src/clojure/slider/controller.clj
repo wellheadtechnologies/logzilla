@@ -25,14 +25,14 @@
 (defmethod set-percentage :percentage [slider new-percentage]
   (let [{:keys [widget notches percentage]} @slider
 	value (* (invert new-percentage) notches)]
-    (swing
+    (swing-once
      (ignore :percentage-change slider
 	     (.setValue widget value)))))
 
 (defn init-slider-listener [slider]
   (proxy [ChangeListener] []
     (stateChanged [event]
-		  (swing-event 
+		  (swing-io
 		   (let [{:keys [widget notches]} @slider
 			 value (.getValue widget)
 			 percentage (invert (/ value notches))]

@@ -33,10 +33,9 @@
 
 (defn create-table-pane [table] (JScrollPane. table))
 
-(defn show-cell [widget row col]
-  (swing-io!
-   (let [rect (.getCellRect widget row col true)]
-     (.scrollRectToVisible widget rect))))
+(defswing :io show-cell [widget row col]
+  (let [rect (.getCellRect widget row col true)]
+    (.scrollRectToVisible widget rect)))
 
 (defmulti show-percentage (fn [x y]
 			    (cond 
@@ -53,7 +52,7 @@
     (dosync 
      (when (not= (:percentage @table) percentage)
        (alter table assoc :percentage percentage)
-       (swing
+       (swing-once
 	(when (not (or (> n 1) (< n 0)))
 	  (let [rows (dec (.getRowCount widget))
 		row (* n rows)]

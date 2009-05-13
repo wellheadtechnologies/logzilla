@@ -106,40 +106,34 @@
   ([source-manager]
       (:selected-source @source-manager)))
 
-(defn get-selected-curves [curve-list]
-  (swing-io! (doall (map #(.getCurve %) (.getSelectedValues curve-list)))))
+(defswing :get get-selected-curves [curve-list]
+  (doall (map #(.getCurve %) (.getSelectedValues curve-list))))
 
 (defn open-curve-editor [source-manager]
-  (swing 
-   (let [file @(get-selected-source source-manager)
-	 curve (only (get-selected-curves (:curve-list file)))
-	 lasfile (:lasfile file)]
-     (long-task
-      (editor.controller/open-curve-editor lasfile curve)))))
+  (let [file @(get-selected-source source-manager)
+	curve (only (get-selected-curves (:curve-list file)))
+	lasfile (:lasfile file)]
+    (editor.controller/open-curve-editor lasfile curve)))
 
 (defn open-curve-merger [source-manager]
-  (swing
-   (let [file @(get-selected-source source-manager)
-	 curves (get-selected-curves (:curve-list file))
-	 lasfile (:lasfile file)]
-     (long-task
-      (merger.controller/open-curve-merger lasfile curves)))))
+  (let [file @(get-selected-source source-manager)
+	curves (get-selected-curves (:curve-list file))
+	lasfile (:lasfile file)]
+    (merger.controller/open-curve-merger lasfile curves)))
 
 (defn open-curve-editor-action [source-manager e]
   (when (and (= (.getButton e) MouseEvent/BUTTON1)
 	     (= (.getClickCount e) 2))
     (open-curve-editor source-manager)))
 
-(defn display-curves-for [source-manager source]
-  (dosync 
-   (alter source-manager assoc :selected-source source)
-   (swing 
-    (let [curve-panel (:curve-panel @source-manager)]
-      (doto curve-panel
-	(.removeAll)
-	(.add (:view @source) "push, grow")
-	(.revalidate)
-	(.repaint))))))
+(defswing :once display-curves-for [source-manager source]
+  (dosync (alter source-manager assoc :selected-source source))
+  (let [curve-panel (:curve-panel @source-manager)]
+    (doto curve-panel
+      (.removeAll)
+      (.add (:view @source) "push, grow")
+      (.revalidate)
+      (.repaint))))
 
 (defn add-curve 
   ([file curve]
@@ -170,7 +164,7 @@
 	 file (init-file source-manager lasfile)
 	 lasfiles-node (.. source-tree (getModel) (getRoot) (getChildAt 0))]
      (alter source-manager assoc :sources (conj sources file))
-     (swing 
+     (swing-once
       (doto lasfiles-node
 	(.add (DefaultMutableTreeNode. (custom-tree-payload file))))
       (.. source-tree (getModel) (reload lasfiles-node)))

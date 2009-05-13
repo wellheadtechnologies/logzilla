@@ -46,35 +46,57 @@
 					    
 (def swing-agent (agent nil))
 		       
-(defmacro swing [& body]
+(defmacro swing-once [& body]
   `(send swing-agent 
 	 (fn [_#]
 	   (javax.swing.SwingUtilities/invokeLater (fn [] ~@body)))))
 
-(defmacro swing-sync [& body]
-  `(swing (dosync ~@body)))
-
-(defmacro swing-io! [& body]
+(defmacro swing-io [& body]
   `(io!
-    (if (not (javax.swing.SwingUtilities/isEventDispatchThread))
-      (javax.swing.SwingUtilities/invokeLater (fn [] ~@body))
-      (do
-       ~@body))))
+    (let [fun# (fn [] ~@body)]
+      (if (not (javax.swing.SwingUtilities/isEventDispatchThread))
+	(javax.swing.SwingUtilities/invokeLater fun#)
+	(fun#)))
+    nil))
 
-(defmacro swing-probe [& body]
-  `(let [result# (ref nil)
-	 probe# (fn [] (dosync (ref-set result# (do ~@body))))]
-     (swing (probe#))))
+(defmacro swing-read [& body]
+  `(let [fun# (fn [] ~@body)]
+     (if (not (javax.swing.SwingUtilities/isEventDispatchThread))
+	(javax.swing.SwingUtilities/invokeLater fun#)
+	(fun#))
+     nil))
 
-(defmacro defprobe [name args & body]
+(defmacro swing-get [& body]
+  `(io!
+    (let [result# (ref nil)
+	  fun# (fn [] ~@body)
+	  probe# (fn [] (dosync (ref-set result# (fun#))))]
+      (if (javax.swing.SwingUtilities/isEventDispatchThread)
+	(fun#)
+	(do
+	  (println "jumping threads")
+	  (javax.swing.SwingUtilities/invokeLater probe#)
+	  (let [start# (System/currentTimeMillis)]
+	    (loop []
+	      (cond 
+	       (not (nil? @result#))
+	       @result#
+	     
+	       (>= (System/currentTimeMillis) (+ start# 1000))
+	       (throw (RuntimeException. "Probe Timed Out!!"))
+	     
+	       :else
+	       (recur)))))))))
+
+(defmacro defswing [mode name args & body]
   `(defn ~name [~@args]
-     (swing-probe ~@body)))
-
-(defn swing-event [& body]
-  `(if (not (javax.swing.SwingUtilities/isEventDispatchThread))
-     (throw (RuntimeException. "Not in swing event dispatch thread!!!"))
-     (do
-       ~@body)))
+     ~(cond 
+       (= mode :once) `(swing-once ~@body)
+       (= mode :io) `(swing-io ~@body)
+       (= mode :read) `(swing-read ~@body)
+       (= mode :get) `(swing-get ~@body)
+       :else 
+       (throw (RuntimeException. "defswing mode not recognized")))))
 
 (defn on-click [widget fun]
   (.addMouseListener widget
@@ -140,7 +162,7 @@
 
 (defmacro animate-swing [n t & body]
   `(doseq [i# (range 0 ~n)]
-     (swing ~@body)
+     (swing-once ~@body)
      (Thread/sleep ~t)))
 
 (defn single-selection-model []
