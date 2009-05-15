@@ -1,5 +1,4 @@
 (ns util)
-
 (import '(java.util List LinkedList)
 	'(java.io File))
 

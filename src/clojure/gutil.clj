@@ -1,4 +1,5 @@
 (ns gutil
+  (:use global)
   (:import (java.awt.event ActionListener)
 	   (javax.swing JTable JScrollPane DefaultListSelectionModel
 			JPanel JLabel JButton JTextArea
@@ -18,7 +19,7 @@
 					   SourceListCategory 
 					   MacWidgetFactory)))
 
-(def logger (LoggerFactory/getLogger "swing"))
+(deflogger gutil)
 
 (defn actions [menu & name-actions]
   (doseq [[name action] name-actions]
@@ -78,7 +79,7 @@
 	(let [probe# (fn [] 
 		       (let [v# (fun#)]
 			 (dosync (ref-set result# v#))))]
-	  (.warn logger "jumping threads")
+	  (gutil-warn "jumping threads")
 	  (javax.swing.SwingUtilities/invokeLater probe#)
 	  (let [start# (System/currentTimeMillis)]
 	    (loop []

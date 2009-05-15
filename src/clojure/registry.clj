@@ -1,20 +1,20 @@
 (ns registry
-  (:use util global)
-  (:import (org.slf4j Logger LoggerFactory)
-	   (javax.swing JFrame)))
+  (:use util global gutil)
+  (:import (javax.swing JFrame)))
 
-(def logger (LoggerFactory/getLogger "registry"))
+(println "deflogger = " (macroexpand '(deflogger registry)))
+(deflogger registry)
 
 (def properties (ref {}))
 (def registered-objects (ref {}))
 
 (defn define [type props]
-  (.debug logger (str "defining " type " as " props))
+  (debug (str "defining " type " as " props))
   (dosync
    (alter properties assoc type props)))
 
 (defn register [type obj]
-  (.debug logger (str "registering (" (truncate (str obj)) ") in " type))
+  (debug (str "registering (" (truncate (str obj)) ") in " type))
   (dosync
    (let [old-objs (get @registered-objects type)]
      (guard (not (some #(= obj %) old-objs)) (str "cannot register an already registered object (" (truncate (str obj)) ")"))
@@ -27,7 +27,7 @@
      (filter pred (get @registered-objects type))))
 
 (defn unregister [type obj]
-  (.debug logger (str "unregistering (" (truncate (str obj)) ") from " type))
+  (debug (str "unregistering (" (truncate (str obj)) ") from " type))
   (dosync
    (let [old-objs (get @registered-objects type)]
      (guard (some #(= obj %) old-objs) (str "cannot unregister an already unregistered object (" (truncate (str obj)) ")"))
@@ -41,6 +41,12 @@
 
 (defn dispose-registered-frame [frame]
   (unregister :frames frame)
-  (doto frame
-    (.setVisible false)
-    (.dispose)))
+  (swing-agent
+   (doto frame
+     (.setVisible false)
+     (.dispose))))
+
+(defn dispose-frames []
+  (dosync
+   (doseq [frame (lookup :frames)]
+     (dispose-registered-frame frame))))

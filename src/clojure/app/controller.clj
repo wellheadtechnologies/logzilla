@@ -65,4 +65,7 @@
   (let [my-app (init-app)]
     (dosync (ref-set app my-app))))
 
-(defn close-application [])
+(defn close-application []
+  (dosync
+   (ref-set app nil)
+   (registry/dispose-frames)))

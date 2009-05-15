@@ -45,3 +45,12 @@
 
 (defn disable-interaction []
   (dosync (ref-set interactive false)))
+
+(defmacro deflogger [name-space]
+  (list 'let ['logger (list 'org.slf4j.LoggerFactory/getLogger (str name-space))]
+	'(defn- info [msg] (global/once-short (.info logger msg)))
+	'(defn- warn [msg] (global/once-short (.warn logger msg)))
+	'(defn- debug [msg] (global/once-short (.debug logger msg)))
+	(list 'def (symbol (str name-space "-info")) 'info)
+	(list 'def (symbol (str name-space "-warn")) 'warn)
+	(list 'def (symbol (str name-space "-debug")) 'debug)))
