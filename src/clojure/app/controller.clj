@@ -1,6 +1,7 @@
 (ns app.controller
   (:require sources.controller inspector.controller
-	    format.controller console.controller)
+	    format.controller console.controller
+	    registry)
   (:use gutil global util)
   (:import (javax.swing JFrame JPanel JMenuBar JMenu)
 	   (java.awt.event WindowAdapter)
@@ -24,9 +25,12 @@
     menu))
 
 (defn create-application [{:keys [file-menu window-menu sources-widget]}]
-  (let [sources-frame (JFrame. "Sources")
+  (let [sources-frame (registry/acquire-registered-frame)
 	sources-panel (JPanel. (MigLayout. "ins 0"))
 	sources-menu-bar (JMenuBar.)]
+
+    (doto sources-frame 
+      (.setTitle "Sources"))
 
     (doto sources-panel
       (.setPreferredSize (Dimension. 500 700))
@@ -60,3 +64,5 @@
 (defn start-application []
   (let [my-app (init-app)]
     (dosync (ref-set app my-app))))
+
+(defn close-application [])

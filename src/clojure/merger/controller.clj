@@ -1,5 +1,6 @@
 (ns merger.controller
-  (:require chart.controller lasso slider.controller)
+  (:require chart.controller lasso slider.controller
+	    registry)
   (:use util gutil global messages)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
@@ -48,8 +49,9 @@
 
 (defn init-frame [lasfile curves]
   (let [name (apply str (map #(str (get-in (deref %) [:descriptor :mnemonic]) "  ") curves))
-	frame (JFrame. (str "Merge " (:name @lasfile) " | " name))]
-    frame))
+	frame (registry/acquire-registered-frame)]
+    (doto frame
+      (.setTitle (str "Merge " (:name @lasfile) " | " name)))))
 
 (defn init-main-panel [left-panel toolbar result-chart charts]
   (let [main-panel (JPanel. (MigLayout. "ins 0, nogrid"))

@@ -158,3 +158,8 @@
     (doall (for [p (.list directory)] p))))
 
 (defn current-time [] (System/currentTimeMillis))
+
+(defn truncate [s]
+  (if (> (count s) 100)
+    (.substring s 0 100)
+    s))

@@ -1,5 +1,6 @@
 (ns tests.tgui
-  (:use app.controller sources.controller util gutil global))
+  (:use app.controller sources.controller util gutil global)
+  (:require editor.controller))
 
 (defn fail [] (assert false))
 
@@ -22,27 +23,23 @@
 
 (defn test-add-lasfile []
   (start-application)
-  (let [dollief (open-lasfile "las_files/dollie.las")
-	dollie (:lasfile @dollief)]
+  (let [test1f (open-lasfile "las_files/test.las")
+	test1 (:lasfile @test1f)]
     (assert (probe 10000 
-		   (let [curve-count (count (:curves @dollie))
+		   (let [curve-count (count (:curves @test1))
 			 gui-count (count (get-source-curves))]
-		     (println "(curve-count " curve-count ") (gui-count " gui-count ")")
 		     (= curve-count gui-count))))
-    (println "correct number of curves")))
+    (println "correct number of curves"))
+  (close-application))
 
-;(defn test-open-editor []
-;  (app.controller/open-main)
-;  (let [dollie-id (lasso/load-lasfile "las_files/dollie.las")
-;	dollie (lookup dollie-id)
-;	frame (editor.controller/open-curve-editor dollie-id (take 2 (:curves dollie)))]
-;    (wait-for [10000 100 "curve editor contains frame and curves"]
-;      (swing-probe 
-;       (and (contains? (lookup [frame :charts]) (first (:curves dollie)))
-;	    (contains? (lookup [frame :charts]) (nth (:curves dollie) 1))
-;	    (not (contains? (lookup [frame :charts]) (nth (:curves dollie) 2))))))
-;    (app.controller/close-main)))
-;
+(defn test-open-editor []
+  (start-application)
+  (let [dollief (open-lasfile "las_files/dollie.las")
+	dollie (:lasfile @dollief)
+	editor (editor.controller/open-curve-editor dollie (first (:curves @dollie)))]
+    (assert (probe 10000 true)))
+  (close-application))
+
 ;(defn test-sync-curve-with-table []
 ;  (app.controller/open-main)
 ;  (let [test1-id (lasso/load-lasfile "las_files/test.las")
@@ -58,7 +55,7 @@
 ;	     dirty-curve (lookup-in [frame :charts] curve-id :dirty-curve)]
 ;	 (= (nth (:data dirty-curve) 0) 10))))
 ;    (app.controller/close-main)))
-;
+
 ;(defn test-storage []
 ;  (try 
 ;   (store :foo 1)
@@ -68,5 +65,4 @@
 ;     (println "success : storage prevented adding of duplicate ids"))))
 
 (defn run-tests []
-  (test-add-lasfile)
-  (System/exit 0))
+  (test-add-lasfile))

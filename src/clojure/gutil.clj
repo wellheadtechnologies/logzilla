@@ -13,9 +13,12 @@
 	   (java.awt.event MouseAdapter)
 	   (gui IconListCellRenderer)
 	   (net.miginfocom.swing MigLayout)	   
+	   (org.slf4j Logger LoggerFactory)
 	   (com.explodingpixels.macwidgets SourceList SourceListModel 
 					   SourceListCategory 
 					   MacWidgetFactory)))
+
+(def logger (LoggerFactory/getLogger "swing"))
 
 (defn actions [menu & name-actions]
   (doseq [[name action] name-actions]
@@ -66,8 +69,6 @@
 	(fun#))
      nil))
 
-(def *disable-getter-timeout* false)
-
 (defmacro swing-timed-getter [timeout disable-timeout & body]
   `(io!
     (let [result# (ref nil)
@@ -77,14 +78,13 @@
 	(let [probe# (fn [] 
 		       (let [v# (fun#)]
 			 (dosync (ref-set result# v#))))]
-	  (println "jumping threads")
+	  (.warn logger "jumping threads")
 	  (javax.swing.SwingUtilities/invokeLater probe#)
 	  (let [start# (System/currentTimeMillis)]
 	    (loop []
 	      (cond 
 	       (not (nil? @result#))
-	       (do
-		 @result#)
+	       @result#
 	     
 	       (and (not ~disable-timeout)
 		    (>= (System/currentTimeMillis) (+ start# ~timeout)))

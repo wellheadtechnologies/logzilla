@@ -1,6 +1,6 @@
 (ns inspector.controller
   (:use util gutil semantics)
-  (:require global)
+  (:require global registry)
   (:import (javax.swing JFrame JPanel JLabel JTextArea
 			JTextField JTabbedPane JButton
 			JToolBar ButtonGroup JButton 
@@ -76,7 +76,7 @@
       (.add (doto parameter-button (.putClientProperty "JButton.segmentPosition" "last"))))))
 
 (defn create-inspector-window [log-action format-action parameter-action]
-  (let [frame (JFrame. "Inspector")
+  (let [frame (registry/acquire-registered-frame)
 	panel (JPanel. (MigLayout. "ins 0"))
 	content-panel (JPanel. (MigLayout. "ins 0"))
 	tab-bar (init-tab-bar log-action format-action parameter-action)]
@@ -85,6 +85,7 @@
       (.add tab-bar "wrap")
       (.add content-panel "push, grow"))
     (doto frame
+      (.setTitle "Inspector")
       (.add panel)
       (.setSize (Dimension. 300 400)))
     (struct-map Inspector

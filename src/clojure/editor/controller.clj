@@ -1,5 +1,5 @@
 (ns editor.controller
-  (:require lasso
+  (:require lasso registry
 	    [slider.controller :as slider-controller]
 	    [editor.table.controller :as table-controller]
 	    [chart.controller :as chart-controller])
@@ -155,8 +155,9 @@
 
 (defn create-frame [lasfile curve]
   (let [name (get-in @curve [:descriptor :mnemonic])
-	frame (JFrame. (str (:name @lasfile) " " name))]
-    frame))
+	frame (registry/acquire-registered-frame)]
+    (doto frame
+      (.setTitle (str (:name @lasfile) " " name)))))
 
 (defn create-table-panel [slider table]
   (let [panel (JPanel. (MigLayout. "ins 0"))]

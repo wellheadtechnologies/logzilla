@@ -1,12 +1,13 @@
 (ns console.controller
   (:use global util gutil console.text)
+  (:require registry)
   (:import (javax.swing JFrame JPanel JScrollPane JTextArea JTextPane)
 	   (net.miginfocom.swing MigLayout)
 	   (java.awt Dimension Font Insets)
 	   (java.awt.event InputEvent KeyEvent)))
 
 (defn open-console []
-  (let [frame (JFrame.)
+  (let [frame (registry/acquire-registered-frame)
 	text-pane (init-text-pane)
 	panel (JPanel. (MigLayout. "ins 0"))
 	pane (JScrollPane. panel)]

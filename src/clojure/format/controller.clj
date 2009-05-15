@@ -1,5 +1,6 @@
 (ns format.controller
-  (:require slider.controller chart.controller chart.render)
+  (:require slider.controller chart.controller chart.render
+	    registry)
   (:use util global gutil messages lasso)
   (:import (javax.swing.event TableModelListener ChangeListener)
 	   (javax.swing JFrame JScrollPane JToolBar JButton JToggleButton 
@@ -21,8 +22,9 @@
 
 (defn create-frame []
   (let [name "Format Log"
-	frame (JFrame. name)]
-    frame))
+	frame (registry/acquire-registered-frame)]
+    (doto frame
+      (.setTitle name))))
 
 (defn create-export-button [formatter]
   (let [button (JButton. "Export")]

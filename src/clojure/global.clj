@@ -29,6 +29,7 @@
 
 (defmacro once-short [& body] `(short-task ~@body))
 (defmacro once-long [& body] `(long-task ~@body))
+(defmacro once [& body] `(once-short ~@body))
 
 
 (def app (ref nil))
