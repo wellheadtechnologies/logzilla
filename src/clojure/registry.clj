@@ -2,7 +2,6 @@
   (:use util global gutil)
   (:import (javax.swing JFrame)))
 
-(println "deflogger = " (macroexpand '(deflogger registry)))
 (deflogger registry)
 
 (def properties (ref {}))

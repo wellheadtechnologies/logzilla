@@ -62,7 +62,7 @@
       </fileset>
     </copy>
 
-    <copy todir="${resources.dir}" file="resources/logback.xml" />
+    <copy todir="${build.dir}" file="resources/logback.xml" />
   </target>    
 
   <target name="build-clojure" depends="build-scala">
@@ -83,6 +83,9 @@
   <target name="jar" depends="build-clojure">
     <jar destfile="${build.dir}/${ant.project.name}.jar">
       <fileset dir="${classes.dir}" />
+      <fileset dir="${build.dir}">
+	<include name="logback.xml"/>
+      </fileset>
     </jar>
   </target>
 
