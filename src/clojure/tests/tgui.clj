@@ -1,6 +1,9 @@
 (ns tests.tgui
   (:use app.controller sources.controller util gutil global)
-  (:require editor.controller))
+  (:require editor.controller
+	    [editor.table.controller :as table-controller]))
+
+(deflogger tgui)
 
 (defn fail [] (assert false))
 
@@ -23,46 +26,44 @@
 
 (defn test-add-lasfile []
   (start-application)
-  (let [test1f (open-lasfile "las_files/test.las")
-	test1 (:lasfile @test1f)]
+  (let [test1 (open-source :content "las_files/test.las")]
     (assert (probe 10000 
 		   (let [curve-count (count (:curves @test1))
 			 gui-count (count (get-source-curves))]
-		     (= curve-count gui-count))))
-    (println "correct number of curves"))
+		     (= curve-count gui-count)))))
+  (info "correct number of curves")
   (close-application))
 
 (defn test-open-editor []
   (start-application)
-  (let [dollief (open-lasfile "las_files/dollie.las")
-	dollie (:lasfile @dollief)
+  (let [dollie (open-source :content "las_files/dollie.las")
 	editor (editor.controller/open-curve-editor dollie (first (:curves @dollie)))]
     (assert (probe 10000 true)))
+  (info "open editor works")
   (close-application))
 
-;(defn test-sync-curve-with-table []
-;  (app.controller/open-main)
-;  (let [test1-id (lasso/load-lasfile "las_files/test.las")
-;	test1 (storage/lookup test1-id)
-;	frame (editor.controller/open-curve-editor test1-id (take 2 (:curves test1)))
-;	index 0]
-;    (swing
-;      (let [table (lookup-in [frame :widgets] :table)]
-;	(.setValueAt (.getModel table) 10 (editor.model/index-to-row 0 table) 1)))
-;    (wait-for [10000 100 "dirty-curve(0) == 10 after syncing with table"]
-;      (swing-probe
-;       (let [curve-id (first (:curves test1))
-;	     dirty-curve (lookup-in [frame :charts] curve-id :dirty-curve)]
-;	 (= (nth (:data dirty-curve) 0) 10))))
-;    (app.controller/close-main)))
+(defn test-sync-chart-with-table []
+  (start-application)
+  (let [robert (open-source :content "las_files/robert.las")
+	curve (first (:curves @robert))
+	editor (editor.controller/open-curve-editor robert curve)
+	index 0]
+    (swing-agent
+     (let [table (:table @editor)]
+       (table-controller/set-value table {:row 0 :col 1} 10)))
+    (assert 
+     (probe 10000 
+	    (let [chart (:chart @editor)
+		  dirty-curve (only (:dirty-curves @chart))]
+	      (= (nth (:data dirty-curve) 0) 10)))))
+  (info "sync-chart-with-table works")
+  (close-application))
 
-;(defn test-storage []
-;  (try 
-;   (store :foo 1)
-;   (store :foo 2)
-;   (fail)
-;   (catch java.lang.RuntimeException e 
-;     (println "success : storage prevented adding of duplicate ids"))))
+(defn test-sync-table-with-chart []
+  (start-application)
+  (let [test1 (open-source :content "las_files/test.las")]))
 
 (defn run-tests []
-  (test-add-lasfile))
+  (test-add-lasfile)
+  (test-open-editor)
+  (test-sync-chart-with-table))

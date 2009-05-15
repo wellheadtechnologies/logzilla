@@ -72,6 +72,7 @@
 	<include name="**/*.clj" />
       </fileset>
     </copy>
+    <copy todir="${build.dir}" file="resources/logback.xml" />
   </target>
 
   <target name="jar-scala" depends="build-scala">
@@ -92,6 +93,9 @@
   <target name="just-jar">
     <jar destfile="${build.dir}/${ant.project.name}.jar">
       <fileset dir="${classes.dir}" />
+      <fileset dir="${build.dir}">
+	<include name="logback.xml"/>
+      </fileset>
     </jar>
   </target>
 

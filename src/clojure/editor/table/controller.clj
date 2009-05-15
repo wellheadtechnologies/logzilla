@@ -76,6 +76,11 @@
 					       :col col
 					       :value val})))))
 
+(defn set-value [table {:keys [row col]} value]
+  (swing-mutator
+   (let [widget (:widget @table)]
+     (.setValueAt (.getModel widget) (double value) row col))))
+
 (defn init-table [index dirty-curve]
   (let [widget (create-table-widget index [dirty-curve])
 	pane (JScrollPane. widget)

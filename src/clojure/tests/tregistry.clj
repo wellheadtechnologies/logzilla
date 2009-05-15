@@ -1,5 +1,7 @@
 (ns tests.tregistry
-  (:use registry))
+  (:use registry global))
+
+(deflogger tregistry)
 
 (defn test-registry []
   (register :frames "frame 1")
@@ -10,7 +12,7 @@
   (assert (not (some #(= "frame 1" %) (lookup :frames))))
   (unregister :frames "frame 2")
   (assert (not (some #(= "frame 2" %) (lookup :frames))))
-  (println "registry works"))
+  (info "registry works"))
 
 (defn run-tests []
   (test-registry))

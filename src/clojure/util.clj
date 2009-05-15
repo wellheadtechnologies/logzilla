@@ -159,6 +159,7 @@
 (defn current-time [] (System/currentTimeMillis))
 
 (defn truncate [s]
-  (if (> (count s) 100)
-    (.substring s 0 100)
-    s))
+  (let [s (str s)]
+    (if (> (count s) 100)
+      (.substring s 0 100)
+      s)))

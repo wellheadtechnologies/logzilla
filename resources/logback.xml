@@ -2,14 +2,18 @@
   <appender name="FILE" class="ch.qos.logback.core.FileAppender">
     <file>logzilla.log</file>
     <layout class="ch.qos.logback.classic.PatternLayout">
-      <Pattern>[%thread] %-5level %logger{36} - %msg%n</Pattern>
+      <Pattern>%-5level %logger{36} - %msg%n</Pattern>
     </layout>
   </appender>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <layout class="ch.qos.logback.classic.PatternLayout">
-      <Pattern>[%thread] %-5level %logger{36} - %msg%n</Pattern>
+      <Pattern>%-5level %logger{36} - %msg%n</Pattern>
     </layout>
   </appender>
+
+  <logger name="gutil">
+    <level value="error" />
+  </logger>
 
   <root level="debug">
     <appender-ref ref="FILE" />

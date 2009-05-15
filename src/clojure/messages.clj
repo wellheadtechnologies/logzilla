@@ -3,12 +3,15 @@
 
 (def disabled [])
 
+(deflogger messages)
+
 (defmacro ignore [type & body]
   `(binding [disabled (conj disabled ~type)]
      ~@body))
 
 (defn fire [type src event]
   (when (not-any? #(= type %) disabled)
+    (info (str "fire " type))
     (let [listeners (get-in @src [:listeners type])]
       (short-task
        (doseq [{:keys [destination callback]} listeners]

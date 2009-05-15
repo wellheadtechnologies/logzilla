@@ -1,6 +1,6 @@
 (ns sources.controller)
 
-(declare open-lasfile open-file save-file)
+(declare open-source open-file save-file)
 
 (defn- create-file-menu [open save-all quit]
   (let [menu (new JMenu "File")]
@@ -26,7 +26,7 @@
 (defn- file-menu-open [source-manager e]
   (let [files (run-file-selection-dialog ".")]
     (doseq [file files] 
-      (long-task (open-lasfile source-manager (open-file file))))))
+      (long-task (open-source source-manager (open-file file))))))
 
 (defn- file-menu-save-all [source-manager e] 
   (doseq [file (:sources @source-manager)]

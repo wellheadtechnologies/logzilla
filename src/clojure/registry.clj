@@ -46,6 +46,7 @@
      (.dispose))))
 
 (defn dispose-frames []
+  (debug "disposing of application frames")
   (dosync
    (doseq [frame (lookup :frames)]
      (dispose-registered-frame frame))))

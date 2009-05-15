@@ -78,7 +78,7 @@
    file-menu-quit))
 
 ;;actions
-(defn- open-file [file]
+(defn- open-lasfile [file]
   (let [path (if (string? file) file (.getPath file))]
     (try 
      (lasso/load-lasfile path)
@@ -88,8 +88,8 @@
 	"Read Error" JOptionPane/ERROR_MESSAGE)
        (throw e)))))
 
-(defn- open-files [files]
-  (doall (map open-file files)))
+(defn- open-lasfiles [files]
+  (doall (map open-lasfile files)))
 
 (defn- save-file [file]
   (let [lasfile (:lasfile @file)]
@@ -166,33 +166,27 @@
      (let [file (get-selected-source)]
        (add-curve file curve))))
 
-(defmulti open-lasfile (fn [& args]
-			 (cond 
-			  (and (= 2 (count args)) (string? (second args))) [:source-manager :path]
-			  (and (= 2 (count args)) (not (string? (second args)))) [:source-manager :lasfile]
-			  (and (= 1 (count args)) (string? (first args))) :path
-			  (and (= 1 (count args)) (not (string? (first args)))) :lasfile
-			  )))
+(defmulti open-source (fn [& args] 
+			(cond
+			 (= (first args) :content) :content
+			 :else :standard)))
 
-(defmethod open-lasfile [:source-manager :path] [source-manager path]
-  (open-lasfile source-manager (open-file path)))
+(defmethod open-source :standard
+  ([_file] (open-source (:source-manager @app) _file))
+  ([source-manager _file]
+     (let [lasfile (open-lasfile _file)]
+       (dosync 
+	(let [{:keys [sources source-tree]} @source-manager
+	      file (init-file source-manager lasfile)
+	      lasfiles-node (.. source-tree (getModel) (getRoot) (getChildAt 0))]
+	  (alter source-manager assoc :sources (conj sources file))
+	  (swing-agent
+	   (doto lasfiles-node
+	     (.add (DefaultMutableTreeNode. (custom-tree-payload file))))
+	   (.. source-tree (getModel) (reload lasfiles-node)))
+	  (set-selected-source file)
+	  (when (not @interactive)
+	    file))))))
 
-(defmethod open-lasfile [:source-manager :lasfile] [source-manager lasfile]
-  (dosync 
-   (let [{:keys [sources source-tree]} @source-manager
-	 file (init-file source-manager lasfile)
-	 lasfiles-node (.. source-tree (getModel) (getRoot) (getChildAt 0))]
-     (alter source-manager assoc :sources (conj sources file))
-     (swing-agent
-      (doto lasfiles-node
-	(.add (DefaultMutableTreeNode. (custom-tree-payload file))))
-      (.. source-tree (getModel) (reload lasfiles-node)))
-     (set-selected-source file)
-     (when (not @interactive)
-       file))))
-
-(defmethod open-lasfile :path [path]
-  (open-lasfile (:source-manager @app) path))
-
-(defmethod open-lasfile :lasfile [lasfile]
-  (open-lasfile (:source-manager @app) lasfile))
+(defmethod open-source :content [& args]
+  (:lasfile @(apply open-source (rest args))))
