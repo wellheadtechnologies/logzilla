@@ -94,7 +94,7 @@
     (swing-agent
      (let [value (convert-to-double value)]
        (ignore :value-change chart 
-	       (chart-controller/set-chart-value chart 0 index value)
+	       (chart-controller/set-value chart {:curve 0 :index index} value)
 	       (chart-controller/save-chart chart))))))
 
 (defn create-save-button [editor]

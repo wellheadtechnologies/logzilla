@@ -81,6 +81,11 @@
    (let [widget (:widget @table)]
      (.setValueAt (.getModel widget) (double value) row col))))
 
+(defn get-value [table {:keys [row col]}]
+  (swing-getter
+   (let [widget (:widget @table)]
+     (.getValueAt (.getModel widget) row col))))
+
 (defn init-table [index dirty-curve]
   (let [widget (create-table-widget index [dirty-curve])
 	pane (JScrollPane. widget)

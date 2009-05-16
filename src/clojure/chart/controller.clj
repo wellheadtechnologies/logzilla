@@ -16,7 +16,7 @@
 	   (javax.swing JLabel ImageIcon SwingConstants)
 	   (java.awt Toolkit Image Point Cursor Rectangle Color AlphaComposite Font)))
 
-(declare save-chart update-percentage)
+(declare save-chart update-percentage set-value)
 
 (defstruct Chart
   :chart-panel
@@ -173,18 +173,6 @@
 			  (release-anchor chart))
 			(save-chart chart))))))
 
-(defn set-chart-value [chart curve-index data-index new-value]
-  (dosync 
-   (let [chart-panel (:chart-panel @chart)
-	 curves (:curves @chart)]
-     (alter chart assoc-in [:dirty-curves curve-index :data data-index] new-value)
-     (fire :value-change chart {:curve-index curve-index
-				:data-index data-index
-				:value new-value})
-     (swing-agent
-      (let [series (retrieve-series chart-panel curve-index)]
-	(.updateByIndex series data-index new-value))))))
-
 (defn center-on [chart x y]
   (swing-agent
    (let [{:keys [chart-panel dirty-curves anchor]} @chart]
@@ -213,14 +201,14 @@
 		    (and (:dragging-enabled @chart) (:dragged-entity @chart))
 		    (let [dragged-entity (:dragged-entity @chart)
 			  chart-panel (:chart-panel @chart)
-			  curve-index (.getSeriesIndex dragged-entity)]
+			  curve (.getSeriesIndex dragged-entity)]
 		      (when dragged-entity
 			(swing-agent
-			 (let [series (retrieve-series chart-panel curve-index)
-			       data-index (.getItem dragged-entity)
-			       new-value (xjava-2D-to-value chart-panel (.getX event))]
-			   (when (not (or (.isNaN new-value) (.isInfinite new-value)))
-			     (set-chart-value chart curve-index data-index new-value))))))
+			 (let [series (retrieve-series chart-panel curve)
+			       index (.getItem dragged-entity)
+			       value (xjava-2D-to-value chart-panel (.getX event))]
+			   (when (not (or (.isNaN value) (.isInfinite value)))
+			     (set-value chart {:curve curve :index index} value))))))
 		    
 		    (:panning-enabled @chart)
 		    (center-on chart (.getX event) (.getY event)))))))
@@ -483,3 +471,23 @@
      (ChartUtil/addToSeries new-series idata cdata)
      (.addSeries dataset new-series)
      (.repaint chart-panel))))
+
+(defn set-value [chart {:keys [curve index]} value]
+  (dosync 
+   (let [curve-index curve
+	 data-index index
+	 new-value (double value)
+	 chart-panel (:chart-panel @chart)
+	 curves (:curves @chart)]
+     (alter chart assoc-in [:dirty-curves curve-index :data data-index] new-value)
+     (fire :value-change chart {:curve-index curve-index
+				:data-index data-index
+				:value new-value})
+     (swing-agent
+      (let [series (retrieve-series chart-panel curve-index)]
+	(.updateByIndex series data-index new-value))))))
+
+(defn get-value [chart {:keys [curve index]}]
+  (let [dirty-curve (nth (:dirty-curves @chart) curve)
+	value (nth (:data dirty-curve) index)]
+    value))

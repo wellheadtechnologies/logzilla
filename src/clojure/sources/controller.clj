@@ -121,17 +121,21 @@
 	 (for [curve-icon array]
 	   (.getCurve curve-icon)))))))
 
-(defn open-curve-editor [source-manager]
-  (let [file @(get-selected-source source-manager)
-	curve (only (get-selected-curves (:curve-list file)))
-	lasfile (:lasfile file)]
-    (editor.controller/open-curve-editor lasfile curve)))
+(defn open-curve-editor 
+  ([] (open-curve-editor (:source-manager @app)))
+  ([source-manager]
+      (let [file @(get-selected-source source-manager)
+	    curve (only (get-selected-curves (:curve-list file)))
+	    lasfile (:lasfile file)]
+	(editor.controller/open-curve-editor lasfile curve))))
 
-(defn open-curve-merger [source-manager]
-  (let [file @(get-selected-source source-manager)
-	curves (get-selected-curves (:curve-list file))
-	lasfile (:lasfile file)]
-    (merger.controller/open-curve-merger lasfile curves)))
+(defn open-curve-merger 
+  ([] (open-curve-merger (:source-manager @app)))
+  ([source-manager]
+      (let [file @(get-selected-source source-manager)
+	    curves (get-selected-curves (:curve-list file))
+	    lasfile (:lasfile file)]
+	(merger.controller/open-curve-merger lasfile curves))))
 
 (defn open-curve-editor-action [source-manager e]
   (when (and (= (.getButton e) MouseEvent/BUTTON1)

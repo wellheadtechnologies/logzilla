@@ -14,8 +14,11 @@
   <logger name="gutil">
     <level value="error" />
   </logger>
+  <logger name="messages">
+    <level value="warn" />
+  </logger>
 
-  <root level="debug">
+  <root level="info">
     <appender-ref ref="FILE" />
     <appender-ref ref="STDOUT" />
   </root>
